@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022"],
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "dist-electron",
+    "rootDir": "src",
+    "types": ["node", "electron"]
+  },
+  "include": ["src/main", "src/preload"],
+  "exclude": ["src/**/*.test.ts"]
+}

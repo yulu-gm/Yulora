@@ -1,0 +1,5 @@
+node_modules
+dist
+dist-electron
+*.tsbuildinfo
+.DS_Store

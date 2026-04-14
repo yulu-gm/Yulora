@@ -1,0 +1,44 @@
+{
+  "name": "yulora",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first Markdown desktop editor MVP shell.",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:electron\" \"npm:dev:renderer\" \"npm:dev:main\"",
+    "dev:electron": "wait-on dist-electron/main.js dist-electron/preload.js tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "dev:main": "tsc -p tsconfig.electron.json --watch --preserveWatchOutput",
+    "dev:renderer": "vite",
+    "build": "npm run clean && npm run build:renderer && npm run build:electron",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "clean": "rimraf dist dist-electron tsconfig.*.tsbuildinfo",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.vitest.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.2.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4",
+    "wait-on": "^9.0.5"
+  }
+}
