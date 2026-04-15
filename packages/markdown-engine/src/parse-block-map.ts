@@ -5,6 +5,7 @@ import type {
   BlockMap,
   BlockquoteBlock,
   HeadingBlock,
+  ListItemBlock,
   ListBlock,
   MarkdownBlock,
   ParagraphBlock
@@ -18,7 +19,7 @@ export function parseBlockMap(source: string): BlockMap {
     if (kind === "enter") {
       if (token.type === "listOrdered" || token.type === "listUnordered") {
         if (containerDepth === 0) {
-          blocks.push(createListBlock(token, token.type === "listOrdered"));
+          blocks.push(createListBlock(token, token.type === "listOrdered", source));
         }
 
         containerDepth += 1;
@@ -75,10 +76,13 @@ function createParagraphBlock(token: Token): ParagraphBlock {
   return createBaseBlock("paragraph", token);
 }
 
-function createListBlock(token: Token, ordered: boolean): ListBlock {
+function createListBlock(token: Token, ordered: boolean, source: string): ListBlock {
+  const base = createBaseBlock("list", token);
+
   return {
-    ...createBaseBlock("list", token),
-    ordered
+    ...base,
+    ordered,
+    items: parseListItems(source.slice(base.startOffset, base.endOffset), base.startOffset, base.startLine)
   };
 }
 
@@ -121,4 +125,119 @@ function getHeadingDepth(token: Token, source: string): number {
   }
 
   return sequence[0] === "=" ? 1 : 2;
+}
+
+type LineInfo = {
+  text: string;
+  startOffset: number;
+  endOffset: number;
+  lineNumber: number;
+};
+
+type DraftListItem = {
+  startOffset: number;
+  startLine: number;
+  indent: number;
+  marker: string;
+  markerStart: number;
+  markerEnd: number;
+  task: ListItemBlock["task"];
+  endOffset: number;
+  endLine: number;
+};
+
+const LIST_ITEM_PATTERN = /^(\s*)([*+-]|\d+[.)])(?:[ \t]+|$)/;
+const TASK_MARKER_PATTERN = /^\[( |x|X)\](?=[ \t]|$)/;
+
+function parseListItems(sourceSlice: string, baseOffset: number, baseLine: number): ListItemBlock[] {
+  const lines = createLineInfos(sourceSlice, baseOffset, baseLine);
+  const items: DraftListItem[] = [];
+
+  for (const line of lines) {
+    const match = LIST_ITEM_PATTERN.exec(line.text);
+    if (!match) {
+      const current = items.at(-1);
+      if (current) {
+        current.endOffset = line.endOffset;
+        current.endLine = line.lineNumber;
+      }
+      continue;
+    }
+
+    const indent = match[1]?.length ?? 0;
+    const marker = match[2] ?? "-";
+    const markerStart = line.startOffset + indent;
+    const markerEnd = markerStart + marker.length;
+    const remainder = line.text.slice(match[0].length);
+    const task = parseTaskMarker(remainder, markerEnd + (match[0].length - indent - marker.length));
+
+    items.push({
+      startOffset: line.startOffset,
+      startLine: line.lineNumber,
+      indent,
+      marker,
+      markerStart,
+      markerEnd,
+      task,
+      endOffset: line.endOffset,
+      endLine: line.lineNumber
+    });
+  }
+
+  return items.map((item) => ({
+    id: `list-item:${item.startOffset}-${item.endOffset}`,
+    startOffset: item.startOffset,
+    endOffset: item.endOffset,
+    startLine: item.startLine,
+    endLine: item.endLine,
+    indent: item.indent,
+    marker: item.marker,
+    markerStart: item.markerStart,
+    markerEnd: item.markerEnd,
+    task: item.task
+  }));
+}
+
+function createLineInfos(sourceSlice: string, baseOffset: number, baseLine: number): LineInfo[] {
+  if (sourceSlice.length === 0) {
+    return [];
+  }
+
+  const lines: LineInfo[] = [];
+  let cursor = 0;
+  let lineNumber = baseLine;
+
+  while (cursor < sourceSlice.length) {
+    const lineEndIndex = sourceSlice.indexOf("\n", cursor);
+    const endIndex = lineEndIndex === -1 ? sourceSlice.length : lineEndIndex;
+
+    lines.push({
+      text: sourceSlice.slice(cursor, endIndex),
+      startOffset: baseOffset + cursor,
+      endOffset: baseOffset + endIndex,
+      lineNumber
+    });
+
+    if (lineEndIndex === -1) {
+      break;
+    }
+
+    cursor = lineEndIndex + 1;
+    lineNumber += 1;
+  }
+
+  return lines;
+}
+
+function parseTaskMarker(remainder: string, taskStartOffset: number): ListItemBlock["task"] {
+  const taskMatch = TASK_MARKER_PATTERN.exec(remainder);
+  if (!taskMatch) {
+    return null;
+  }
+
+  return {
+    checked: taskMatch[1]?.toLowerCase() === "x",
+    markerStart: taskStartOffset,
+    markerEnd: taskStartOffset + taskMatch[0].length
+  };
 }

@@ -12,6 +12,8 @@ type EditorHandle = {
   getContent: () => string;
   setContent: (content: string) => void;
   insertText: (text: string) => void;
+  setSelection: (anchor: number, head?: number) => void;
+  pressEnter: () => void;
 };
 
 export function createEditorTestDriver(input: {
@@ -79,6 +81,29 @@ export function createEditorTestDriver(input: {
         input.setEditorContentSnapshot(nextContent);
         input.applyState((current) => applyEditorContentChanged(current, nextContent));
         return ok("Editor text inserted.");
+      }
+
+      if (command.type === "set-editor-selection") {
+        const currentDocument = input.getState().currentDocument;
+        if (!currentDocument) {
+          return fail("No open document to select.");
+        }
+
+        input.editor.setSelection(command.anchor, command.head ?? command.anchor);
+        return ok("Editor selection updated.");
+      }
+
+      if (command.type === "press-editor-enter") {
+        const currentDocument = input.getState().currentDocument;
+        if (!currentDocument) {
+          return fail("No open document to edit.");
+        }
+
+        input.editor.pressEnter();
+        const nextContent = input.editor.getContent();
+        input.setEditorContentSnapshot(nextContent);
+        input.applyState((current) => applyEditorContentChanged(current, nextContent));
+        return ok("Editor Enter executed.");
       }
 
       if (command.type === "save-document") {

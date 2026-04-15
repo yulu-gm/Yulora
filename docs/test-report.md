@@ -9,6 +9,14 @@
 
 ## 记录
 
+| 2026-04-15 | TASK-012 | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖列表项 metadata、任务列表勾选标记、嵌套列表缩进与 list/blockquotes 边界。 |
+| 2026-04-15 | TASK-012 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖非激活态列表 / 任务列表渲染、ordered marker 样式、Enter 续项、空项退出与既有 heading/paragraph/IME 回归。 |
+| 2026-04-15 | TASK-012 | `npm run test -- src/renderer/editor-test-driver.test.ts` | 通过 | 覆盖 editor test driver 对 `set-editor-selection` 与 `press-editor-enter` 两个最小命令的支持。 |
+| 2026-04-15 | TASK-012 | `npm run test -- packages/test-harness/src/handlers/electron.test.ts packages/test-harness/src/registry.test.ts` | 通过 | 确认 `list-enter-behavior-basic` scenario 已注册，并正确映射到 fixture 打开、光标设置、Enter 与内容断言命令。 |
+| 2026-04-15 | TASK-012 | `npm run lint` | 通过 | 列表 metadata、CodeMirror Enter 命令、editor test driver 与 harness scenario 相关改动均通过 ESLint。 |
+| 2026-04-15 | TASK-012 | `npm run typecheck` | 通过 | renderer、electron、vitest、cli 四套 TypeScript 检查全部通过。 |
+| 2026-04-15 | TASK-012 | `npm run test` | 通过 | Vitest 报告 29 个文件、152 条测试全部通过，包含新增 parser、renderer、driver 与 harness scenario coverage。 |
+| 2026-04-15 | TASK-012 | `npm run build` | 通过 | renderer、electron 与 cli 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本轮交付。 |
 | 2026-04-15 | TASK-035 | `manual: npm run dev` | 通过 | 验收复核：用户已在真实桌面壳中完成中文 IME 人工验收，确认段落、标题、列表输入不丢字、不跳光标，且 autosave 后光标不再跳到文首。 |
 | 2026-04-15 | TASK-035 | `npm run lint` | 通过 | 验收复核：ESLint 全量检查通过。 |
 | 2026-04-15 | TASK-035 | `npm run typecheck` | 通过 | 验收复核：renderer、electron、vitest 三套 TypeScript 检查全部通过。 |

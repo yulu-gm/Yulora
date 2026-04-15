@@ -65,5 +65,34 @@ export function createElectronStepHandlers(input: {
     };
   }
 
+  if (input.scenario.id === "list-enter-behavior-basic") {
+    const fixturePath = resolve(input.cwd, "fixtures/test-harness/list-enter-behavior-basic.md");
+
+    return {
+      "launch-dev-shell": ({ signal }) =>
+        runCheckedCommand({ type: "wait-for-editor-ready" }, signal),
+      "open-list-fixture": ({ signal }) =>
+        runCheckedCommand({ type: "open-fixture-file", fixturePath }, signal),
+      "place-cursor-at-task-end": ({ signal }) =>
+        runCheckedCommand({ type: "set-editor-selection", anchor: 10, head: 10 }, signal),
+      "press-enter-to-continue-task": ({ signal }) =>
+        runCheckedCommand({ type: "press-editor-enter" }, signal),
+      "assert-task-continued": ({ signal }) =>
+        runCheckedCommand(
+          { type: "assert-editor-content", expectedContent: "- [ ] todo\n- [ ] \n" },
+          signal
+        ),
+      "place-cursor-at-empty-task-end": ({ signal }) =>
+        runCheckedCommand({ type: "set-editor-selection", anchor: 17, head: 17 }, signal),
+      "press-enter-to-exit-empty-task": ({ signal }) =>
+        runCheckedCommand({ type: "press-editor-enter" }, signal),
+      "assert-empty-task-exit": ({ signal }) =>
+        runCheckedCommand(
+          { type: "assert-editor-content", expectedContent: "- [ ] todo\n" },
+          signal
+        )
+    };
+  }
+
   return {};
 }

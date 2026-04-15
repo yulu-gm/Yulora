@@ -26,6 +26,10 @@ const dispatchCompositionEvent = (
   target.dispatchEvent(new CompositionEvent(type, { bubbles: true, data }));
 };
 
+const flushMicrotasks = async () => {
+  await Promise.resolve();
+};
+
 describe("createCodeEditorController", () => {
   it("returns the current content and can replace the loaded document", () => {
     const host = document.createElement("div");
@@ -123,12 +127,34 @@ describe("createCodeEditorController", () => {
     expect(headingLine?.classList.contains("cm-inactive-heading")).toBe(true);
     expect(headingLine?.classList.contains("cm-inactive-heading-depth-1")).toBe(true);
     expect(headingMarker).not.toBeNull();
-    expect(headingMarker?.textContent).toBe("#");
+    expect(headingMarker?.textContent).toBe("# ");
 
     controller.destroy();
   });
 
-  it("removes inactive heading decorations when the heading becomes active again", () => {
+  it("styles the first heading as inactive before the editor receives focus", () => {
+    const host = document.createElement("div");
+    const source = "# Title";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const headingLine = getLineElementByText(host, "# Title");
+    const headingMarker = host.querySelector(".cm-inactive-heading-marker");
+
+    expect(headingLine).not.toBeNull();
+    expect(headingLine?.classList.contains("cm-inactive-heading")).toBe(true);
+    expect(headingLine?.classList.contains("cm-inactive-heading-depth-1")).toBe(true);
+    expect(headingMarker).not.toBeNull();
+    expect(headingMarker?.textContent).toBe("# ");
+
+    controller.destroy();
+  });
+
+  it("removes inactive heading decorations when the heading becomes active again", async () => {
     const host = document.createElement("div");
     const source = ["# Title", "", "Paragraph"].join("\n");
 
@@ -142,8 +168,15 @@ describe("createCodeEditorController", () => {
 
     expect(view).not.toBeNull();
 
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
     view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
     expect(host.querySelector(".cm-inactive-heading-marker")).not.toBeNull();
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
 
     view?.dispatch({ selection: { anchor: source.indexOf("Title") } });
 
@@ -230,7 +263,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("removes inactive paragraph decorations when that paragraph becomes active again", () => {
+  it("removes inactive paragraph decorations when that paragraph becomes active again", async () => {
     const host = document.createElement("div");
     const source = ["Paragraph one", "", "Paragraph two"].join("\n");
 
@@ -244,10 +277,17 @@ describe("createCodeEditorController", () => {
 
     expect(view).not.toBeNull();
 
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
     view?.dispatch({ selection: { anchor: source.indexOf("Paragraph two") } });
     expect(getLineElementByText(host, "Paragraph one")?.classList.contains("cm-inactive-paragraph")).toBe(
       true
     );
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
 
     view?.dispatch({ selection: { anchor: source.indexOf("Paragraph one") } });
 
@@ -280,9 +320,170 @@ describe("createCodeEditorController", () => {
 
     expect(headingLine).not.toBeNull();
     expect(headingLine?.classList.contains("cm-inactive-heading")).toBe(true);
-    expect(host.querySelector(".cm-inactive-heading-marker")).not.toBeNull();
+    const headingMarker = host.querySelector(".cm-inactive-heading-marker");
+    expect(headingMarker).not.toBeNull();
+    expect(headingMarker?.textContent).toBe("# ");
     expect(firstParagraphLine).not.toBeNull();
     expect(firstParagraphLine?.classList.contains("cm-inactive-paragraph")).toBe(true);
+
+    controller.destroy();
+  });
+
+  it("applies inactive list decorations when focus moves into a non-list block", () => {
+    const host = document.createElement("div");
+    const source = ["- one", "- [ ] todo", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const firstListLine = getLineElementByText(host, "- one");
+    const taskListLine = getLineElementByText(host, "- [ ] todo");
+    const listMarkers = host.querySelectorAll(".cm-inactive-list-marker");
+    const taskMarkers = host.querySelectorAll(".cm-inactive-task-marker");
+
+    expect(firstListLine).not.toBeNull();
+    expect(firstListLine?.classList.contains("cm-inactive-list")).toBe(true);
+    expect(firstListLine?.classList.contains("cm-inactive-list-unordered")).toBe(true);
+    expect(taskListLine).not.toBeNull();
+    expect(taskListLine?.classList.contains("cm-inactive-list")).toBe(true);
+    expect(listMarkers.length).toBe(2);
+    expect(taskMarkers.length).toBe(1);
+
+    controller.destroy();
+  });
+
+  it("styles ordered and checked task markers distinctly in inactive lists", () => {
+    const host = document.createElement("div");
+    const source = ["1. first", "2. [x] done", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const firstListLine = getLineElementByText(host, "1. first");
+    const checkedTaskMarker = host.querySelector(".cm-inactive-task-marker-checked");
+    const checkedTaskLine = getLineElementByText(host, "2. [x] done");
+
+    expect(firstListLine).not.toBeNull();
+    expect(firstListLine?.classList.contains("cm-inactive-list-ordered")).toBe(true);
+    expect(checkedTaskMarker).not.toBeNull();
+    expect(checkedTaskMarker?.getAttribute("data-task-state")).toBe("checked");
+    expect(checkedTaskLine?.classList.contains("cm-inactive-list-task")).toBe(true);
+    expect(checkedTaskLine?.classList.contains("cm-inactive-list-task-checked")).toBe(true);
+
+    controller.destroy();
+  });
+
+  it("continues a non-empty task list item on Enter", () => {
+    const host = document.createElement("div");
+    const source = "- [ ] todo";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    expect(typeof advancedController.setSelection).toBe("function");
+    expect(typeof advancedController.pressEnter).toBe("function");
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("- [ ] todo\n- [ ] ");
+
+    controller.destroy();
+  });
+
+  it("increments ordered list markers on Enter", () => {
+    const host = document.createElement("div");
+    const source = "2. next";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    expect(typeof advancedController.setSelection).toBe("function");
+    expect(typeof advancedController.pressEnter).toBe("function");
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("2. next\n3. ");
+
+    controller.destroy();
+  });
+
+  it("exits an empty nested list item on Enter", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "  - "].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    expect(typeof advancedController.setSelection).toBe("function");
+    expect(typeof advancedController.pressEnter).toBe("function");
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("- parent\n");
+
+    controller.destroy();
+  });
+
+  it("removes the trailing newline when exiting an empty task item at EOF", () => {
+    const host = document.createElement("div");
+    const source = "- [ ] todo\n- [ ] \n";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    advancedController.setSelection(17);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("- [ ] todo\n");
 
     controller.destroy();
   });

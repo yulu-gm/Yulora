@@ -1,10 +1,23 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { createElectronStepHandlers } from "./electron";
 import { appShellStartupScenario } from "../scenarios/app-shell-startup";
+import { listEnterBehaviorBasicScenario } from "../scenarios/list-enter-behavior-basic";
 import { openMarkdownFileBasicScenario } from "../scenarios/open-markdown-file-basic";
 
 describe("createElectronStepHandlers", () => {
+  it("keeps the list-enter fixture aligned with the scenario assumptions", async () => {
+    const fixturePath = resolve(
+      "C:/Users/yulu/Documents/Yulora/Yulora",
+      "fixtures/test-harness/list-enter-behavior-basic.md"
+    );
+
+    await expect(readFile(fixturePath, "utf8")).resolves.toBe("- [ ] todo\n");
+  });
+
   it("maps the startup scenario to ready, empty-workspace, and close-window commands", async () => {
     const runCommand = vi.fn().mockResolvedValue({ ok: true });
     const handlers = createElectronStepHandlers({
@@ -94,5 +107,81 @@ describe("createElectronStepHandlers", () => {
         signal: new AbortController().signal
       })
     ).rejects.toThrow("renderer failure");
+  });
+
+  it("maps the list-enter scenario to selection, enter, and content assertions", async () => {
+    const runCommand = vi.fn().mockResolvedValue({ ok: true });
+    const handlers = createElectronStepHandlers({
+      scenario: listEnterBehaviorBasicScenario,
+      cwd: "D:/MyAgent/Yulora/Yulora",
+      runCommand
+    });
+
+    await handlers["open-list-fixture"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[1]!,
+      signal: new AbortController().signal
+    });
+    await handlers["place-cursor-at-task-end"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[2]!,
+      signal: new AbortController().signal
+    });
+    await handlers["press-enter-to-continue-task"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[3]!,
+      signal: new AbortController().signal
+    });
+    await handlers["assert-task-continued"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[4]!,
+      signal: new AbortController().signal
+    });
+    await handlers["place-cursor-at-empty-task-end"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[5]!,
+      signal: new AbortController().signal
+    });
+    await handlers["press-enter-to-exit-empty-task"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[6]!,
+      signal: new AbortController().signal
+    });
+    await handlers["assert-empty-task-exit"]?.({
+      scenarioId: listEnterBehaviorBasicScenario.id,
+      step: listEnterBehaviorBasicScenario.steps[7]!,
+      signal: new AbortController().signal
+    });
+
+    expect(runCommand.mock.calls.map(([command]) => command)).toEqual([
+      {
+        type: "open-fixture-file",
+        fixturePath: "D:\\MyAgent\\Yulora\\Yulora\\fixtures\\test-harness\\list-enter-behavior-basic.md"
+      },
+      {
+        type: "set-editor-selection",
+        anchor: 10,
+        head: 10
+      },
+      {
+        type: "press-editor-enter"
+      },
+      {
+        type: "assert-editor-content",
+        expectedContent: "- [ ] todo\n- [ ] \n"
+      },
+      {
+        type: "set-editor-selection",
+        anchor: 17,
+        head: 17
+      },
+      {
+        type: "press-editor-enter"
+      },
+      {
+        type: "assert-editor-content",
+        expectedContent: "- [ ] todo\n"
+      }
+    ]);
   });
 });

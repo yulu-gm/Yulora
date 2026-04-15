@@ -1,30 +1,89 @@
 import { contextBridge, ipcRenderer } from "electron";
-import {
-  OPEN_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL
-} from "../shared/open-markdown-file";
-import {
-  COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
-  EDITOR_TEST_COMMAND_EVENT,
-  type EditorTestCommandEnvelope,
-  type EditorTestCommandResultEnvelope
-} from "../shared/editor-test-command";
-import {
-  INTERRUPT_SCENARIO_RUN_CHANNEL,
-  SCENARIO_RUN_EVENT,
-  SCENARIO_RUN_TERMINAL_EVENT,
-  START_SCENARIO_RUN_CHANNEL,
-  type RunnerEventEnvelope,
-  type ScenarioRunTerminal
-} from "../shared/test-run-session";
 
+// Preload runs inside Electron's sandboxed environment, so local module imports
+// can prevent the bridge from loading at all. Keep the contract self-contained here.
+const OPEN_MARKDOWN_FILE_CHANNEL = "yulora:open-markdown-file";
+const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "yulora:open-markdown-file-from-path";
 const SAVE_MARKDOWN_FILE_CHANNEL = "yulora:save-markdown-file";
 const SAVE_MARKDOWN_FILE_AS_CHANNEL = "yulora:save-markdown-file-as";
 const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
+const START_SCENARIO_RUN_CHANNEL = "yulora:start-scenario-run";
+const INTERRUPT_SCENARIO_RUN_CHANNEL = "yulora:interrupt-scenario-run";
+const SCENARIO_RUN_EVENT = "yulora:scenario-run-event";
+const SCENARIO_RUN_TERMINAL_EVENT = "yulora:scenario-run-terminal";
+const EDITOR_TEST_COMMAND_EVENT = "yulora:editor-test-command";
+const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "yulora:complete-editor-test-command";
 const APP_MENU_COMMAND_EVENT = "yulora:app-menu-command";
 const RUNTIME_MODE_ARGUMENT_PREFIX = "--yulora-runtime-mode=";
 
 type AppMenuCommand = "open-markdown-file" | "save-markdown-file" | "save-markdown-file-as";
+type EditorTestCommand =
+  | { type: "wait-for-editor-ready" }
+  | { type: "open-fixture-file"; fixturePath: string }
+  | { type: "set-editor-content"; content: string }
+  | { type: "insert-editor-text"; text: string }
+  | { type: "save-document" }
+  | { type: "assert-document-path"; expectedPath: string }
+  | { type: "assert-editor-content"; expectedContent: string }
+  | { type: "assert-dirty-state"; expectedDirty: boolean }
+  | { type: "assert-empty-workspace" }
+  | { type: "close-editor-window" };
+
+type EditorTestCommandEnvelope = {
+  sessionId: string;
+  commandId: string;
+  command: EditorTestCommand;
+};
+
+type EditorTestCommandResultEnvelope = {
+  sessionId: string;
+  commandId: string;
+  result: {
+    ok: boolean;
+    message?: string;
+    details?: Record<string, unknown>;
+  };
+};
+
+type ScenarioRunStatus = "idle" | "running" | "passed" | "failed" | "timed-out" | "interrupted";
+
+type ScenarioRunErrorInfo = {
+  message: string;
+  stack?: string;
+  kind?: "config" | "step" | "timeout" | "abort";
+};
+
+type RunnerEventEnvelope = {
+  runId: string;
+  event:
+    | { type: "scenario-start"; scenarioId: string; at: number }
+    | { type: "step-start"; scenarioId: string; stepId: string; at: number }
+    | {
+        type: "step-end";
+        scenarioId: string;
+        stepId: string;
+        status: "pending" | "running" | "passed" | "failed" | "timed-out" | "skipped";
+        at: number;
+        durationMs: number;
+        error?: ScenarioRunErrorInfo;
+      }
+    | {
+        type: "scenario-end";
+        scenarioId: string;
+        status: Exclude<ScenarioRunStatus, "idle">;
+        at: number;
+        error?: ScenarioRunErrorInfo & { stepId?: string };
+      };
+};
+
+type ScenarioRunTerminal = {
+  runId: string;
+  exitCode: number;
+  status: Exclude<ScenarioRunStatus, "idle">;
+  resultPath?: string;
+  stepTracePath?: string;
+  error?: ScenarioRunErrorInfo & { stepId?: string };
+};
 
 function resolveRuntimeModeFromArgv(argv: string[]): "editor" | "test-workbench" {
   const runtimeArgument = argv.find((entry) => entry.startsWith(RUNTIME_MODE_ARGUMENT_PREFIX));

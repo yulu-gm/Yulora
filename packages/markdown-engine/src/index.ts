@@ -2,6 +2,7 @@ export type {
   BlockMap,
   BlockquoteBlock,
   HeadingBlock,
+  ListItemBlock,
   ListBlock,
   MarkdownBlock,
   ParagraphBlock

@@ -230,6 +230,12 @@ function EditorApp({ yulora }: { yulora: Window["yulora"] }) {
         },
         insertText: (text: string) => {
           editorRef.current?.insertText(text);
+        },
+        setSelection: (anchor: number, head?: number) => {
+          editorRef.current?.setSelection(anchor, head);
+        },
+        pressEnter: () => {
+          editorRef.current?.pressEnter();
         }
       },
       setEditorContentSnapshot: (content: string) => {

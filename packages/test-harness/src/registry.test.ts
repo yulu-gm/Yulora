@@ -90,6 +90,7 @@ describe("defaultScenarioRegistry", () => {
     expect(ids).toEqual(seedScenarios.map((scenario) => scenario.id));
     expect(ids).toContain("app-shell-startup");
     expect(ids).toContain("open-markdown-file-basic");
+    expect(ids).toContain("list-enter-behavior-basic");
   });
 
   it("exposes every seeded scenario through get()", () => {

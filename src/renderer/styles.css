@@ -566,8 +566,7 @@ body {
 }
 
 .document-editor .cm-inactive-heading-marker {
-  color: #98a2b3;
-  opacity: 0.58;
+  display: none;
 }
 
 .document-editor .cm-inactive-heading-depth-1 {
@@ -608,6 +607,111 @@ body {
 
 .document-editor .cm-inactive-paragraph-leading {
   line-height: 1.95;
+}
+
+.document-editor .cm-inactive-list {
+  color: #344054;
+}
+
+.document-editor .cm-inactive-list-unordered,
+.document-editor .cm-inactive-list-ordered {
+  line-height: 1.84;
+}
+
+.document-editor .cm-inactive-list-marker {
+  color: #a8b1bd;
+  font-weight: 500;
+  opacity: 0.82;
+}
+
+.document-editor .cm-inactive-list-unordered .cm-inactive-list-marker {
+  position: relative;
+  display: inline-block;
+  width: 0.9rem;
+  color: transparent;
+  opacity: 1;
+}
+
+.document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.32rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: #98a2b3;
+  transform: translateY(-50%);
+}
+
+.document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {
+  display: inline-block;
+  min-width: 1.35rem;
+  margin-right: 0.12rem;
+  text-align: right;
+}
+
+.document-editor .cm-inactive-list-task .cm-inactive-list-marker {
+  display: inline-block;
+  width: 0;
+  min-width: 0;
+  margin-right: 0;
+  color: transparent;
+}
+
+.document-editor .cm-inactive-task-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.48rem;
+  color: transparent;
+  font-size: 0;
+  vertical-align: -0.12rem;
+}
+
+.document-editor .cm-inactive-task-marker-unchecked {
+  color: transparent;
+}
+
+.document-editor .cm-inactive-task-marker-checked {
+  color: transparent;
+}
+
+.document-editor .cm-inactive-task-marker::before {
+  content: "";
+  box-sizing: border-box;
+  width: 0.92rem;
+  height: 0.92rem;
+  border: 1.5px solid #b6bec9;
+  border-radius: 0.2rem;
+  background: #fff;
+}
+
+.document-editor .cm-inactive-task-marker[data-task-state="checked"]::after {
+  content: "";
+  position: absolute;
+  top: 0.23rem;
+  left: 0.35rem;
+  width: 0.22rem;
+  height: 0.42rem;
+  border-right: 2px solid #4b5565;
+  border-bottom: 2px solid #4b5565;
+  transform: rotate(45deg);
+}
+
+.document-editor .cm-inactive-list-task-checked {
+  color: #475467;
+}
+
+.document-editor .cm-inactive-list-depth-1 {
+  padding-left: 0.4rem;
+}
+
+.document-editor .cm-inactive-list-depth-2 {
+  padding-left: 0.8rem;
 }
 
 .document-editor .cm-focused {

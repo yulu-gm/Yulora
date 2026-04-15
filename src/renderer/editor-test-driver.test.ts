@@ -21,7 +21,11 @@ function createHarness() {
       },
       insertText: (text: string) => {
         editorContent += text;
-      }
+      },
+      setSelection: vi.fn(),
+      pressEnter: vi.fn(() => {
+        editorContent += "\n";
+      })
     },
     setEditorContentSnapshot: (content: string) => {
       editorContent = content;
@@ -145,5 +149,44 @@ describe("createEditorTestDriver", () => {
         type: "assert-empty-workspace"
       })
     ).resolves.toMatchObject({ ok: true, message: "Workspace is empty." });
+  });
+
+  it("can set selection and press Enter through the driver", async () => {
+    const harness = createHarness();
+    harness.openMarkdownFileFromPath.mockResolvedValue({
+      status: "success",
+      document: {
+        path: "C:/fixtures/list.md",
+        name: "list.md",
+        content: "- [ ] todo",
+        encoding: "utf-8"
+      }
+    });
+    harness.editor.pressEnter = vi.fn(() => {
+      harness.setEditorContentSnapshot("- [ ] todo\n- [ ] ");
+    });
+
+    await harness.driver.run({
+      type: "open-fixture-file",
+      fixturePath: "C:/fixtures/list.md"
+    });
+
+    await expect(
+      harness.driver.run({
+        type: "set-editor-selection",
+        anchor: 10
+      })
+    ).resolves.toMatchObject({ ok: true, message: "Editor selection updated." });
+
+    await expect(
+      harness.driver.run({
+        type: "press-editor-enter"
+      })
+    ).resolves.toMatchObject({ ok: true, message: "Editor Enter executed." });
+
+    expect(harness.editor.setSelection).toHaveBeenCalledWith(10, 10);
+    expect(harness.editor.pressEnter).toHaveBeenCalledTimes(1);
+    expect(harness.readEditorContent()).toBe("- [ ] todo\n- [ ] ");
+    expect(harness.readState().isDirty).toBe(true);
   });
 });

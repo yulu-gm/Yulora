@@ -16,9 +16,29 @@ export interface ParagraphBlock extends BaseBlock {
   type: "paragraph";
 }
 
+export interface ListItemTaskMarker {
+  checked: boolean;
+  markerStart: number;
+  markerEnd: number;
+}
+
+export interface ListItemBlock {
+  id: string;
+  startOffset: number;
+  endOffset: number;
+  startLine: number;
+  endLine: number;
+  indent: number;
+  marker: string;
+  markerStart: number;
+  markerEnd: number;
+  task: ListItemTaskMarker | null;
+}
+
 export interface ListBlock extends BaseBlock {
   type: "list";
   ordered: boolean;
+  items: readonly ListItemBlock[];
 }
 
 export interface BlockquoteBlock extends BaseBlock {

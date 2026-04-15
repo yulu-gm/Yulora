@@ -16,6 +16,8 @@ export type CodeEditorHandle = {
   getContent: () => string;
   setContent: (content: string) => void;
   insertText: (text: string) => void;
+  setSelection: (anchor: number, head?: number) => void;
+  pressEnter: () => void;
 };
 
 type CodeEditorViewProps = {
@@ -82,6 +84,12 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
         },
         insertText: (text: string) => {
           controllerRef.current?.insertText(text);
+        },
+        setSelection: (anchor: number, head?: number) => {
+          controllerRef.current?.setSelection(anchor, head);
+        },
+        pressEnter: () => {
+          controllerRef.current?.pressEnter();
         }
       }),
       [initialContent]

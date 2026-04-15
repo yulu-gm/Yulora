@@ -44,7 +44,33 @@ describe("parseBlockMap", () => {
         endOffset: 55,
         startLine: 6,
         endLine: 7,
-        ordered: false
+        ordered: false,
+        items: [
+          {
+            id: "list-item:44-49",
+            startOffset: 44,
+            endOffset: 49,
+            startLine: 6,
+            endLine: 6,
+            indent: 0,
+            marker: "-",
+            markerStart: 44,
+            markerEnd: 45,
+            task: null
+          },
+          {
+            id: "list-item:50-55",
+            startOffset: 50,
+            endOffset: 55,
+            startLine: 7,
+            endLine: 7,
+            indent: 0,
+            marker: "-",
+            markerStart: 50,
+            markerEnd: 51,
+            task: null
+          }
+        ]
       },
       {
         id: "blockquote:57-71",
@@ -79,7 +105,33 @@ describe("parseBlockMap", () => {
         endOffset: 26,
         startLine: 4,
         endLine: 5,
-        ordered: true
+        ordered: true,
+        items: [
+          {
+            id: "list-item:13-19",
+            startOffset: 13,
+            endOffset: 19,
+            startLine: 4,
+            endLine: 4,
+            indent: 0,
+            marker: "1.",
+            markerStart: 13,
+            markerEnd: 15,
+            task: null
+          },
+          {
+            id: "list-item:20-26",
+            startOffset: 20,
+            endOffset: 26,
+            startLine: 5,
+            endLine: 5,
+            indent: 0,
+            marker: "2.",
+            markerStart: 20,
+            markerEnd: 22,
+            task: null
+          }
+        ]
       }
     ]);
 
@@ -103,7 +155,21 @@ describe("parseBlockMap", () => {
         endOffset: 19,
         startLine: 1,
         endLine: 2,
-        ordered: false
+        ordered: false,
+        items: [
+          {
+            id: "list-item:0-19",
+            startOffset: 0,
+            endOffset: 19,
+            startLine: 1,
+            endLine: 2,
+            indent: 0,
+            marker: "-",
+            markerStart: 0,
+            markerEnd: 1,
+            task: null
+          }
+        ]
       },
       {
         id: "blockquote:21-35",
@@ -112,6 +178,92 @@ describe("parseBlockMap", () => {
         endOffset: 35,
         startLine: 4,
         endLine: 5
+      }
+    ]);
+  });
+
+  it("captures list item metadata for ordered, unordered, task, and nested items", () => {
+    const source = ["- one", "  - [x] done", "1. first", "2. [ ] second"].join("\n");
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toEqual([
+      {
+        id: "list:0-18",
+        type: "list",
+        startOffset: 0,
+        endOffset: 18,
+        startLine: 1,
+        endLine: 2,
+        ordered: false,
+        items: [
+          {
+            id: "list-item:0-5",
+            startOffset: 0,
+            endOffset: 5,
+            startLine: 1,
+            endLine: 1,
+            indent: 0,
+            marker: "-",
+            markerStart: 0,
+            markerEnd: 1,
+            task: null
+          },
+          {
+            id: "list-item:6-18",
+            startOffset: 6,
+            endOffset: 18,
+            startLine: 2,
+            endLine: 2,
+            indent: 2,
+            marker: "-",
+            markerStart: 8,
+            markerEnd: 9,
+            task: {
+              checked: true,
+              markerStart: 10,
+              markerEnd: 13
+            }
+          }
+        ]
+      },
+      {
+        id: "list:19-41",
+        type: "list",
+        startOffset: 19,
+        endOffset: 41,
+        startLine: 3,
+        endLine: 4,
+        ordered: true,
+        items: [
+          {
+            id: "list-item:19-27",
+            startOffset: 19,
+            endOffset: 27,
+            startLine: 3,
+            endLine: 3,
+            indent: 0,
+            marker: "1.",
+            markerStart: 19,
+            markerEnd: 21,
+            task: null
+          },
+          {
+            id: "list-item:28-41",
+            startOffset: 28,
+            endOffset: 41,
+            startLine: 4,
+            endLine: 4,
+            indent: 0,
+            marker: "2.",
+            markerStart: 28,
+            markerEnd: 30,
+            task: {
+              checked: false,
+              markerStart: 31,
+              markerEnd: 34
+            }
+          }
+        ]
       }
     ]);
   });

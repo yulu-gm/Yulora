@@ -41,6 +41,13 @@ describe("package scripts", () => {
     expect(viteConfigSource).toContain("YULORA_DEV_SERVER_PORT");
   });
 
+  it("uses relative asset URLs for the renderer build output", () => {
+    const viteConfigPath = path.join(process.cwd(), "vite.config.ts");
+    const viteConfigSource = readFileSync(viteConfigPath, "utf8");
+
+    expect(viteConfigSource).toContain('base: "./"');
+  });
+
   it("does not import local shared modules from the preload source", () => {
     const preloadPath = path.join(process.cwd(), "src", "preload", "preload.ts");
     const preloadSource = readFileSync(preloadPath, "utf8");

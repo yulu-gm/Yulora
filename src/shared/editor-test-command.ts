@@ -6,6 +6,8 @@ export type EditorTestCommand =
   | { type: "open-fixture-file"; fixturePath: string }
   | { type: "set-editor-content"; content: string }
   | { type: "insert-editor-text"; text: string }
+  | { type: "set-editor-selection"; anchor: number; head?: number }
+  | { type: "press-editor-enter" }
   | { type: "save-document" }
   | { type: "assert-document-path"; expectedPath: string }
   | { type: "assert-editor-content"; expectedContent: string }

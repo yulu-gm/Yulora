@@ -54,7 +54,7 @@
 | TASK-009 | active block 状态 | DEV_DONE | 已在 `packages/editor-core` 中落地 active block 解析，并由 CodeMirror 选择变化驱动 renderer 侧当前块状态。 |
 | TASK-010 | 标题渲染 | CLOSED | 标题 `#` 弱化、激活回源码态、目标测试、人工验收与合并前门禁均已完成。 |
 | TASK-011 | 段落渲染 | CLOSED | 非激活段落轻量渲染、激活回源码态、目标测试、人工验收与合并前门禁均已完成。 |
-| TASK-012 | 列表与任务列表渲染 | TODO | 列表行为与回车处理。 |
+| TASK-012 | 列表与任务列表渲染 | DEV_DONE | 已补齐列表项 block metadata、非激活态列表/任务列表渲染、Enter 续项与空项退出规则，并新增 harness scenario 覆盖回归路径。 |
 | TASK-013 | 引用块渲染 | TODO | 引用块显示与编辑行为。 |
 | TASK-014 | 链接显示与编辑 | TODO | 链接文本渲染与浏览器打开。 |
 | TASK-015 | 图片粘贴 | TODO | 粘贴图片落盘。 |
