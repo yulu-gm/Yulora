@@ -1,5 +1,7 @@
 ﻿# TASK-025 总结
 
+结果：PASS
+
 范围:
 - 增加独立测试工作台启动模式
 - 让测试工作台窗口与普通编辑器窗口分离
@@ -20,6 +22,12 @@
 - `npm run typecheck`
 - `npm run test`
 - `npm run build`
+
+验收复核（2026-04-15）:
+- `npm run test -- src/main/runtime-windows.test.ts src/main/package-scripts.test.ts src/renderer/test-workbench.test.tsx src/renderer/app.autosave.test.ts`：通过（4 个文件、18 条测试；当前 Windows 沙箱里需提权绕过 `spawn EPERM`）
+- `npm run lint`：通过
+- `npm run typecheck`：通过
+- `npm run build`：通过（存在 Vite 默认的大 bundle warning，但不阻塞本任务验收）
 
 人工验收:
 - 运行 `npm run dev:test-workbench`
