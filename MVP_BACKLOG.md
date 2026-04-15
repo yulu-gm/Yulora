@@ -254,10 +254,10 @@
 - 不破坏基础输入行为
 
 执行切片：
-- [x] 定义 active block 的状态结构和来源
-- [x] 将 CodeMirror 选择变化映射到 block id 或 block range
-- [x] 给 renderer 暴露可消费的当前块信息
-- [x] 验证输入、选择和 undo/redo 没被破坏
+- [ ] 定义 active block 的状态结构和来源
+- [ ] 将 CodeMirror 选择变化映射到 block id 或 block range
+- [ ] 给 renderer 暴露可消费的当前块信息
+- [ ] 验证输入、选择和 undo/redo 没被破坏
 
 ---
 
@@ -664,10 +664,10 @@
 - 可在测试模式下启动，不影响正常开发壳
 
 执行切片：
-- [ ] 在 `src/main/` 中建立测试工作台窗口创建逻辑
-- [ ] 在 `src/preload/` 中暴露测试模式最小 bridge
-- [ ] 在 `src/renderer/` 中建立测试工作台基础页面
-- [ ] 验证窗口启动、关闭与主窗口互不干扰
+- [x] 在 `src/main/` 中建立测试工作台窗口创建逻辑
+- [x] 在 `src/preload/` 中暴露测试模式最小 bridge
+- [x] 在 `src/renderer/` 中建立测试工作台基础页面
+- [x] 验证窗口启动、关闭与主窗口互不干扰
 
 ### TASK-026 场景注册表与场景元数据模型
 
