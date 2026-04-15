@@ -76,7 +76,7 @@
 | TASK-031 | 核心场景扩充 | TODO | 首批可持续使用的核心测试场景集。 |
 | TASK-033 | 代码块渲染 | TODO | fenced code block 的源码/渲染切换与 round-trip 保真。 |
 | TASK-034 | 行内格式渲染 | TODO | bold / italic / inline code / strikethrough 的激活切换。 |
-| TASK-035 | IME 基线保护 | TODO | 在块级渲染启动前固化组合输入保护，先于 TASK-010 推进。 |
+| TASK-035 | IME 基线保护 | ACCEPTED | 已完成 composition guard、autosave 光标回归修复与段落/标题/列表回归测试，并通过本轮中文 IME 人工验收。 |
 | TASK-036 | 外部文件变更检测 | TODO | 外部修改当前文件时的提示与冲突处理，避免 autosave 覆盖。 |
 | TASK-037 | 偏好设置持久化 | TODO | 最小配置存储，承载 autosave 间隔、最近文件上限、字体主题等。 |
 | TASK-038 | 跨平台打包 | TODO | macOS / Windows 可安装产物管线，保留签名与自动更新接入点。 |

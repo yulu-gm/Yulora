@@ -30,6 +30,8 @@ export function createCodeEditorController(
     anchor: 0,
     head: 0
   });
+  let isCompositionGuardActive = false;
+  let hasPendingDerivedStateFlush = false;
 
   const createSelectionSnapshot = (state: EditorState) => ({
     anchor: state.selection.main.anchor,
@@ -49,6 +51,14 @@ export function createCodeEditorController(
     if (didChange) {
       options.onActiveBlockChange?.(nextState);
     }
+  };
+
+  const recomputeDerivedState = (state: EditorState, force = false) => {
+    blockMap = parseBlockMap(state.doc.toString());
+    notifyActiveBlockChange(
+      createActiveBlockStateFromBlockMap(blockMap, createSelectionSnapshot(state)),
+      force
+    );
   };
 
   const createState = (content: string) =>
@@ -71,13 +81,16 @@ export function createCodeEditorController(
             return;
           }
 
-          if (update.docChanged) {
-            blockMap = parseBlockMap(update.state.doc.toString());
+          if (
+            isCompositionGuardActive ||
+            update.view.compositionStarted ||
+            update.view.composing
+          ) {
+            hasPendingDerivedStateFlush = true;
+            return;
           }
 
-          notifyActiveBlockChange(
-            createActiveBlockStateFromBlockMap(blockMap, createSelectionSnapshot(update.state))
-          );
+          recomputeDerivedState(update.state);
         })
       ]
     });
@@ -94,15 +107,35 @@ export function createCodeEditorController(
   });
   options.onActiveBlockChange?.(activeBlockState);
 
+  const handleCompositionStart = () => {
+    isCompositionGuardActive = true;
+  };
+
+  const handleCompositionEnd = () => {
+    isCompositionGuardActive = false;
+
+    if (!hasPendingDerivedStateFlush) {
+      return;
+    }
+
+    hasPendingDerivedStateFlush = false;
+    recomputeDerivedState(view.state, true);
+  };
+
   const handleBlur = () => {
     options.onBlur?.();
   };
 
+  view.dom.addEventListener("compositionstart", handleCompositionStart);
+  view.dom.addEventListener("compositionupdate", handleCompositionStart);
+  view.dom.addEventListener("compositionend", handleCompositionEnd);
   view.dom.addEventListener("focusout", handleBlur);
 
   return {
     getContent: () => view.state.doc.toString(),
     replaceDocument(nextContent: string) {
+      isCompositionGuardActive = false;
+      hasPendingDerivedStateFlush = false;
       blockMap = parseBlockMap(nextContent);
       const nextState = createState(nextContent);
 
@@ -113,6 +146,9 @@ export function createCodeEditorController(
       );
     },
     destroy() {
+      view.dom.removeEventListener("compositionstart", handleCompositionStart);
+      view.dom.removeEventListener("compositionupdate", handleCompositionStart);
+      view.dom.removeEventListener("compositionend", handleCompositionEnd);
       view.dom.removeEventListener("focusout", handleBlur);
       view.destroy();
     }

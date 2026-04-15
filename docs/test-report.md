@@ -9,6 +9,18 @@
 
 ## 记录
 
+| 2026-04-15 | TASK-035 | `manual: npm run dev` | 通过 | 验收复核：用户已在真实桌面壳中完成中文 IME 人工验收，确认段落、标题、列表输入不丢字、不跳光标，且 autosave 后光标不再跳到文首。 |
+| 2026-04-15 | TASK-035 | `npm run lint` | 通过 | 验收复核：ESLint 全量检查通过。 |
+| 2026-04-15 | TASK-035 | `npm run typecheck` | 通过 | 验收复核：renderer、electron、vitest 三套 TypeScript 检查全部通过。 |
+| 2026-04-15 | TASK-035 | `npm run test` | 通过 | 验收复核：Vitest 报告 15 个文件、79 条测试全部通过，包含新增 `code-editor-view` 回归测试。 |
+| 2026-04-15 | TASK-035 | `npm run build` | 通过 | 验收复核：renderer 与 electron 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本任务验收。 |
+| 2026-04-15 | TASK-035 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 先以失败测试锁定 composition 期间“文档可更新、派生状态不提前广播”的 guard 语义，再验证段落、标题、列表三类回归场景全部通过。 |
+| 2026-04-15 | TASK-035 | `npm run test -- src/renderer/app.autosave.test.ts` | 通过 | 确认 composition guard 未破坏现有 `onChange` / `onBlur` 驱动的 autosave 行为。 |
+| 2026-04-15 | TASK-035 | `npm run test -- src/renderer/code-editor-view.test.tsx src/renderer/app.autosave.test.ts src/renderer/code-editor.test.ts` | 通过 | 修复 autosave 成功后因 `CodeEditorView` 在同一 `loadRevision` 下错误调用 `replaceDocument()` 导致光标跳到文首的问题，并确认 editor reload、autosave、IME guard 三条路径未回归。 |
+| 2026-04-15 | TASK-035 | `npm run lint` | 通过 | renderer controller 与新增 IME 回归测试通过 ESLint 检查。 |
+| 2026-04-15 | TASK-035 | `npm run typecheck` | 通过 | composition guard、新增测试 helper 与 controller 生命周期调整通过 TypeScript 检查。 |
+| 2026-04-15 | TASK-035 | `npm run test` | 通过 | Vitest 报告 14 个文件、77 条测试全部通过，包含新增 IME composition regression coverage。 |
+| 2026-04-15 | TASK-035 | `npm run build` | 通过 | renderer 与 electron 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本轮 IME 基线保护交付。 |
 | 2026-04-15 | TASK-009 | `npm run test -- packages/editor-core/src/active-block.test.ts src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts` | 通过 | 覆盖 active block 纯解析、块尾换行/空白区边界、CodeMirror 选择变化通知，以及 autosave 与新增 editor prop surface 的非回归。 |
 | 2026-04-15 | TASK-009 | `npm run lint` | 通过 | `packages/editor-core` 新增 active-block 逻辑、renderer controller 桥接与文档更新均通过 ESLint。 |
 | 2026-04-15 | TASK-009 | `npm run typecheck` | 通过 | `tsconfig.renderer.json` 已纳入 `packages/**/*.ts`，renderer 对 `editor-core` / `markdown-engine` 的依赖通过 TypeScript 检查。 |

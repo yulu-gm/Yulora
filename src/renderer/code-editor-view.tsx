@@ -32,6 +32,7 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
     const hostRef = useRef<HTMLDivElement | null>(null);
     const controllerRef = useRef<CodeEditorController | null>(null);
     const initialContentRef = useRef(initialContent);
+    const latestLoadedContentRef = useRef(initialContent);
     const handleChange = useEffectEvent(onChange);
     const handleBlur = useEffectEvent(() => onBlur?.());
     const handleActiveBlockChange = useEffectEvent((state: ActiveBlockState) =>
@@ -63,8 +64,12 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
     }, []);
 
     useEffect(() => {
-      controllerRef.current?.replaceDocument(initialContent);
-    }, [initialContent, loadRevision]);
+      latestLoadedContentRef.current = initialContent;
+    }, [initialContent]);
+
+    useEffect(() => {
+      controllerRef.current?.replaceDocument(latestLoadedContentRef.current);
+    }, [loadRevision]);
 
     useImperativeHandle(
       ref,
