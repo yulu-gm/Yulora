@@ -23,6 +23,10 @@
 | 2026-04-15 | TASK-025 | `npm run lint` | 通过 | 验收复核：ESLint 全量检查通过。 |
 | 2026-04-15 | TASK-025 | `npm run typecheck` | 通过 | 验收复核：renderer、electron、vitest 三套 TypeScript 检查全部通过。 |
 | 2026-04-15 | TASK-025 | `npm run build` | 通过 | 验收复核：renderer 与 electron 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本任务验收。 |
+| 2026-04-15 | TASK-028 | `npm run test -- packages/test-harness/src/runner.test.ts src/renderer/test-workbench.test.tsx` | 通过 | 覆盖 workbench 的 idle / running / failed / interrupted debug 状态，以及 runner 事件流与步骤结果在 renderer 中的折叠展示；当前 Windows 沙箱中需提权绕过 `spawn EPERM`。 |
+| 2026-04-15 | TASK-028 | `npm run lint` | 通过 | 新增 workbench 运行状态模型、受控场景目录与 debug 面板样式均通过 ESLint。 |
+| 2026-04-15 | TASK-028 | `npm run typecheck` | 通过 | renderer 中新增的 runner 事件折叠、步骤状态展示和中断控制通过 TypeScript 检查。 |
+| 2026-04-15 | TASK-028 | `npm run build` | 通过 | renderer 构建与 electron TypeScript 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本轮交付。 |
 | 2026-04-15 | TASK-008 | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖顶层 `heading` / `paragraph` / `list` / `blockquote` 顺序、heading depth、有序/无序列表、空输入，以及 list / blockquote 内部 paragraph 不泄漏为顶层 block。 |
 | 2026-04-15 | TASK-008 | `npm run lint` | 通过 | `packages/markdown-engine` 的新增 parser、类型定义与 Vitest 配置调整均通过 ESLint 检查。 |
 | 2026-04-15 | TASK-008 | `npm run typecheck` | 通过 | `tsconfig.vitest.json` 已纳入 `packages/**/*.ts`，新增 Markdown engine 源码和测试均通过 TypeScript 检查。 |
