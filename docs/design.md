@@ -1,35 +1,33 @@
-# Yulora Design Document
+﻿# Yulora 设计文档
 
-Version: v1.0  
-Date: 2026-04-15  
-Scope: local-first Markdown desktop editor for macOS and Windows
+版本：v1.0  
+日期：2026-04-15  
+范围：面向 macOS 和 Windows 的本地优先 Markdown 桌面编辑器
 
 ---
 
-## 1. Product Goal
+## 1. 产品目标
 
-Yulora is a Typora-like Markdown desktop editor with a single-pane writing experience. The product goal is not to maximize feature count. The goal is to keep Markdown as the source of truth while making writing, editing, and reviewing feel calm, stable, and local-first.
+Yulora 是一个类似 Typora 的 Markdown 桌面编辑器，提供单栏写作体验。项目目标不是堆功能，而是在保持 Markdown 作为唯一事实来源的前提下，让写作、编辑和审阅过程稳定、安静、可预测，并且默认本地优先。
 
-The MVP should feel like a native desktop writing tool:
+MVP 应当像一个原生桌面写作工具：
+- 打开 Markdown 文件后即可开始编辑
+- 光标行为和 IME 输入稳定
+- 保持 Markdown 往返保真
+- 渲染只是视图层，不替代存储格式
+- 在 macOS 和 Windows 上表现一致
 
-- open a Markdown file and start editing immediately
-- keep cursor behavior and IME input stable
-- preserve Markdown round-trip fidelity
-- make rendering a view concern, not the stored document format
-- behave consistently on macOS and Windows
+## 2. 产品原则
 
-## 2. Product Principles
+- Markdown 文本是唯一事实来源。
+- 优先 WYSIWYM，而不是完整 WYSIWYG。
+- 本地文件是第一等公民，不依赖账号。
+- UX 稳定性优先于功能数量。
+- 跨平台一致性很重要。
 
-- Markdown text is the single source of truth.
-- WYSIWYM is preferred over full WYSIWYG.
-- Local files are first-class and work without an account.
-- UX stability matters more than feature count.
-- Cross-platform consistency matters.
+## 3. MVP 约束
 
-## 3. MVP Constraints
-
-The fixed MVP stack is:
-
+固定技术栈：
 - Electron
 - React
 - TypeScript
@@ -39,88 +37,82 @@ The fixed MVP stack is:
 - Vitest
 - Playwright
 
-The MVP should not introduce a new editor core, cloud sync, collaboration, or a broad architecture shift without explicit approval.
+未经明确批准，不引入新的编辑器内核、云同步、协作能力，或大范围架构迁移。
 
-## 4. Scope
+## 4. 范围
 
-### In scope for the baseline
+### 基线范围内
 
-- single-document editing
-- open, save, and save as
-- autosave
-- crash recovery
-- Markdown parsing for block-aware rendering
-- current-block source editing with surrounding rendered blocks
-- outline, search, export, and image handling as later backlog items
+- 单文档编辑
+- 打开、保存、另存为
+- 自动保存
+- 崩溃恢复
+- 面向块的 Markdown 解析与渲染
+- 当前块源码编辑，周边块偏渲染展示
+- 大纲、搜索、导出、图片处理作为后续 backlog 项
 
-### Out of scope for MVP
+### MVP 范围外
 
-- cloud sync
-- multiplayer collaboration
-- plugin marketplace
-- mobile apps
-- knowledge-graph style workspace features
-- large formatting rewrites on save
+- 云同步
+- 多人协作
+- 插件市场
+- 移动端应用
+- 知识图谱式工作区
+- 保存时大范围格式重写
 
-## 5. Architecture
+## 5. 架构
 
-Yulora keeps the Electron layers separated:
+Yulora 保持 Electron 三层分离：
+- main 负责应用生命周期、菜单、文件对话框和原生集成
+- preload 只暴露最小且安全的桥接 API
+- renderer 负责 React UI 和编辑体验
 
-- main process owns application lifecycle, menus, file dialogs, and native integrations
-- preload exposes only a narrow, safe bridge
-- renderer owns the React UI and editor experience
+renderer 不应直接拿到不受限制的 Node API。文件访问和其他高权限操作都必须通过明确的 IPC 边界暴露。
 
-The renderer should never receive unrestricted Node APIs. File access and other privileged operations stay behind explicit IPC boundaries.
+## 6. 编辑模型
 
-## 6. Editing Model
+磁盘上的文档始终是纯 Markdown 文本。渲染叠加在文本之上，而不是替换文本。
 
-The document on disk is plain Markdown. Rendering is layered on top of that text, not substituted for it.
+期望交互模型：
+- 当前激活块保持 Markdown 源码可编辑
+- 非激活块可为了可读性进行渲染
+- 选择、撤销重做、IME 行为必须可预测
+- 保存时不自动重写整个文档
 
-Preferred interaction model:
+选择 CodeMirror 6 作为编辑基础，是因为它对状态、事务、选择、装饰和输入行为控制粒度足够细。选择 micromark 作为解析基础，是因为它适合建立 Markdown 结构与块映射。
 
-- the active block stays editable as Markdown source
-- inactive blocks can be rendered for readability
-- selection, undo/redo, and IME behavior must remain predictable
-- no automatic whole-document rewrite should happen on save
+## 7. 文件与数据规则
 
-CodeMirror 6 is the editor foundation because it gives explicit control over state, transactions, selections, decorations, and input behavior. micromark is the parsing foundation because it provides Markdown structure suitable for block mapping.
+- 本地文件内容是权威数据
+- 除非用户明确要求转换，保存操作必须尽量保留原 Markdown 风格
+- 自动保存绝不能丢失未保存修改
+- 崩溃恢复应恢复最近一次未保存状态
+- 资源文件尽量保持相对路径
 
-## 7. File and Data Rules
+## 8. UX 优先级
 
-- local file contents are authoritative
-- save operations must preserve user Markdown style unless the user explicitly requests transformation
-- autosave must never discard unsaved changes
-- crash recovery should restore the most recent unsaved state
-- relative paths should be preserved for assets where possible
+P0：
+- IME 稳定性
+- 光标映射
+- undo/redo 语义
+- autosave 安全性
+- Markdown 文本保真
 
-## 8. UX Priorities
+P1：
+- 图片粘贴 / 拖放
+- 大纲
+- 搜索替换
+- 导出
 
-P0 priorities:
-
-- IME stability
-- cursor mapping
-- undo/redo semantics
-- autosave safety
-- Markdown text fidelity
-
-P1 priorities:
-
-- image paste/drop
-- outline
-- search/replace
-- export
-
-P2 later priorities:
-
-- themes
+P2：
+- 主题
 - frontmatter UI
-- math
+- 数学公式
 - mermaid
-- local history
+- 本地历史
 
-## 9. Implementation Notes
+## 9. 实现说明
 
-The parser and renderer should be testable in isolation. The editor should expose explicit interfaces for document loading, state updates, and view synchronization. Reusable behavior belongs in small modules with clear boundaries rather than in a large catch-all file.
+解析器与渲染器应可独立测试。编辑器应提供清晰接口来处理文档加载、状态更新和视图同步。可复用逻辑应放在职责明确的小模块中，而不是堆进一个大文件。
 
-Any behavior change that affects persistence, editing semantics, or round-trip safety should be covered by tests and documented in the decision log.
-
+所有影响持久化、编辑语义或往返保真的行为变化，都应补测试，并在决策日志中留下记录。

@@ -1,41 +1,70 @@
-# Yulora Progress
+# Yulora 进展记录
 
-Workflow states:
+工作流状态：
 
 `TODO` -> `DEV_IN_PROGRESS` -> `DEV_DONE` -> `REVIEW_IN_PROGRESS` -> `CHANGES_REQUESTED` / `ACCEPTED` -> `CLOSED`
 
-Best-known status notes:
+## 当前项目判断
 
-- `BOOTSTRAP-DOCS` is now `CLOSED` after acceptance.
-- `TASK-001` is now `CLOSED` after passing independent review.
-- `TASK-002` through `TASK-024` are `TODO` unless evidence says otherwise.
+截至 2026-04-15，项目处于“可运行骨架”阶段，而不是“可用编辑器”阶段。
 
-## Task Status Table
+从源码可确认的已完成内容：
+- Electron 主进程已能创建窗口
+- preload 已通过 `contextBridge` 暴露最小 API
+- React 渲染器已能显示占位界面
+- 存在一条针对渲染器入口解析的 Vitest 测试
+- 基础目录边界已建立：`apps/desktop`、`packages/editor-core`、`packages/markdown-engine`、`tests/e2e`
 
-| Task | Epic | Status | Notes |
+从源码可确认的未完成内容：
+- 尚未实现 Markdown 文件打开与保存
+- 尚未接入 CodeMirror 6
+- 尚未接入 micromark
+- 尚未实现任何块级渲染
+- 尚未实现 autosave、crash recovery、image import、outline、search、export
+
+当前工作区依赖已安装，并已在 2026-04-15 本轮会话中重新验证 `lint`、`typecheck`、`test`、`build`。其中 `test` 与 `build` 在当前沙箱环境下会遇到 Vite / Vitest 的 `spawn EPERM` 限制，需要在提权环境下运行才能得到通过证据。
+
+## 人工验收建议
+
+如果你现在想人工验收，请只验 `TASK-001` 和 `TASK-002`：
+- `TASK-001`：确认开发壳能启动，界面能显示占位内容和 preload 平台字段
+- `TASK-002`：确认目录边界存在且未破坏根目录当前可运行外壳
+
+不要把当前仓库误判为“已经具备 Markdown 编辑器 MVP 功能”。
+
+## 任务状态表
+
+| Task | Epic | 状态 | 说明 |
 | --- | --- | --- | --- |
-| BOOTSTRAP-DOCS | Docs baseline | CLOSED | Accepted and closed after the docs fixes were verified. |
-| TASK-001 | Project skeleton | CLOSED | Accepted and closed after independent review confirmed the Electron/Vite/React/TypeScript shell and dev-shell proof. |
-| TASK-002 | Project structure | DEV_DONE | Baseline directories were created for `apps/desktop`, `packages/editor-core`, `packages/markdown-engine`, and `tests/e2e` while keeping the current root shell runnable. |
-| TASK-003 | Open Markdown file | TODO | File open flow and error handling. |
-| TASK-004 | Save and Save As | TODO | Save status and save-as flow. |
-| TASK-005 | Autosave | TODO | Timed autosave and failure safety. |
-| TASK-006 | Recent files | TODO | Recent document list and cleanup. |
-| TASK-007 | CodeMirror 6 integration | TODO | Base editing surface and shortcuts. |
-| TASK-008 | micromark block map | TODO | Markdown block parsing with tests. |
-| TASK-009 | Active block state | TODO | Cursor-driven active block tracking. |
-| TASK-010 | Heading rendering | TODO | Source-versus-render treatment for headings. |
-| TASK-011 | Paragraph rendering | TODO | Stable paragraph display. |
-| TASK-012 | List and task list rendering | TODO | List behavior and enter handling. |
-| TASK-013 | Blockquote rendering | TODO | Blockquote display and edit behavior. |
-| TASK-014 | Link display and editing | TODO | Link text rendering and browser opening. |
-| TASK-015 | Image paste | TODO | Paste-to-disk image handling. |
-| TASK-016 | Image drag-and-drop | TODO | Drag-drop image import. |
-| TASK-017 | Outline sidebar | TODO | Heading-based outline navigation. |
-| TASK-018 | Find and replace | TODO | Document search and replacement. |
-| TASK-019 | HTML export | TODO | Export current document to HTML. |
-| TASK-020 | PDF export | TODO | Export current document to PDF. |
-| TASK-021 | Crash recovery | TODO | Restore unsaved state after abnormal exit. |
-| TASK-022 | Chinese IME fixes | TODO | Composition and caret stability. |
-| TASK-023 | Round-trip regression tests | TODO | Guard against Markdown style rewrites. |
-| TASK-024 | Playwright smoke test | TODO | Automated open-edit-save-reopen flow. |
+| BOOTSTRAP-DOCS | 文档基线 | CLOSED | 文档基线已修正并关闭。 |
+| TASK-001 | 项目骨架 | CLOSED | 已通过独立评审；确认 Electron / Vite / React / TypeScript 开发壳可建立。 |
+| TASK-002 | 项目结构 | DEV_DONE | 已建立 `apps/desktop`、`packages/editor-core`、`packages/markdown-engine`、`tests/e2e` 目录边界，同时保持根目录开发壳可运行。 |
+| TASK-003 | 打开 Markdown 文件 | TODO | 文件打开流程与错误处理。 |
+| TASK-004 | 保存与另存为 | TODO | 保存状态与另存为流程。 |
+| TASK-005 | 自动保存 | TODO | 定时自动保存与失败安全。 |
+| TASK-006 | 最近文件 | TODO | 最近文档列表与失效路径清理。 |
+| TASK-007 | CodeMirror 6 接入 | TODO | 基础编辑面与快捷键。 |
+| TASK-008 | micromark block map | TODO | Markdown 块解析与测试。 |
+| TASK-009 | active block 状态 | TODO | 随光标更新的当前块跟踪。 |
+| TASK-010 | 标题渲染 | TODO | 标题的源码与渲染切换。 |
+| TASK-011 | 段落渲染 | TODO | 稳定段落显示。 |
+| TASK-012 | 列表与任务列表渲染 | TODO | 列表行为与回车处理。 |
+| TASK-013 | 引用块渲染 | TODO | 引用块显示与编辑行为。 |
+| TASK-014 | 链接显示与编辑 | TODO | 链接文本渲染与浏览器打开。 |
+| TASK-015 | 图片粘贴 | TODO | 粘贴图片落盘。 |
+| TASK-016 | 图片拖放 | TODO | 拖放图片导入。 |
+| TASK-017 | 大纲侧栏 | TODO | 基于标题的大纲导航。 |
+| TASK-018 | 查找替换 | TODO | 文档搜索与替换。 |
+| TASK-019 | HTML 导出 | TODO | 导出当前文档为 HTML。 |
+| TASK-020 | PDF 导出 | TODO | 导出当前文档为 PDF。 |
+| TASK-021 | 崩溃恢复 | TODO | 异常退出后的未保存状态恢复。 |
+| TASK-022 | 中文 IME 修复 | TODO | 组合输入与光标稳定性。 |
+| TASK-023 | round-trip 回归测试 | TODO | 防止 Markdown 风格被重写。 |
+| TASK-024 | Playwright 冒烟测试 | TODO | 在测试工作台体系内接入首条 CLI 可触发的打开-编辑-保存-重开冒烟场景。 |
+| TASK-025 | 测试工作台窗口 | TODO | 独立测试工作台窗口与测试模式入口。 |
+| TASK-026 | 场景注册表 | TODO | 代码静态场景注册表与元数据模型。 |
+| TASK-027 | 测试运行器 | TODO | 统一运行器与步骤状态机。 |
+| TASK-028 | Debug 界面 | TODO | 实时进度、事件流、错误与中断原因展示。 |
+| TASK-029 | CLI 与工件协议 | TODO | agent 统一 CLI 入口、退出码与结果目录。 |
+| TASK-030 | visual-test 支持 | TODO | 截图、基线、diff 与视觉结果展示。 |
+| TASK-031 | 核心场景扩充 | TODO | 首批可持续使用的核心测试场景集。 |

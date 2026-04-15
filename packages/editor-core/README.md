@@ -1,7 +1,5 @@
-# Editor Core Package
+﻿# 编辑器核心包
 
-This directory is reserved for shared editor state, view-model, and document
-handling logic.
+这个目录预留给共享的编辑器状态、视图模型和文档处理逻辑。
 
-It is intentionally empty for TASK-002 so the existing app shell can stay
-runnable while the monorepo shape is established.
+在 `TASK-002` 阶段它故意保持为空，这样既能保留后续 monorepo 结构边界，又不会破坏当前根目录下可运行的应用骨架。

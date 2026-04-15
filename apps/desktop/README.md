@@ -1,6 +1,5 @@
-# Desktop App Workspace
+﻿# 桌面应用工作区
 
-This directory is reserved for the future Electron desktop application package.
+这个目录预留给后续的 Electron 桌面应用包。
 
-The current runnable MVP shell remains at the repository root for TASK-001, and
-that arrangement stays intact for TASK-002.
+当前可运行的 MVP 骨架仍位于仓库根目录，用于满足 `TASK-001`；在 `TASK-002` 阶段，这种安排保持不变。

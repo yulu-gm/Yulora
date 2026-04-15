@@ -1,205 +1,180 @@
-# Yulora Test Cases
+﻿# Yulora 测试用例
 
-This file is used for developer self-checks, review validation, and regression coverage.
+本文用于开发自检、评审验收和回归覆盖。
 
 ---
 
-## 1. File System
+## 1. 文件系统
 
-### TC-001 New File Round Trip
+### TC-001 新文件往返
 
-Steps:
+步骤：
+1. 打开应用。
+2. 新建文档。
+3. 输入内容。
+4. 保存文件。
+5. 重启应用并重新打开文件。
 
-1. Open the app.
-2. Create a new document.
-3. Enter content.
-4. Save the file.
-5. Restart the app and reopen the file.
+预期：
+- 内容与输入一致
+- 打开时没有编码问题
 
-Expected:
+### TC-002 自动保存
 
-- the content matches what was entered
-- the file opens without encoding issues
+步骤：
+1. 打开一个文档。
+2. 输入新内容。
+3. 不手动保存。
+4. 等待自动保存触发。
+5. 强制关闭应用。
+6. 重新打开文档。
 
-### TC-002 Autosave
+预期：
+- 最近一次编辑被保留
+- 没有数据丢失
 
-Steps:
+### TC-003 崩溃恢复
 
-1. Open a document.
-2. Type new content.
-3. Do not save manually.
-4. Wait for autosave to trigger.
-5. Force close the app.
-6. Reopen the document.
+步骤：
+1. 编辑一个已打开文档。
+2. 异常终止应用。
+3. 重新打开应用。
 
-Expected:
+预期：
+- 最近一次未保存状态被恢复
 
-- the latest edits are preserved
-- no data is lost
+## 2. 编辑行为
 
-### TC-003 Crash Recovery
+### TC-010 标题输入
 
-Steps:
+步骤：
+1. 输入 `# hello`。
 
-1. Edit an open document.
-2. Terminate the app unexpectedly.
-3. Reopen the app.
+预期：
+- 识别为一级标题
+- 光标保持稳定
 
-Expected:
+### TC-011 列表行为
 
-- the most recent unsaved state is restored
+步骤：
+1. 输入 `- item`。
+2. 按 Enter。
+3. 输入第二项。
+4. 连续按两次 Enter。
 
-## 2. Editing Behavior
+预期：
+- 列表可以正确续项
+- 空项时可以退出列表
 
-### TC-010 Heading Input
+### TC-012 代码块
 
-Steps:
+步骤：
+1. 输入围栏代码块。
+2. 在代码块内输入代码。
+3. 按 Tab。
 
-1. Type `# hello`.
+预期：
+- 能插入缩进
+- 光标保持在代码块内
 
-Expected:
+## 3. 输入法
 
-- the heading is recognized as H1
-- the cursor remains stable
+### TC-020 中文 IME
 
-### TC-011 List Behavior
+步骤：
+1. 切换到中文输入法。
+2. 输入标题、列表和普通文本。
 
-Steps:
+预期：
+- 不丢字
+- 输入过程中不跳光标
 
-1. Type `- item`.
-2. Press Enter.
-3. Type a second item.
-4. Press Enter twice.
+## 4. 图片
 
-Expected:
+### TC-030 粘贴图片
 
-- the list continues correctly
-- an empty item exits the list
+步骤：
+1. 复制一张图片。
+2. 粘贴到编辑器中。
 
-### TC-012 Code Block
+预期：
+- 图片文件写入本地
+- 插入 Markdown 引用文本
+- 路径正确
 
-Steps:
+### TC-031 拖入图片
 
-1. Enter a fenced code block.
-2. Type code inside it.
-3. Press Tab.
+步骤：
+1. 把图片拖入编辑器。
 
-Expected:
+预期：
+- 图片被插入
+- 文件被保存到本地
 
-- indentation is inserted
-- the caret stays within the code block
+## 5. 搜索
 
-## 3. Input Method
+### TC-040 查找
 
-### TC-020 Chinese IME
+步骤：
+1. 输入多个关键字。
+2. 在文档中搜索。
 
-Steps:
+预期：
+- 匹配项被高亮
+- 可以在匹配项之间导航
 
-1. Switch to a Chinese input method.
-2. Type headings, lists, and plain text.
+## 6. 导出
 
-Expected:
+### TC-050 导出 HTML
 
-- no character loss
-- no cursor jumping during composition
+步骤：
+1. 把当前文档导出为 HTML。
+2. 打开导出的文件。
 
-## 4. Images
+预期：
+- 内容与源文档一致
+- 样式基本保留
 
-### TC-030 Paste Image
+### TC-051 导出 PDF
 
-Steps:
+步骤：
+1. 把当前文档导出为 PDF。
 
-1. Copy an image.
-2. Paste it into the editor.
+预期：
+- 排版可读
+- 没有被截断
 
-Expected:
+## 7. 性能
 
-- the image file is written locally
-- Markdown reference text is inserted
-- the path is correct
+### TC-060 长文档
 
-### TC-031 Drag Image
+步骤：
+1. 打开一个 5000 行以上的文档。
+2. 滚动。
+3. 编辑文本。
 
-Steps:
+预期：
+- 应用保持可用
+- 输入体验没有明显卡顿
 
-1. Drag an image into the editor.
+## 8. 跨平台
 
-Expected:
+### TC-070 Windows 启动
 
-- the image is inserted
-- the file is saved locally
+预期：
+- 应用能在 Windows 上启动
+- 应用可以保存文件
 
-## 5. Search
+### TC-071 macOS 启动
 
-### TC-040 Search
+预期：
+- 应用能在 macOS 上启动
+- 应用可以保存文件
 
-Steps:
+## 9. 回归规则
 
-1. Enter multiple keywords.
-2. Search the document.
+每个完成的任务都应记录：
+- 跑了哪些测试
+- 这些测试是否通过
 
-Expected:
-
-- matches are highlighted
-- match navigation works
-
-## 6. Export
-
-### TC-050 HTML Export
-
-Steps:
-
-1. Export the current document to HTML.
-2. Open the exported file.
-
-Expected:
-
-- content matches the source document
-- styling is broadly preserved
-
-### TC-051 PDF Export
-
-Steps:
-
-1. Export the current document to PDF.
-
-Expected:
-
-- the layout is legible
-- the output is not truncated
-
-## 7. Performance
-
-### TC-060 Long Document
-
-Steps:
-
-1. Open a document with 5000+ lines.
-2. Scroll.
-3. Edit text.
-
-Expected:
-
-- the app stays responsive
-- input remains usable
-
-## 8. Cross-Platform
-
-### TC-070 Windows Launch
-
-Expected:
-
-- the app launches on Windows
-- the app can save a file
-
-### TC-071 macOS Launch
-
-Expected:
-
-- the app launches on macOS
-- the app can save a file
-
-## 9. Regression Rules
-
-Each finished task should record which tests were run and whether they passed. At minimum, verify the areas affected by the task and include any file operations, editor behavior, or regression-sensitive paths that were touched.
-
+至少要覆盖本次改动影响到的区域，尤其是文件操作、编辑行为和回归敏感路径。

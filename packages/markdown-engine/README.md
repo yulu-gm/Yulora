@@ -1,7 +1,5 @@
-# Markdown Engine Package
+﻿# Markdown 引擎包
 
-This directory is reserved for Markdown parsing, round-trip helpers, and other
-text-engine utilities.
+这个目录预留给 Markdown 解析、round-trip 辅助工具以及其他文本引擎能力。
 
-The implementation will be added in later backlog tasks; TASK-002 only creates
-the workspace boundary.
+具体实现会在后续 backlog 任务中补入；`TASK-002` 只负责建立工作区边界。

@@ -1,6 +1,5 @@
-# End-to-End Tests
+﻿# 端到端测试目录
 
-This directory is reserved for Playwright end-to-end coverage.
+这个目录预留给 Playwright 端到端覆盖。
 
-TASK-002 only establishes the directory boundary so future smoke tests have a
-stable home without moving the current app shell.
+`TASK-002` 当前只建立目录边界，方便后续把冒烟测试稳定放在这里，而不需要再移动现有应用骨架。

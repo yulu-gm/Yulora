@@ -1,16 +1,16 @@
-# AGENTS.md
+﻿# AGENTS.md
 
-## Project mission
-Build a local-first Markdown desktop editor for macOS and Windows with a Typora-like single-pane editing experience.
+## 项目使命
+构建一个面向 macOS 和 Windows 的本地优先 Markdown 桌面编辑器，提供类似 Typora 的单栏编辑体验。
 
-## Product principles
-- Markdown text is the single source of truth.
-- WYSIWYM over full WYSIWYG.
-- Local-first by default.
-- UX stability beats feature count.
-- Cross-platform consistency matters.
+## 产品原则
+- Markdown 文本是唯一事实来源。
+- 优先 WYSIWYM，而不是完整 WYSIWYG。
+- 默认本地优先。
+- UX 稳定性优先于功能数量。
+- 跨平台一致性很重要。
 
-## Fixed stack for MVP
+## MVP 固定技术栈
 - Electron
 - React
 - TypeScript
@@ -20,56 +20,56 @@ Build a local-first Markdown desktop editor for macOS and Windows with a Typora-
 - Vitest
 - Playwright
 
-Do not replace the core stack without explicit approval.
+未经明确批准，不要替换核心技术栈。
 
-## Architecture rules
-- Keep main, preload, renderer strictly separated.
-- Do not expose unrestricted Node APIs to the renderer.
-- Treat block rendering as a view concern, not the source of truth.
-- Preserve Markdown round-trip safety.
-- Avoid automatic whole-document reformatting on save.
+## 架构规则
+- 严格分离 main、preload、renderer。
+- 不要向 renderer 暴露不受限制的 Node API。
+- 把块级渲染视为视图层能力，而不是数据真相。
+- 保持 Markdown 可往返还原安全。
+- 保存时避免自动重排整个文档。
 
-## Task rules
-- Work on one task at a time.
-- Keep diffs focused and reversible.
-- Do not touch unrelated files.
-- Prefer small modules and explicit interfaces.
-- Add or update tests for behavior changes.
-- Update docs when changing architecture or user-visible behavior.
+## 任务规则
+- 一次只做一个任务。
+- 保持 diff 聚焦且可回退。
+- 不要改动无关文件。
+- 优先小模块和显式接口。
+- 行为变化要补测试或更新测试。
+- 改动架构或用户可见行为时要同步更新文档。
 
-## Definition of done
-A task is only done when:
-- build passes
-- lint passes
-- typecheck passes
-- relevant tests pass
-- acceptance criteria are satisfied
-- a short task summary is written
+## 完成定义
+一个任务只有在满足以下条件时才算完成：
+- build 通过
+- lint 通过
+- typecheck 通过
+- 相关测试通过
+- 满足验收标准
+- 写出简短任务总结
 
-## P0 UX priorities
-- IME stability
-- cursor mapping
-- undo/redo semantics
-- autosave safety
-- Markdown text fidelity
+## P0 UX 优先级
+- IME 稳定性
+- 光标映射
+- undo/redo 语义
+- autosave 安全性
+- Markdown 文本保真
 
-## P1 UX priorities
-- image paste/drop
-- outline
-- search/replace
-- export
+## P1 UX 优先级
+- 图片粘贴/拖放
+- 大纲
+- 搜索替换
+- 导出
 
-## P2 later priorities
-- themes
+## P2 后续优先级
+- 主题
 - frontmatter UI
-- math
+- 数学公式
 - mermaid
-- local history
+- 本地历史
 
-## Never do these without approval
-- replace CodeMirror with ProseMirror/Milkdown
-- migrate Electron MVP to Tauri
-- introduce cloud sync
-- introduce collaboration
-- large dependency additions
-- broad refactors across unrelated modules
+## 未经批准不要做这些事
+- 用 ProseMirror 或 Milkdown 替换 CodeMirror
+- 把 Electron MVP 迁移到 Tauri
+- 引入云同步
+- 引入协作编辑
+- 大规模新增依赖
+- 横跨无关模块的宽泛重构

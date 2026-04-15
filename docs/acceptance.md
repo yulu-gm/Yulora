@@ -1,99 +1,118 @@
-# Yulora Acceptance Criteria
+﻿# Yulora 验收标准
 
-This document defines the MVP acceptance bar for Yulora. Review work should use this as the source of truth for PASS / FAIL decisions.
+本文定义 Yulora MVP 的验收基线。评审和人工验收都应以此为准，结论必须明确为 PASS 或 FAIL。
 
 ---
 
-## 1. Core Principles
+## 1. 核心原则
 
-- Markdown text is the single source of truth.
-- Saving must not automatically reformat the whole document.
-- Editing must preserve round-trip fidelity.
-- The editor should feel WYSIWYM-like, not like a conventional rich text editor.
-- Cursor behavior must be stable and predictable.
-- macOS and Windows should both be supported.
+- Markdown 文本是唯一事实来源。
+- 保存不能自动重排整个文档。
+- 编辑必须保持 round-trip 保真。
+- 编辑体验应更接近 WYSIWYM，而不是传统富文本编辑器。
+- 光标行为必须稳定、可预测。
+- 必须同时支持 macOS 和 Windows。
 
-## 2. File Operations
+## 2. 文件操作
 
-The MVP must support:
+MVP 最终必须支持：
+- 新建 Markdown 文件
+- 打开现有 `.md` 文件
+- 用 `Ctrl/Cmd + S` 保存
+- 另存为新文件
+- UTF-8 编码文本
 
-- creating a new Markdown file
-- opening an existing `.md` file
-- saving with `Ctrl/Cmd + S`
-- saving as a new file
-- UTF-8 encoded text
+自动保存最终必须：
+- 默认开启
+- 在停止输入一段时间后保留未保存内容
+- 在保存失败时避免数据丢失
 
-Autosave must:
+崩溃恢复最终必须：
+- 在异常退出后恢复最近的未保存编辑状态
 
-- be enabled by default
-- preserve unsaved content after a pause in typing
-- avoid data loss on save failure
+## 3. 编辑器行为
 
-Crash recovery must:
+编辑器最终需要正确处理 Typora 类工作流中常见的 Markdown 结构，包括：
+- 标题
+- 段落
+- 列表和任务列表
+- 引用块
+- 行内代码
+- 代码块
+- 链接
+- 图片
 
-- restore the most recent unsaved editing state after an abnormal exit
+当前激活块可以保持源码形式，周边块可以渲染，但用户必须始终能够直接编辑 Markdown。
 
-## 3. Editor Behavior
+撤销和重做必须自然；删除 Markdown 语法时，不能出现令人意外的光标跳跃。
 
-The editor must handle the common Markdown constructs expected for a Typora-like workflow, including:
+## 4. 输入法与光标稳定性
 
-- headings
-- paragraphs
-- lists and task lists
-- blockquotes
-- inline code
-- code blocks
-- links
-- images
+编辑器必须避免：
+- IME 组合输入期间丢字
+- 输入法输入期间光标意外移动
+- 过早解析尚未完成的组合文本
+- 在行或块之间发生破坏正常编辑的跳转
 
-The active block may stay in source form while surrounding blocks render, but the user should always be able to continue editing Markdown directly.
+## 5. 图片与资源
 
-Undo and redo must behave naturally, and deleting Markdown syntax should not cause surprising cursor jumps.
+MVP 最终必须支持图片粘贴和拖放。导入的资源应写入本地存储，并尽量以相对路径 Markdown 插入。
 
-## 4. Input Method and Cursor Stability
+## 6. 大纲、搜索与导出
 
-The editor must not:
+以下能力属于产品基线，即使由较后的 backlog 任务交付：
+- 标题大纲导航
+- 全文查找替换
+- HTML 导出
+- PDF 导出
 
-- drop characters during IME composition
-- move the caret unexpectedly while composing text
-- parse unfinished composition text too early
-- jump between lines or blocks in a way that breaks normal editing
+## 7. 性能
 
-## 5. Images and Assets
+编辑器需要能处理长文档。基线目标是：面对 5000 行以上 Markdown 文档时，仍可正常滚动和编辑，不应出现明显输入卡顿。
 
-The MVP must support image paste and drag-and-drop. Imported assets should be written to local storage and inserted as Markdown with a relative path whenever possible.
+## 8. 非 MVP 范围
 
-## 6. Outline, Search, and Export
+以下内容不属于 MVP 验收范围：
+- 云同步
+- 协作编辑
+- 账号系统
+- 插件市场
+- 专有富文档锁定格式
 
-The MVP should eventually support:
+## 9. 评审结论规则
 
-- heading outline navigation
-- full-text search and replace
-- HTML export
-- PDF export
+评审结果必须明确：
+- 满足要求时记为 PASS
+- 存在阻塞性缺口时记为 FAIL
 
-These behaviors are part of the product baseline even if some are delivered by later backlog items.
+不接受模糊结论。
 
-## 7. Performance
+## 10. 当前阶段的人工验收方法
 
-The editor should remain usable on long documents. As a baseline target, a 5000+ line Markdown file should still allow normal editing and scrolling without obvious input lag.
+截至 2026-04-15，仓库只完成了 `TASK-001` 和 `TASK-002` 所对应的 MVP 骨架，尚未实现文件打开、保存、CodeMirror 6 接入或 Markdown 渲染能力。因此当前人工验收应只覆盖“项目骨架是否成立”，不要按完整编辑器功能去验。
 
-## 8. Non-MVP Exclusions
+### 骨架验收前置条件
 
-The following are not part of the MVP acceptance bar:
+1. 在仓库根目录安装依赖：`npm ci`
+2. 确认本机具备可运行 Electron 的桌面环境
+3. 使用 Windows 或 macOS 进行验证
 
-- cloud sync
-- collaborative editing
-- account systems
-- plugin marketplaces
-- rich-document lock-in formats
+### 当前可人工验收的内容
 
-## 9. Review Outcome Rules
+1. 运行 `npm run dev`
+2. 确认 Electron 窗口可以启动
+3. 确认页面显示 `Yulora` 和 `TASK-001`
+4. 确认页面文案明确写着目前只完成了 Electron shell / preload bridge / React renderer 接线
+5. 确认页面能显示 preload 暴露的 `platform` 字段
+6. 关闭并重新启动，确认开发壳仍能正常启动
 
-Review results must be explicit:
+### 当前不应通过人工验收的内容
 
-- PASS if the requirement is satisfied
-- FAIL if there is a blocking gap
-
-Ambiguous judgments are not acceptable.
-
+以下能力尚未实现，应直接判定为“未进入验收”：
+- 打开 `.md`
+- 保存 / 另存为 / 自动保存
+- Markdown 编辑与渲染
+- 图片导入
+- 大纲、搜索替换、导出
+- 崩溃恢复
+- 中文输入法专项稳定性

@@ -12,7 +12,7 @@
     "build": "npm run clean && npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "clean": "rimraf dist dist-electron tsconfig.*.tsbuildinfo",
+    "clean": "rimraf dist dist-electron tsconfig.electron.tsbuildinfo tsconfig.renderer.tsbuildinfo tsconfig.vitest.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.vitest.json",
     "test": "vitest run"
