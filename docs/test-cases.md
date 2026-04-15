@@ -130,6 +130,19 @@
 - `startOffset` / `endOffset` 可回拿原始 Markdown 切片
 - list 或 blockquote 内部的 paragraph 不会泄漏为顶层 block
 
+### TC-014 active block 跟踪
+
+步骤：
+1. 在 `packages/editor-core/src/active-block.test.ts` 中使用混合 Markdown fixture。
+2. 分别把选择位置移动到标题、段落、列表、引用块，以及块间空白行。
+3. 运行 `npm run test -- packages/editor-core/src/active-block.test.ts src/renderer/code-editor.test.ts`。
+
+预期：
+- 光标位于块内部时，能解析出对应的顶层 active block
+- 光标位于块末尾换行时，仍保持当前块激活
+- 光标位于块间空白区域时，active block 为空
+- CodeMirror 选择变化会把 active block 更新推送到 renderer 侧
+
 ## 3. 输入法
 
 ### TC-020 中文 IME

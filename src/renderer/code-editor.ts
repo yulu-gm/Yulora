@@ -2,11 +2,18 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
+import {
+  createActiveBlockStateFromBlockMap,
+  type ActiveBlockState
+} from "../../packages/editor-core/src";
+import { parseBlockMap } from "../../packages/markdown-engine/src";
+
 export type CreateCodeEditorControllerOptions = {
   parent: Element;
   initialContent: string;
   onChange: (content: string) => void;
   onBlur?: () => void;
+  onActiveBlockChange?: (state: ActiveBlockState) => void;
 };
 
 export type CodeEditorController = {
@@ -18,6 +25,32 @@ export type CodeEditorController = {
 export function createCodeEditorController(
   options: CreateCodeEditorControllerOptions
 ): CodeEditorController {
+  let blockMap = parseBlockMap(options.initialContent);
+  let activeBlockState = createActiveBlockStateFromBlockMap(blockMap, {
+    anchor: 0,
+    head: 0
+  });
+
+  const createSelectionSnapshot = (state: EditorState) => ({
+    anchor: state.selection.main.anchor,
+    head: state.selection.main.head
+  });
+
+  const notifyActiveBlockChange = (nextState: ActiveBlockState, force = false) => {
+    const didChange =
+      force ||
+      activeBlockState.selection.anchor !== nextState.selection.anchor ||
+      activeBlockState.selection.head !== nextState.selection.head ||
+      activeBlockState.activeBlock?.id !== nextState.activeBlock?.id ||
+      activeBlockState.blockMap !== nextState.blockMap;
+
+    activeBlockState = nextState;
+
+    if (didChange) {
+      options.onActiveBlockChange?.(nextState);
+    }
+  };
+
   const createState = (content: string) =>
     EditorState.create({
       doc: content,
@@ -33,14 +66,33 @@ export function createCodeEditorController(
           if (update.docChanged) {
             options.onChange(update.state.doc.toString());
           }
+
+          if (!update.docChanged && !update.selectionSet) {
+            return;
+          }
+
+          if (update.docChanged) {
+            blockMap = parseBlockMap(update.state.doc.toString());
+          }
+
+          notifyActiveBlockChange(
+            createActiveBlockStateFromBlockMap(blockMap, createSelectionSnapshot(update.state))
+          );
         })
       ]
     });
 
+  const initialState = createState(options.initialContent);
+  activeBlockState = createActiveBlockStateFromBlockMap(
+    blockMap,
+    createSelectionSnapshot(initialState)
+  );
+
   const view = new EditorView({
-    state: createState(options.initialContent),
+    state: initialState,
     parent: options.parent
   });
+  options.onActiveBlockChange?.(activeBlockState);
 
   const handleBlur = () => {
     options.onBlur?.();
@@ -51,7 +103,14 @@ export function createCodeEditorController(
   return {
     getContent: () => view.state.doc.toString(),
     replaceDocument(nextContent: string) {
-      view.setState(createState(nextContent));
+      blockMap = parseBlockMap(nextContent);
+      const nextState = createState(nextContent);
+
+      view.setState(nextState);
+      notifyActiveBlockChange(
+        createActiveBlockStateFromBlockMap(blockMap, createSelectionSnapshot(nextState)),
+        true
+      );
     },
     destroy() {
       view.dom.removeEventListener("focusout", handleBlur);

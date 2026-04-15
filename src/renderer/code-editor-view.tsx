@@ -10,6 +10,7 @@ import {
   createCodeEditorController,
   type CodeEditorController
 } from "./code-editor";
+import type { ActiveBlockState } from "../../packages/editor-core/src";
 
 export type CodeEditorHandle = {
   getContent: () => string;
@@ -20,15 +21,22 @@ type CodeEditorViewProps = {
   loadRevision: number;
   onChange: (content: string) => void;
   onBlur?: () => void;
+  onActiveBlockChange?: (state: ActiveBlockState) => void;
 };
 
 export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
-  function CodeEditorView({ initialContent, loadRevision, onChange, onBlur }, ref) {
+  function CodeEditorView(
+    { initialContent, loadRevision, onChange, onBlur, onActiveBlockChange },
+    ref
+  ) {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const controllerRef = useRef<CodeEditorController | null>(null);
     const initialContentRef = useRef(initialContent);
     const handleChange = useEffectEvent(onChange);
     const handleBlur = useEffectEvent(() => onBlur?.());
+    const handleActiveBlockChange = useEffectEvent((state: ActiveBlockState) =>
+      onActiveBlockChange?.(state)
+    );
 
     useEffect(() => {
       if (!hostRef.current) {
@@ -39,7 +47,8 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
         parent: hostRef.current,
         initialContent: initialContentRef.current,
         onChange: (content) => handleChange(content),
-        onBlur: () => handleBlur()
+        onBlur: () => handleBlur(),
+        onActiveBlockChange: (state) => handleActiveBlockChange(state)
       });
 
       controllerRef.current = controller;

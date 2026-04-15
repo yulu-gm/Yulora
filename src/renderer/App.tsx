@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
+import type { ActiveBlockState } from "../../packages/editor-core/src";
 import { CodeEditorView, type CodeEditorHandle } from "./code-editor-view";
 import {
   type AppState,
@@ -19,6 +20,7 @@ export default function App() {
   const [state, setState] = useState(createInitialAppState);
   const editorRef = useRef<CodeEditorHandle | null>(null);
   const editorContentRef = useRef("");
+  const activeBlockStateRef = useRef<ActiveBlockState | null>(null);
   const stateRef = useRef(state);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAutosaveReplayRef = useRef(false);
@@ -256,6 +258,9 @@ export default function App() {
             ref={editorRef}
             initialContent={state.currentDocument.content}
             loadRevision={state.editorLoadRevision}
+            onActiveBlockChange={(nextActiveBlockState) => {
+              activeBlockStateRef.current = nextActiveBlockState;
+            }}
             onChange={(nextContent) => {
               editorContentRef.current = nextContent;
               let nextState: AppState = stateRef.current;

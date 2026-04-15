@@ -155,7 +155,7 @@
 
 ### TASK-006 最近文件
 
-状态：未开始
+状态：已完成
 依赖：`TASK-003`、`TASK-004`
 
 目标：记录最近成功打开或保存的文档路径，并支持重新打开和清理失效项。
@@ -254,10 +254,10 @@
 - 不破坏基础输入行为
 
 执行切片：
-- [ ] 定义 active block 的状态结构和来源
-- [ ] 将 CodeMirror 选择变化映射到 block id 或 block range
-- [ ] 给 renderer 暴露可消费的当前块信息
-- [ ] 验证输入、选择和 undo/redo 没被破坏
+- [x] 定义 active block 的状态结构和来源
+- [x] 将 CodeMirror 选择变化映射到 block id 或 block range
+- [x] 给 renderer 暴露可消费的当前块信息
+- [x] 验证输入、选择和 undo/redo 没被破坏
 
 ---
 

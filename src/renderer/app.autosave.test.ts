@@ -38,6 +38,7 @@ vi.mock("./code-editor-view", async () => {
         loadRevision: number;
         onChange: (content: string) => void;
         onBlur?: () => void;
+        onActiveBlockChange?: (state: unknown) => void;
       }
     | undefined;
   let currentContent = "";
@@ -48,6 +49,7 @@ vi.mock("./code-editor-view", async () => {
       loadRevision: number;
       onChange: (content: string) => void;
       onBlur?: () => void;
+      onActiveBlockChange?: (state: unknown) => void;
     },
     ref: React.ForwardedRef<{ getContent: () => string }>
   ) {

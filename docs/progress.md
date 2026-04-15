@@ -19,6 +19,7 @@
 
 从源码可确认的未完成内容：
 - 已接入 micromark，并能在 `packages/markdown-engine` 中生成最小 top-level block map
+- 已能基于光标位置跟踪当前 top-level active block，并把结果从 CodeMirror 控制器桥接到 renderer
 - 尚未实现任何块级渲染
 - 尚未实现 crash recovery、image import、outline、search、export
 
@@ -50,7 +51,7 @@
 | TASK-007 | CodeMirror 6 接入 | DEV_DONE | 已用 CodeMirror 6 替换临时 textarea，并接入基础编辑面、快捷键与现有保存链路。 |
 | TASK-032 | 应用菜单与壳层收敛 | DEV_DONE | 已接入原生 `File` 菜单中的 `Open...`、`Save`、`Save As...`，并把 renderer 临时壳收敛为更像桌面编辑器的单栏界面。 |
 | TASK-008 | micromark block map | ACCEPTED | 已接入 `micromark` parser 事件流，输出 `heading` / `paragraph` / `list` / `blockquote` 的最小 block map，并通过 parser 单测与 repo 门禁验收。 |
-| TASK-009 | active block 状态 | TODO | 随光标更新的当前块跟踪。 |
+| TASK-009 | active block 状态 | DEV_DONE | 已在 `packages/editor-core` 中落地 active block 解析，并由 CodeMirror 选择变化驱动 renderer 侧当前块状态。 |
 | TASK-010 | 标题渲染 | TODO | 标题的源码与渲染切换。 |
 | TASK-011 | 段落渲染 | TODO | 稳定段落显示。 |
 | TASK-012 | 列表与任务列表渲染 | TODO | 列表行为与回车处理。 |

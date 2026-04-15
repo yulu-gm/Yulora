@@ -8,5 +8,5 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src/renderer", "src/shared", "vite.config.ts"]
+  "include": ["src/renderer", "src/shared", "packages/**/*.ts", "vite.config.ts"]
 }
