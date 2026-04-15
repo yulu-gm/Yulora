@@ -1,7 +1,9 @@
 import path from "node:path";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 
+import { showOpenMarkdownDialog } from "./open-markdown-file";
 import { resolveRendererEntry } from "./paths";
+import { OPEN_MARKDOWN_FILE_CHANNEL } from "../shared/open-markdown-file";
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -36,6 +38,8 @@ function createMainWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle(OPEN_MARKDOWN_FILE_CHANNEL, async () => showOpenMarkdownDialog());
+
   createMainWindow();
 
   app.on("activate", () => {

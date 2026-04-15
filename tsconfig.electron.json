@@ -9,6 +9,6 @@
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src/main", "src/preload"],
+  "include": ["src/main", "src/preload", "src/shared"],
   "exclude": ["src/**/*.test.ts"]
 }

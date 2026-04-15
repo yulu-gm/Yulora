@@ -39,7 +39,7 @@
 | BOOTSTRAP-DOCS | 文档基线 | CLOSED | 文档基线已修正并关闭。 |
 | TASK-001 | 项目骨架 | CLOSED | 已通过独立评审；确认 Electron / Vite / React / TypeScript 开发壳可建立。 |
 | TASK-002 | 项目结构 | DEV_DONE | 已建立 `apps/desktop`、`packages/editor-core`、`packages/markdown-engine`、`tests/e2e` 目录边界，同时保持根目录开发壳可运行。 |
-| TASK-003 | 打开 Markdown 文件 | TODO | 文件打开流程与错误处理。 |
+| TASK-003 | 打开 Markdown 文件 | DEV_DONE | 已接入安全打开桥接、UTF-8 读取、错误提示与临时 textarea 显示。 |
 | TASK-004 | 保存与另存为 | TODO | 保存状态与另存为流程。 |
 | TASK-005 | 自动保存 | TODO | 定时自动保存与失败安全。 |
 | TASK-006 | 最近文件 | TODO | 最近文档列表与失效路径清理。 |

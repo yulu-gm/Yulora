@@ -39,6 +39,13 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
 .eyebrow {
   margin: 0 0 12px;
   color: #8db4ff;
@@ -52,6 +59,11 @@ h1 {
   font-size: clamp(2.5rem, 5vw, 4rem);
 }
 
+h2 {
+  margin: 8px 0 0;
+  font-size: 1.35rem;
+}
+
 .description {
   margin: 16px 0 0;
   max-width: 48ch;
@@ -62,4 +74,88 @@ h1 {
   margin: 20px 0 0;
   color: #8db4ff;
   font-size: 0.95rem;
+}
+
+.open-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #8db4ff 0%, #5d88ff 100%);
+  color: #08111f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.open-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.error-banner {
+  margin: 24px 0 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 125, 125, 0.4);
+  border-radius: 16px;
+  background: rgba(99, 24, 24, 0.35);
+  color: #ffc5c5;
+}
+
+.empty-state,
+.document-panel {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid rgba(232, 236, 243, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.document-meta {
+  margin-bottom: 16px;
+}
+
+.document-label {
+  margin: 0;
+  color: #8db4ff;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.document-path,
+.empty-copy {
+  margin: 12px 0 0;
+  color: rgba(232, 236, 243, 0.72);
+}
+
+.document-editor {
+  width: 100%;
+  min-height: 320px;
+  resize: vertical;
+  border: 1px solid rgba(141, 180, 255, 0.2);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(8, 14, 22, 0.92);
+  color: #e8ecf3;
+  font:
+    400 1rem/1.6 "Iosevka", "Cascadia Code", "SFMono-Regular", monospace;
+}
+
+.document-editor:focus {
+  outline: 2px solid rgba(141, 180, 255, 0.55);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    padding: 24px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+  }
+
+  .open-button {
+    width: 100%;
+  }
 }
