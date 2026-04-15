@@ -20,7 +20,7 @@
 从源码可确认的未完成内容：
 - 已接入 micromark，并能在 `packages/markdown-engine` 中生成最小 top-level block map
 - 尚未实现任何块级渲染
-- 尚未实现 autosave、crash recovery、image import、outline、search、export
+- 尚未实现 crash recovery、image import、outline、search、export
 
 当前工作区依赖已安装，并已在 2026-04-15 本轮会话中重新验证 `lint`、`typecheck`、`test`、`build`。其中 `test` 与 `build` 在当前沙箱环境下会遇到 Vite / Vitest 的 `spawn EPERM` 限制，需要在提权环境下运行才能得到通过证据。
 

@@ -1,88 +1,77 @@
----
+﻿---
 name: yulora-task-acceptance
-description: 用于在 Yulora（本地 Markdown 编辑器项目）对已经实现完成的 task 做验收、收尾和对外总结。触发场景包括：用户说"跑一下门禁 / 这个能 PASS 吗 / 帮我写下 task 总结 / 收尾这个 task / 更新 test-report 和 task-summaries"，或者代码已落地需要判 PASS/FAIL 并给出人工验收步骤。如果 task 还在写，用 $yulora-task-execution；如果范围都还没界定，用 $yulora-task-intake。
+description: 用于对已经实现完成的 Yulora task 做验收、跑质量门禁、判断 PASS 或 FAIL、更新项目记录，并输出人工验收步骤；仅在实现已落地、需要收尾和对外总结时使用。
 ---
 
 # Yulora 任务验收
 
-## 这个 skill 的职责边界
+## 职责边界
 
 只做四件事：
-1. 跑新鲜验证证据
-2. 对照 backlog + acceptance 判 PASS / FAIL
-3. 更新项目记录（test-report、task-summaries 等）
-4. 输出最终总结，**必须含人工验收步骤**
+1. 跑本轮新鲜验证证据
+2. 对照 backlog、acceptance 和 test-cases 判 `PASS / FAIL`
+3. 同步项目记录
+4. 输出最终总结，且必须包含人工验收步骤
 
-不写实现代码，不补主体功能。如果验收过程中发现需要改实现，
-回到 `$yulora-task-execution`。
-
-`$skill` 的调用语义见
-[../yulora-task-intake/references/docs-map.md](../yulora-task-intake/references/docs-map.md)
-末尾。
+不写实现代码，不补主体功能。验收中如果发现需要改实现，退回 `$yulora-task-execution`。
 
 ## 验收流程
 
-### 1. 优先读 handoff 文件
+### 1. 先读 handoff，而不是反推实现
 
-启动时先看 `docs/plans/` 下有没有这一轮的 handoff 文件
-（命名约定见 docs-map.md 的 "Handoff 文件约定"）：
+优先读：
+- `docs/plans/<YYYY-MM-DD>-<task>-intake.md`
+- `docs/plans/<YYYY-MM-DD>-<task>-handoff.md`
 
-- `<YYYY-MM-DD>-<task>-intake.md` —— 范围、验收标准
-- `<YYYY-MM-DD>-<task>-handoff.md` —— 改了什么、推荐验证命令、人工验收草稿
+如果没有 handoff，再按 `AGENTS.md`、`MVP_BACKLOG.md`、`docs/acceptance.md`、`docs/test-cases.md`、`docs/progress.md` 做最小重建。
 
-两个都在：以它们为权威输入，只补读
-[../yulora-task-intake/references/docs-map.md](../yulora-task-intake/references/docs-map.md)
-里"完成与更新矩阵"涉及的文档（要更新就要先读现状）。
+### 2. 跑本轮验证
 
-只有 intake 没有 execution：说明实现可能不完整，先与用户确认是不是该退回
-`$yulora-task-execution`。
+必须使用本轮真实跑出来的证据，不能用“之前跑过”代替。
 
-两个都没有：单独调用模式。按 docs-map.md 的"核心文档"+"完成与更新矩阵"
-做一次完整重建。
-
-### 2. 跑新鲜验证（按门禁分级）
-
-按 docs-map.md 的"验收门禁分级"挑命令。**不要一律全跑**，也不要省略：
-
-- 代码变更 → lint + typecheck + test + build 全套
-- 仅文档 → 链接和路径手工抽查、相关 markdown 渲染
-- 仅 skill / AGENTS → 引用文件存在性检查 + 关键规则 grep 复核 + 人工 diff
-- 混合 → 取重心，再补另一类的关键项，并在总结里说明取舍
-
-重要：不能用"应该没问题 / 之前跑过"代替本轮证据。命令必须本轮真的跑过，
-输出贴在最终总结里或可追溯。
-
-### 3. 判 PASS / FAIL
-
-必须同时对照：
-
-- `MVP_BACKLOG.md` 里 task 专属验收
+至少对照：
+- `MVP_BACKLOG.md` 里的 task 验收语句
 - `docs/acceptance.md` 的产品基线
 - `docs/test-cases.md` 的相关场景
 
-结论只能写 `PASS` 或 `FAIL`，不要写"基本通过 / 大体 OK"。
+### 3. 判 PASS / FAIL
 
-### 4. 更新项目记录
+结论只能写：
+- `PASS`
+- `FAIL`
 
-至少更新（"完成与更新矩阵"的常驻项）：
+不写“基本通过”“大体 OK”之类模糊结论。
 
+### 4. 同步项目记录
+
+至少更新：
 - `docs/test-report.md`
 - `reports/task-summaries/TASK-xxx.md`
 
-按变更影响补充更新（条件项）：
-
+按变更影响补充更新：
 - `docs/decision-log.md`
 - `docs/progress.md`
 - `docs/design.md`
 - `docs/test-cases.md`
 - `MVP_BACKLOG.md`
 
-判断标准见 docs-map.md 的"完成与更新矩阵"。
+### 5. 文档一致性门槛
 
-如果这轮验收对应的 task 已经完成，必须检查 `MVP_BACKLOG.md` 里的执行切片 checkbox 是否已经同步；没同步就要补上，
-不能只给 PASS/FAIL 和 task summary。
+文档一致性是验收门禁的一部分。
 
-### 5. 输出最终总结（必须含人工验收）
+如果以下三处在 task 状态、执行切片、或“本轮做了什么”上互相矛盾，则本轮验收**未完成**，不能直接给 `PASS`：
+- `MVP_BACKLOG.md`
+- `docs/progress.md`
+- `reports/task-summaries/TASK-xxx.md`
+
+必须先把这三处同步到一致，再输出验收结论。
+
+补充规则：
+- `docs/acceptance.md` 是产品验收基线，不是动态进度板
+- 不要用 `docs/acceptance.md` 覆盖 backlog / progress 的动态状态真相
+- 如果 task 已完成，必须检查 `MVP_BACKLOG.md` 里的执行切片 checkbox 是否已经同步
+
+### 6. 输出最终总结
 
 模板：
 
@@ -95,7 +84,7 @@ Task: TASK-xxx
 
 验证：
 - 命令 1（已运行，结果 ...）
-- 命令 2 ...
+- 命令 2（已运行，结果 ...）
 
 人工验收：
 1. ...
@@ -105,14 +94,13 @@ Task: TASK-xxx
 - ...
 ```
 
-**人工验收步骤不能省略**，纯文档或纯 skill 变更也要写 ——
-那种情况下要明确告诉用户：看哪些文件、确认哪些文字或规则已经生效。
+人工验收步骤不能省略。
 
 ## 结束条件
 
-满足以下全部条件才报告任务结束：
-
-- 验证证据完整且来自本轮
-- PASS / FAIL 已写明
+满足以下全部条件才算验收结束：
+- 本轮验证证据完整且来自本轮
+- `PASS / FAIL` 已写明
 - 项目记录已按矩阵更新
-- 最终总结已含人工验收步骤
+- `MVP_BACKLOG.md`、`docs/progress.md`、`reports/task-summaries/TASK-xxx.md` 已无状态矛盾
+- 最终总结已包含人工验收步骤
