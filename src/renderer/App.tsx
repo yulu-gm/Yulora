@@ -1,7 +1,18 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { ActiveBlockState } from "../../packages/editor-core/src";
-import { defaultScenarioRegistry } from "../../packages/test-harness/src";
+import {
+  defaultScenarioRegistry,
+  runScenario,
+  type RunErrorInfo,
+  type RunnerEvent,
+  type ScenarioResult,
+  type ScenarioStatus,
+  type StepHandlerMap,
+  type StepResult,
+  type StepStatus,
+  type TestScenario
+} from "../../packages/test-harness/src";
 import { CodeEditorView, type CodeEditorHandle } from "./code-editor-view";
 import { ScenarioCatalog } from "./scenario-catalog";
 import {
@@ -17,6 +28,8 @@ import {
 
 const AUTOSAVE_IDLE_MS = 1000;
 const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
+const DEBUG_EVENT_LIMIT = 8;
+const DEBUG_STEP_DELAY_MS = 40;
 
 export default function App() {
   const runtimeMode = resolveRuntimeModeFromLocation();
@@ -308,6 +321,62 @@ function EditorApp({ yulora }: { yulora: Window["yulora"] }) {
 }
 
 function TestWorkbenchApp({ hasBridge }: { hasBridge: boolean }) {
+  const scenarios = defaultScenarioRegistry.list();
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(scenarios[0]?.id ?? null);
+  const selectedScenario = selectedScenarioId
+    ? defaultScenarioRegistry.get(selectedScenarioId)
+    : scenarios[0] ?? null;
+  const [runState, setRunState] = useState<DebugRunState>(() => createIdleDebugRunState(selectedScenario));
+  const activeRunControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!activeRunControllerRef.current) {
+      setRunState(createIdleDebugRunState(selectedScenario));
+    }
+  }, [selectedScenario]);
+
+  async function handleRunSelectedScenario(): Promise<void> {
+    if (!selectedScenario || activeRunControllerRef.current) {
+      return;
+    }
+
+    const controller = new AbortController();
+    activeRunControllerRef.current = controller;
+    setRunState(createIdleDebugRunState(selectedScenario));
+
+    try {
+      const result = await runScenario(selectedScenario, {
+        handlers: createWorkbenchStepHandlers(selectedScenario),
+        signal: controller.signal,
+        stepTimeoutMs: 2_000,
+        onEvent: (event) => {
+          setRunState((current) => applyRunnerEventToDebugState(current, selectedScenario, event));
+        }
+      });
+
+      setRunState((current) => applyScenarioResultToDebugState(current, selectedScenario, result));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setRunState((current) =>
+        applyScenarioResultToDebugState(current, selectedScenario, {
+          scenarioId: selectedScenario.id,
+          status: "failed",
+          startedAt: current.startedAt ?? Date.now(),
+          finishedAt: Date.now(),
+          durationMs: 0,
+          steps: current.steps.map((step) => ({ id: step.id, status: step.status })),
+          error: { message, kind: "step" }
+        })
+      );
+    } finally {
+      activeRunControllerRef.current = null;
+    }
+  }
+
+  function handleInterruptRun(): void {
+    activeRunControllerRef.current?.abort(new Error("Interrupted from workbench control."));
+  }
+
   return (
     <main className="test-workbench-shell">
       <header className="test-workbench-hero">
@@ -351,25 +420,117 @@ function TestWorkbenchApp({ hasBridge }: { hasBridge: boolean }) {
           <p className="workbench-panel-hint">
             Sourced from <code>packages/test-harness</code>. Select a scenario to inspect its steps.
           </p>
-          <ScenarioCatalog registry={defaultScenarioRegistry} />
+          <ScenarioCatalog
+            onSelect={setSelectedScenarioId}
+            registry={defaultScenarioRegistry}
+            selectedId={selectedScenario?.id ?? null}
+          />
         </article>
 
         <article className="workbench-panel">
           <p className="workbench-panel-label">Debug Stream</p>
-          <h2>Workbench-first diagnostics</h2>
+          <h2>{formatRunStatus(runState.status)}</h2>
           <p>
-            Runtime events, abort reasons, and error summaries will stay here instead of leaking
-            into the editor test window.
+            Runtime events, abort reasons, and error summaries stay in this window so the editor
+            test surface can remain focused on the scenario under test.
           </p>
+          <div className="workbench-action-row">
+            <button
+              className="test-workbench-run"
+              disabled={!selectedScenario || Boolean(activeRunControllerRef.current)}
+              onClick={() => {
+                void handleRunSelectedScenario();
+              }}
+              type="button"
+            >
+              Run Selected Scenario
+            </button>
+            <button
+              className="test-workbench-secondary"
+              disabled={!activeRunControllerRef.current}
+              onClick={handleInterruptRun}
+              type="button"
+            >
+              Interrupt Active Run
+            </button>
+          </div>
+          <dl className="debug-run-meta">
+            <div>
+              <dt>Scenario</dt>
+              <dd>{selectedScenario?.id ?? "No scenario selected"}</dd>
+            </div>
+            <div>
+              <dt>Current step</dt>
+              <dd>{runState.currentStepId ?? "Waiting to start"}</dd>
+            </div>
+            <div>
+              <dt>Progress</dt>
+              <dd>
+                {runState.completedSteps} / {runState.totalSteps}
+              </dd>
+            </div>
+          </dl>
+          {runState.terminalError ? (
+            <div
+              className="debug-run-error"
+              role="status"
+            >
+              <p className="debug-run-error-label">Terminal reason</p>
+              <p className="debug-run-error-message">
+                <strong>{runState.terminalError.kind ?? "step"}</strong>
+                {" · "}
+                {runState.terminalError.stepId ?? "scenario"}
+                {" · "}
+                {runState.terminalError.message}
+              </p>
+            </div>
+          ) : null}
+          <div className="debug-event-feed">
+            <p className="debug-event-feed-label">Recent events</p>
+            {runState.events.length === 0 ? (
+              <p className="workbench-empty">No events yet.</p>
+            ) : (
+              <ol className="debug-event-list">
+                {runState.events.map((event) => (
+                  <li key={event.key}>
+                    <p className="debug-event-title">{event.type}</p>
+                    <p className="debug-event-copy">{event.detail}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </article>
 
         <article className="workbench-panel workbench-panel-wide">
           <p className="workbench-panel-label">Test Process</p>
-          <h2>Runner status placeholder</h2>
+          <h2>{runState.totalSteps} step trace</h2>
           <p>
-            The runner and step machine are not wired yet. This area is reserved for task progress,
-            process output, and result state once TASK-027 lands.
+            Seeded handlers stay intentionally small in this task. The goal here is to prove the
+            workbench can render progress, timing, and terminal diagnostics from the shared runner.
           </p>
+          <ul className="debug-step-list">
+            {runState.steps.map((step) => (
+              <li
+                key={step.id}
+                className={`debug-step-item status-${step.status}`}
+              >
+                <div>
+                  <p className="debug-step-title">{step.id}</p>
+                  <p className="debug-step-copy">
+                    {step.title}
+                    {" · "}
+                    {step.kind}
+                  </p>
+                  {step.error ? <p className="debug-step-error">{step.error.message}</p> : null}
+                </div>
+                <div className="debug-step-meta">
+                  <span>{formatRunStatus(step.status)}</span>
+                  <span>{step.durationMs !== undefined ? `${step.durationMs} ms` : "Pending"}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </article>
       </section>
     </main>
@@ -393,4 +554,243 @@ function resolveRuntimeModeFromLocation(): "editor" | "test-workbench" {
   return new URLSearchParams(window.location.search).get("mode") === "test-workbench"
     ? "test-workbench"
     : "editor";
+}
+
+type DebugRunStep = {
+  readonly id: string;
+  readonly title: string;
+  readonly kind: TestScenario["steps"][number]["kind"];
+  readonly status: StepStatus;
+  readonly durationMs?: number;
+  readonly error?: RunErrorInfo;
+};
+
+type DebugEventEntry = {
+  readonly key: string;
+  readonly type: RunnerEvent["type"];
+  readonly detail: string;
+};
+
+type DebugRunState = {
+  readonly scenarioId: string | null;
+  readonly status: "idle" | ScenarioStatus;
+  readonly currentStepId: string | null;
+  readonly totalSteps: number;
+  readonly completedSteps: number;
+  readonly steps: readonly DebugRunStep[];
+  readonly events: readonly DebugEventEntry[];
+  readonly startedAt?: number;
+  readonly finishedAt?: number;
+  readonly durationMs?: number;
+  readonly terminalError?: RunErrorInfo & { readonly stepId?: string };
+};
+
+function createIdleDebugRunState(scenario: TestScenario | null): DebugRunState {
+  return {
+    scenarioId: scenario?.id ?? null,
+    status: "idle",
+    currentStepId: null,
+    totalSteps: scenario?.steps.length ?? 0,
+    completedSteps: 0,
+    steps: createDebugStepsFromScenario(scenario),
+    events: []
+  };
+}
+
+function createDebugStepsFromScenario(scenario: TestScenario | null): readonly DebugRunStep[] {
+  return (
+    scenario?.steps.map((step) => ({
+      id: step.id,
+      title: step.title,
+      kind: step.kind,
+      status: "pending"
+    })) ?? []
+  );
+}
+
+function applyRunnerEventToDebugState(
+  current: DebugRunState,
+  scenario: TestScenario,
+  event: RunnerEvent
+): DebugRunState {
+  const base =
+    current.scenarioId === scenario.id ? current : createIdleDebugRunState(scenario);
+  const next: DebugRunState = {
+    ...base,
+    events: [createDebugEventEntry(event), ...base.events].slice(0, DEBUG_EVENT_LIMIT)
+  };
+
+  if (event.type === "scenario-start") {
+    return {
+      ...next,
+      status: "running",
+      startedAt: event.at,
+      finishedAt: undefined,
+      durationMs: undefined,
+      currentStepId: null,
+      completedSteps: 0,
+      steps: createDebugStepsFromScenario(scenario),
+      terminalError: undefined
+    };
+  }
+
+  if (event.type === "step-start") {
+    return {
+      ...next,
+      currentStepId: event.stepId,
+      steps: next.steps.map((step) =>
+        step.id === event.stepId ? { ...step, status: "running", error: undefined } : step
+      )
+    };
+  }
+
+  if (event.type === "step-end") {
+    const steps = next.steps.map((step) =>
+      step.id === event.stepId
+        ? {
+            ...step,
+            status: event.status,
+            durationMs: event.durationMs,
+            error: event.error
+          }
+        : step
+    );
+
+    return {
+      ...next,
+      completedSteps: countCompletedSteps(steps),
+      steps
+    };
+  }
+
+  return {
+    ...next,
+    status: event.status,
+    currentStepId: event.error?.stepId ?? next.currentStepId,
+    finishedAt: event.at,
+    terminalError: event.error
+  };
+}
+
+function applyScenarioResultToDebugState(
+  current: DebugRunState,
+  scenario: TestScenario,
+  result: ScenarioResult
+): DebugRunState {
+  const steps = mergeScenarioStepsWithResult(scenario, result.steps);
+
+  return {
+    ...current,
+    scenarioId: scenario.id,
+    status: result.status,
+    currentStepId: result.error?.stepId ?? current.currentStepId,
+    totalSteps: scenario.steps.length,
+    completedSteps: countCompletedSteps(steps),
+    steps,
+    startedAt: result.startedAt,
+    finishedAt: result.finishedAt,
+    durationMs: result.durationMs,
+    terminalError: result.error
+  };
+}
+
+function mergeScenarioStepsWithResult(
+  scenario: TestScenario,
+  stepResults: readonly StepResult[]
+): readonly DebugRunStep[] {
+  return scenario.steps.map((step) => {
+    const result = stepResults.find((item) => item.id === step.id);
+
+    return {
+      id: step.id,
+      title: step.title,
+      kind: step.kind,
+      status: result?.status ?? "pending",
+      durationMs: result?.durationMs,
+      error: result?.error
+    };
+  });
+}
+
+function countCompletedSteps(steps: readonly DebugRunStep[]): number {
+  return steps.filter((step) => step.status !== "pending" && step.status !== "running").length;
+}
+
+function createDebugEventEntry(event: RunnerEvent): DebugEventEntry {
+  if (event.type === "scenario-start") {
+    return {
+      key: `${event.type}-${event.at}`,
+      type: event.type,
+      detail: `${event.scenarioId} started at ${event.at}`
+    };
+  }
+
+  if (event.type === "step-start") {
+    return {
+      key: `${event.type}-${event.stepId}-${event.at}`,
+      type: event.type,
+      detail: `${event.stepId} started at ${event.at}`
+    };
+  }
+
+  if (event.type === "step-end") {
+    return {
+      key: `${event.type}-${event.stepId}-${event.at}`,
+      type: event.type,
+      detail: `${event.stepId} finished as ${event.status} in ${event.durationMs} ms`
+    };
+  }
+
+  return {
+    key: `${event.type}-${event.at}`,
+    type: event.type,
+    detail: `${event.status}${event.error?.stepId ? ` at ${event.error.stepId}` : ""}${
+      event.error ? `: ${event.error.message}` : ""
+    }`
+  };
+}
+
+function createWorkbenchStepHandlers(scenario: TestScenario): StepHandlerMap {
+  return Object.fromEntries(
+    scenario.steps.map((step) => [
+      step.id,
+      async ({ signal }) => {
+        await waitForDebugDelay(DEBUG_STEP_DELAY_MS, signal);
+
+        if (scenario.id === "open-markdown-file-basic" && step.id === "select-fixture") {
+          throw new Error("Fixture picker automation is not implemented in TASK-028.");
+        }
+      }
+    ])
+  ) as StepHandlerMap;
+}
+
+function waitForDebugDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason ?? new Error("Run aborted before the step started."));
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      signal.removeEventListener("abort", handleAbort);
+      resolve();
+    }, delayMs);
+
+    const handleAbort = () => {
+      clearTimeout(timeoutId);
+      signal.removeEventListener("abort", handleAbort);
+      reject(signal.reason ?? new Error("Run interrupted."));
+    };
+
+    signal.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
+function formatRunStatus(status: DebugRunState["status"] | StepStatus): string {
+  if (status === "timed-out") {
+    return "Timed Out";
+  }
+
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }

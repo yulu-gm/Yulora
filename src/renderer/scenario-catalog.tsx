@@ -1,16 +1,14 @@
-import { useMemo, useState } from "react";
-
 import type { ScenarioRegistry, TestScenario } from "../../packages/test-harness/src";
 
 type ScenarioCatalogProps = {
   readonly registry: ScenarioRegistry;
+  readonly selectedId: string | null;
+  readonly onSelect: (scenarioId: string) => void;
 };
 
-export function ScenarioCatalog({ registry }: ScenarioCatalogProps) {
-  const scenarios = useMemo(() => registry.list(), [registry]);
-  const [selectedId, setSelectedId] = useState<string | null>(scenarios[0]?.id ?? null);
-
-  const selected = selectedId ? registry.get(selectedId) : null;
+export function ScenarioCatalog({ registry, selectedId, onSelect }: ScenarioCatalogProps) {
+  const scenarios = registry.list();
+  const selected = selectedId ? registry.get(selectedId) : scenarios[0] ?? null;
 
   if (scenarios.length === 0) {
     return (
@@ -34,7 +32,7 @@ export function ScenarioCatalog({ registry }: ScenarioCatalogProps) {
               role="option"
               aria-selected={scenario.id === selectedId}
               className={`scenario-list-item${scenario.id === selectedId ? " is-selected" : ""}`}
-              onClick={() => setSelectedId(scenario.id)}
+              onClick={() => onSelect(scenario.id)}
             >
               <span className="scenario-list-title">{scenario.title}</span>
               <span className="scenario-list-id">{scenario.id}</span>

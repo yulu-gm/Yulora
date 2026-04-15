@@ -70,7 +70,7 @@
 | TASK-025 | 测试工作台窗口 | ACCEPTED | 已交付独立测试工作台窗口、测试模式启动入口、最小 runtime bridge，以及从工作台拉起独立 editor 测试窗口的基础能力，并完成本轮验收复核。 |
 | TASK-026 | 场景注册表 | DEV_DONE | 已在 `packages/test-harness` 落地 `TestScenario` / `TestStep` 类型、`createScenarioRegistry` 静态注册表与查询 API，并把 `defaultScenarioRegistry` 接入工作台场景目录面板；种子场景 `app-shell-startup`、`open-markdown-file-basic`。 |
 | TASK-027 | 测试运行器 | TODO | 统一运行器与步骤状态机。 |
-| TASK-028 | Debug 界面 | TODO | 实时进度、事件流、错误与中断原因展示。 |
+| TASK-028 | Debug 界面 | DEV_DONE | 已将 runner 事件流接入测试工作台 renderer，交付场景概览、步骤追踪、最近事件流，以及失败 / 中断原因展示。 |
 | TASK-029 | CLI 与工件协议 | TODO | agent 统一 CLI 入口、退出码与结果目录。 |
 | TASK-030 | visual-test 支持 | TODO | 截图、基线、diff 与视觉结果展示。 |
 | TASK-031 | 核心场景扩充 | TODO | 首批可持续使用的核心测试场景集。 |

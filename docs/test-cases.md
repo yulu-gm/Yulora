@@ -275,6 +275,25 @@
 - 正常开发命令仍进入普通编辑器壳
 - 不会误显示测试工作台界面
 
+### TC-083 测试工作台实时 debug 状态
+
+步骤：
+1. 运行 `npm run dev:test-workbench`。
+2. 观察 `Debug Stream` 默认显示 `Idle`，且 `Recent events` 为空。
+3. 选择 `app-shell-startup` 并点击 `Run Selected Scenario`。
+4. 确认 `Debug Stream` 会显示 `Running`、当前步骤和最近事件。
+5. 等待场景结束，确认状态切换为 `Passed`，步骤区显示每步状态与耗时。
+6. 选择 `open-markdown-file-basic` 并再次运行。
+7. 确认 workbench 显示 `Failed`，并展示失败步骤、错误类型和错误消息。
+8. 再次运行任一场景，在执行中点击 `Interrupt Active Run`。
+9. 确认 workbench 显示 `Interrupted`，并展示中断步骤和原因。
+
+预期：
+- debug 面板会实时刷新场景状态、当前步骤和最近事件
+- 步骤追踪区会显示每步状态与耗时
+- 失败时可看到失败步骤和错误消息
+- 中断时可看到中断原因，且事件流会保留最近终态事件
+
 ## 10. 回归规则
 
 每个完成的任务都应记录：
