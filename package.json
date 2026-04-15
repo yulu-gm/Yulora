@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.vitest.json && tsc --noEmit -p tsconfig.cli.json",
     "test": "vitest run",
     "build:cli": "tsc -p tsconfig.cli.json",
+    "package:win": "npm run build && electron-builder --config electron-builder.json --win --x64",
     "pretest:scenario": "npm run build:cli",
     "test:scenario": "node dist-cli/cli/bin.js"
   },
@@ -41,6 +42,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

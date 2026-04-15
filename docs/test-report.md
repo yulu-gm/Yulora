@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-04-16 | TASK-038 | `npm run test -- src/main/package-scripts.test.ts` | 通过 | 覆盖 `package:win` 入口、`electron-builder.json` 配置、`release/` 忽略规则，以及 `win.signAndEditExecutable: false` 的环境兼容约束。 |
+| 2026-04-16 | TASK-038 | `npm run lint` | 通过 | 打包脚本、builder 配置和文档更新未引入 lint 错误。 |
+| 2026-04-16 | TASK-038 | `npm run typecheck` | 通过 | 现有 Electron / renderer / vitest / cli TypeScript 检查保持通过。 |
+| 2026-04-16 | TASK-038 | `npm run test` | 通过 | Vitest 全量测试通过，包含新增打包配置回归测试；当前共 29 个文件、158 条测试通过。 |
+| 2026-04-16 | TASK-038 | `npm run build` | 通过 | 现有构建链路保持通过，确认 `package:win` 依赖的基础构建未回归；保留 Vite 默认的大 bundle warning，但不阻塞本轮交付。 |
+| 2026-04-16 | TASK-038 | `npm run package:win` | 通过 | 本地 Windows 打包成功，`release/Yulora-Setup-0.1.0.exe` 已生成；当前仍使用默认 Electron 图标，`package.json` 缺少 author 只产生 warning，不阻塞安装器产出。 |
 | 2026-04-15 | TASK-012 | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖列表项 metadata、任务列表勾选标记、嵌套列表缩进与 list/blockquotes 边界。 |
 | 2026-04-15 | TASK-012 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖非激活态列表 / 任务列表渲染、ordered marker 样式、Enter 续项、空项退出与既有 heading/paragraph/IME 回归。 |
 | 2026-04-15 | TASK-012 | `npm run test -- src/renderer/editor-test-driver.test.ts` | 通过 | 覆盖 editor test driver 对 `set-editor-selection` 与 `press-editor-enter` 两个最小命令的支持。 |

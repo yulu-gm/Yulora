@@ -79,4 +79,4 @@
 | TASK-035 | IME 基线保护 | ACCEPTED | 已完成 composition guard、autosave 光标回归修复与段落/标题/列表回归测试，并通过本轮中文 IME 人工验收。 |
 | TASK-036 | 外部文件变更检测 | TODO | 外部修改当前文件时的提示与冲突处理，避免 autosave 覆盖。 |
 | TASK-037 | 偏好设置持久化 | TODO | 最小配置存储，承载 autosave 间隔、最近文件上限、字体主题等。 |
-| TASK-038 | 跨平台打包 | TODO | macOS / Windows 可安装产物管线，保留签名与自动更新接入点。 |
+| TASK-038 | 跨平台打包 | DEV_IN_PROGRESS | 已接入基于 `electron-builder` 的 Windows 本地 `package:win` 打包入口，可在当前仓库内生成 NSIS `.exe`；macOS 产物、签名和正式图标仍待后续切片完成。 |

@@ -1,0 +1,34 @@
+{
+  "appId": "com.yulora.app",
+  "productName": "Yulora",
+  "artifactName": "${productName}-Setup-${version}.${ext}",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "package.json",
+    "dist/**/*",
+    "dist-electron/**/*",
+    "dist-cli/**/*",
+    "!src{,/**}",
+    "!tests{,/**}",
+    "!docs{,/**}",
+    "!reports{,/**}",
+    "!.artifacts{,/**}",
+    "!fixtures{,/**}",
+    "!tmp{,/**}"
+  ],
+  "win": {
+    "signAndEditExecutable": false,
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

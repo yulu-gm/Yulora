@@ -57,4 +57,71 @@ describe("package scripts", () => {
     expect(preloadSource).not.toContain("from \"../");
     expect(preloadSource).not.toContain("from '../");
   });
+
+  it("defines a Windows packaging entry that builds before invoking electron-builder", () => {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["package:win"]).toContain("npm run build");
+    expect(packageJson.scripts?.["package:win"]).toContain("electron-builder");
+    expect(packageJson.scripts?.["package:win"]).toContain("--config electron-builder.json");
+    expect(packageJson.scripts?.["package:win"]).toContain("--win");
+    expect(packageJson.scripts?.["package:win"]).toContain("--x64");
+  });
+
+  it("stores the Windows installer configuration in a dedicated electron-builder config file", () => {
+    const configPath = path.join(process.cwd(), "electron-builder.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+      appId?: string;
+      productName?: string;
+      directories?: { output?: string };
+      files?: string[];
+      win?: {
+        signAndEditExecutable?: boolean;
+        target?: Array<{
+          target?: string;
+          arch?: string[];
+        }>;
+      };
+      nsis?: {
+        oneClick?: boolean;
+        allowToChangeInstallationDirectory?: boolean;
+      };
+    };
+
+    expect(config.appId).toBe("com.yulora.app");
+    expect(config.productName).toBe("Yulora");
+    expect(config.directories?.output).toBe("release");
+    expect(config.files).toEqual(
+      expect.arrayContaining([
+        "dist/**/*",
+        "dist-electron/**/*",
+        "dist-cli/**/*",
+        "!src{,/**}",
+        "!tests{,/**}",
+        "!docs{,/**}",
+        "!reports{,/**}"
+      ])
+    );
+    expect(config.win?.target).toEqual([
+      {
+        target: "nsis",
+        arch: ["x64"]
+      }
+    ]);
+    expect(config.win?.signAndEditExecutable).toBe(false);
+    expect(config.nsis).toMatchObject({
+      oneClick: false,
+      allowToChangeInstallationDirectory: true
+    });
+  });
+
+  it("ignores the release output directory", () => {
+    const gitignorePath = path.join(process.cwd(), ".gitignore");
+    const gitignoreSource = readFileSync(gitignorePath, "utf8");
+
+    expect(gitignoreSource).toContain("release");
+  });
 });
