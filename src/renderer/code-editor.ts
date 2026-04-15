@@ -6,6 +6,7 @@ export type CreateCodeEditorControllerOptions = {
   parent: Element;
   initialContent: string;
   onChange: (content: string) => void;
+  onBlur?: () => void;
 };
 
 export type CodeEditorController = {
@@ -41,12 +42,19 @@ export function createCodeEditorController(
     parent: options.parent
   });
 
+  const handleBlur = () => {
+    options.onBlur?.();
+  };
+
+  view.dom.addEventListener("focusout", handleBlur);
+
   return {
     getContent: () => view.state.doc.toString(),
     replaceDocument(nextContent: string) {
       view.setState(createState(nextContent));
     },
     destroy() {
+      view.dom.removeEventListener("focusout", handleBlur);
       view.destroy();
     }
   };

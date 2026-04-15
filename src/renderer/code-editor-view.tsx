@@ -19,14 +19,16 @@ type CodeEditorViewProps = {
   initialContent: string;
   loadRevision: number;
   onChange: (content: string) => void;
+  onBlur?: () => void;
 };
 
 export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
-  function CodeEditorView({ initialContent, loadRevision, onChange }, ref) {
+  function CodeEditorView({ initialContent, loadRevision, onChange, onBlur }, ref) {
     const hostRef = useRef<HTMLDivElement | null>(null);
     const controllerRef = useRef<CodeEditorController | null>(null);
     const initialContentRef = useRef(initialContent);
     const handleChange = useEffectEvent(onChange);
+    const handleBlur = useEffectEvent(() => onBlur?.());
 
     useEffect(() => {
       if (!hostRef.current) {
@@ -36,7 +38,8 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
       const controller = createCodeEditorController({
         parent: hostRef.current,
         initialContent: initialContentRef.current,
-        onChange: (content) => handleChange(content)
+        onChange: (content) => handleChange(content),
+        onBlur: () => handleBlur()
       });
 
       controllerRef.current = controller;

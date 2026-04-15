@@ -45,7 +45,7 @@
 | TASK-002 | 项目结构 | DEV_DONE | 已建立 `apps/desktop`、`packages/editor-core`、`packages/markdown-engine`、`tests/e2e` 目录边界，同时保持根目录开发壳可运行。 |
 | TASK-003 | 打开 Markdown 文件 | DEV_DONE | 已接入安全打开桥接、UTF-8 读取、错误提示与临时 textarea 显示。 |
 | TASK-004 | 保存与另存为 | DEV_DONE | 已接入安全 Save / Save As bridge、主进程写入、dirty 状态与保存反馈。 |
-| TASK-005 | 自动保存 | TODO | 定时自动保存与失败安全。 |
+| TASK-005 | 自动保存 | DEV_DONE | 已接入 idle autosave、blur autosave、手动/自动保存状态区分，以及保存进行中再次编辑后的单次 replay autosave。 |
 | TASK-006 | 最近文件 | TODO | 最近文档列表与失效路径清理。 |
 | TASK-007 | CodeMirror 6 接入 | DEV_DONE | 已用 CodeMirror 6 替换临时 textarea，并接入基础编辑面、快捷键与现有保存链路。 |
 | TASK-032 | 应用菜单与壳层收敛 | DEV_DONE | 已接入原生 `File` 菜单中的 `Open...`、`Save`、`Save As...`，并把 renderer 临时壳收敛为更像桌面编辑器的单栏界面。 |

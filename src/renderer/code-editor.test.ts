@@ -21,4 +21,26 @@ describe("createCodeEditorController", () => {
 
     controller.destroy();
   });
+
+  it("calls onBlur when the editor loses focus", () => {
+    const host = document.createElement("div");
+    const onBlur = vi.fn();
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "# Title\n",
+      onChange: vi.fn(),
+      onBlur
+    });
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).not.toBeNull();
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+
+    expect(onBlur).toHaveBeenCalledTimes(1);
+
+    controller.destroy();
+  });
 });

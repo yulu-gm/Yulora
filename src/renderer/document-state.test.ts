@@ -6,7 +6,8 @@ import {
   applySaveMarkdownResult,
   applyOpenMarkdownResult,
   createInitialAppState,
-  startSavingDocument,
+  startAutosavingDocument,
+  startManualSavingDocument,
   type AppState
 } from "./document-state";
 
@@ -107,7 +108,7 @@ describe("save document state", () => {
     expect(nextState.editorLoadRevision).toBe(1);
   });
 
-  it("marks the document as saving when save starts", () => {
+  it("marks the document as manual-saving when a manual save starts", () => {
     const initialState = applyOpenMarkdownResult(createInitialAppState(), {
       status: "success",
       document: {
@@ -118,9 +119,25 @@ describe("save document state", () => {
       }
     });
 
-    const nextState = startSavingDocument(initialState);
+    const nextState = startManualSavingDocument(initialState);
 
-    expect(nextState.saveState).toBe("saving");
+    expect(nextState.saveState).toBe("manual-saving");
+  });
+
+  it("marks the document as autosaving when autosave starts", () => {
+    const initialState = applyOpenMarkdownResult(createInitialAppState(), {
+      status: "success",
+      document: {
+        path: "C:/notes/today.md",
+        name: "today.md",
+        content: "# Today\n",
+        encoding: "utf-8"
+      }
+    });
+
+    const nextState = startAutosavingDocument(initialState);
+
+    expect(nextState.saveState).toBe("autosaving");
   });
 
   it("clears dirty state after a successful save", () => {
@@ -169,6 +186,35 @@ describe("save document state", () => {
 
     expect(nextState.isDirty).toBe(true);
     expect(nextState.errorMessage).toBe("The Markdown file could not be saved.");
+    expect(nextState.saveState).toBe("idle");
+  });
+
+  it("keeps dirty state and stores an autosave-safe error message when autosave fails", () => {
+    const initialState = startAutosavingDocument(
+      applyEditorContentChanged(
+        applyOpenMarkdownResult(createInitialAppState(), {
+          status: "success",
+          document: {
+            path: "C:/notes/today.md",
+            name: "today.md",
+            content: "# Today\n",
+            encoding: "utf-8"
+          }
+        }),
+        "# Updated\n"
+      )
+    );
+
+    const nextState = applySaveMarkdownResult(initialState, {
+      status: "error",
+      error: {
+        code: "write-failed",
+        message: "Autosave failed. Changes are still in memory."
+      }
+    });
+
+    expect(nextState.isDirty).toBe(true);
+    expect(nextState.errorMessage).toBe("Autosave failed. Changes are still in memory.");
     expect(nextState.saveState).toBe("idle");
   });
 

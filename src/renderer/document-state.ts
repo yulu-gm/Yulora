@@ -5,7 +5,7 @@ import type {
 import type { SaveMarkdownFileResult } from "../shared/save-markdown-file";
 
 export type OpenState = "idle" | "opening";
-export type SaveState = "idle" | "saving";
+export type SaveState = "idle" | "manual-saving" | "autosaving";
 
 export type AppState = {
   currentDocument: OpenMarkdownDocument | null;
@@ -78,10 +78,17 @@ export function applyEditorContentChanged(currentState: AppState, nextContent: s
   };
 }
 
-export function startSavingDocument(currentState: AppState): AppState {
+export function startManualSavingDocument(currentState: AppState): AppState {
   return {
     ...currentState,
-    saveState: "saving"
+    saveState: "manual-saving"
+  };
+}
+
+export function startAutosavingDocument(currentState: AppState): AppState {
+  return {
+    ...currentState,
+    saveState: "autosaving"
   };
 }
 
