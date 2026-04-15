@@ -53,7 +53,28 @@ describe("Test workbench shell", () => {
     expect(container.textContent).toContain("Scenario Catalog");
     expect(container.textContent).toContain("Debug Stream");
     expect(container.textContent).toContain("Test Process");
-    expect(container.textContent).toContain("No scenario registry yet");
+    expect(container.textContent).toContain("registered scenario");
+    expect(container.textContent).toContain("app-shell-startup");
+    expect(container.textContent).toContain("open-markdown-file-basic");
+  });
+
+  it("shows scenario detail for the selected scenario", async () => {
+    await act(async () => {
+      root.render(createElement(App));
+    });
+
+    const items = container.querySelectorAll<HTMLButtonElement>(".scenario-list-item");
+    expect(items.length).toBeGreaterThanOrEqual(2);
+
+    await act(async () => {
+      items[1]!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const detail = container.querySelector(".scenario-detail");
+    expect(detail?.textContent).toContain("Open a Markdown file via File > Open");
+    expect(detail?.textContent).toContain("Invoke File > Open");
+    expect(detail?.textContent).toContain("open-markdown-file-basic");
   });
 
   it("requests a dedicated editor window when the launch button is clicked", async () => {

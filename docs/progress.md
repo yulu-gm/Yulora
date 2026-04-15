@@ -68,9 +68,15 @@
 | TASK-023 | round-trip 回归测试 | TODO | 防止 Markdown 风格被重写。 |
 | TASK-024 | Playwright 冒烟测试 | TODO | 在测试工作台体系内接入首条 CLI 可触发的打开-编辑-保存-重开冒烟场景。 |
 | TASK-025 | 测试工作台窗口 | ACCEPTED | 已交付独立测试工作台窗口、测试模式启动入口、最小 runtime bridge，以及从工作台拉起独立 editor 测试窗口的基础能力，并完成本轮验收复核。 |
-| TASK-026 | 场景注册表 | TODO | 代码静态场景注册表与元数据模型。 |
+| TASK-026 | 场景注册表 | DEV_DONE | 已在 `packages/test-harness` 落地 `TestScenario` / `TestStep` 类型、`createScenarioRegistry` 静态注册表与查询 API，并把 `defaultScenarioRegistry` 接入工作台场景目录面板；种子场景 `app-shell-startup`、`open-markdown-file-basic`。 |
 | TASK-027 | 测试运行器 | TODO | 统一运行器与步骤状态机。 |
 | TASK-028 | Debug 界面 | TODO | 实时进度、事件流、错误与中断原因展示。 |
 | TASK-029 | CLI 与工件协议 | TODO | agent 统一 CLI 入口、退出码与结果目录。 |
 | TASK-030 | visual-test 支持 | TODO | 截图、基线、diff 与视觉结果展示。 |
 | TASK-031 | 核心场景扩充 | TODO | 首批可持续使用的核心测试场景集。 |
+| TASK-033 | 代码块渲染 | TODO | fenced code block 的源码/渲染切换与 round-trip 保真。 |
+| TASK-034 | 行内格式渲染 | TODO | bold / italic / inline code / strikethrough 的激活切换。 |
+| TASK-035 | IME 基线保护 | TODO | 在块级渲染启动前固化组合输入保护，先于 TASK-010 推进。 |
+| TASK-036 | 外部文件变更检测 | TODO | 外部修改当前文件时的提示与冲突处理，避免 autosave 覆盖。 |
+| TASK-037 | 偏好设置持久化 | TODO | 最小配置存储，承载 autosave 间隔、最近文件上限、字体主题等。 |
+| TASK-038 | 跨平台打包 | TODO | macOS / Windows 可安装产物管线，保留签名与自动更新接入点。 |

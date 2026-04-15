@@ -1,7 +1,9 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { ActiveBlockState } from "../../packages/editor-core/src";
+import { defaultScenarioRegistry } from "../../packages/test-harness/src";
 import { CodeEditorView, type CodeEditorHandle } from "./code-editor-view";
+import { ScenarioCatalog } from "./scenario-catalog";
 import {
   type AppState,
   applyEditorContentChanged,
@@ -340,13 +342,16 @@ function TestWorkbenchApp({ hasBridge }: { hasBridge: boolean }) {
       ) : null}
 
       <section className="test-workbench-grid">
-        <article className="workbench-panel">
+        <article className="workbench-panel workbench-panel-wide">
           <p className="workbench-panel-label">Scenario Catalog</p>
-          <h2>No scenario registry yet</h2>
-          <p>
-            TASK-026 will connect the static scenario registry here. For now this shell only proves
-            the isolated workbench runtime and window lifecycle.
+          <h2>
+            {defaultScenarioRegistry.size()} registered scenario
+            {defaultScenarioRegistry.size() === 1 ? "" : "s"}
+          </h2>
+          <p className="workbench-panel-hint">
+            Sourced from <code>packages/test-harness</code>. Select a scenario to inspect its steps.
           </p>
+          <ScenarioCatalog registry={defaultScenarioRegistry} />
         </article>
 
         <article className="workbench-panel">
