@@ -51,7 +51,7 @@ const headingDecorationsField = StateField.define<DecorationSet>({
 export function createCodeEditorController(
   options: CreateCodeEditorControllerOptions
 ): CodeEditorController {
-  let blockMap = parseBlockMap(options.initialContent);
+  let blockMap = parseBlockMap("");
   let activeBlockState = createActiveBlockStateFromBlockMap(blockMap, {
     anchor: 0,
     head: 0
@@ -187,6 +187,40 @@ export function createCodeEditorController(
           }
         }
       }
+
+      if (block.type === "blockquote") {
+        signatures.push(`${block.type}:${block.id}:${block.startOffset}:${block.endOffset}`);
+
+        for (const line of getInactiveBlockquoteLines(block.startOffset, block.endOffset, source)) {
+          const lineClasses = ["cm-inactive-blockquote"];
+
+          if (line.isFirstLine) {
+            lineClasses.push("cm-inactive-blockquote-start");
+          }
+
+          if (line.isLastLine) {
+            lineClasses.push("cm-inactive-blockquote-end");
+          }
+
+          ranges.push(
+            Decoration.line({
+              attributes: {
+                class: lineClasses.join(" ")
+              }
+            }).range(line.lineStart)
+          );
+
+          if (line.markerEnd > line.lineStart) {
+            ranges.push(
+              Decoration.mark({
+                attributes: {
+                  class: "cm-inactive-blockquote-marker"
+                }
+              }).range(line.lineStart, line.markerEnd)
+            );
+          }
+        }
+      }
     }
 
     return {
@@ -205,7 +239,11 @@ export function createCodeEditorController(
           {
             key: "Enter",
             run: (editorView) => {
-              return runListEnter(editorView) || insertNewlineAndIndent(editorView);
+              return (
+                runListEnter(editorView) ||
+                runBlockquoteEnter(editorView) ||
+                insertNewlineAndIndent(editorView)
+              );
             }
           },
           ...historyKeymap,
@@ -240,10 +278,8 @@ export function createCodeEditorController(
     });
 
   const initialState = createState(options.initialContent);
-  activeBlockState = createActiveBlockStateFromBlockMap(
-    blockMap,
-    createSelectionSnapshot(initialState)
-  );
+  blockMap = parseBlockMap(initialState.doc.toString());
+  activeBlockState = createActiveBlockStateFromBlockMap(blockMap, createSelectionSnapshot(initialState));
 
   const view = new EditorView({
     state: initialState,
@@ -322,8 +358,8 @@ export function createCodeEditorController(
     replaceDocument(nextContent: string) {
       isCompositionGuardActive = false;
       hasPendingDerivedStateFlush = false;
-      blockMap = parseBlockMap(nextContent);
       const nextState = createState(nextContent);
+      blockMap = parseBlockMap(nextState.doc.toString());
 
       view.setState(nextState);
       notifyActiveBlockChange(
@@ -357,7 +393,7 @@ export function createCodeEditorController(
       });
     },
     pressEnter() {
-      if (!runListEnter(view)) {
+      if (!runListEnter(view) && !runBlockquoteEnter(view)) {
         insertNewlineAndIndent(view);
       }
     },
@@ -386,6 +422,44 @@ function getInactiveHeadingMarkerEnd(startOffset: number, depth: number, source:
   return endOffset;
 }
 
+type InactiveBlockquoteLine = {
+  lineStart: number;
+  markerEnd: number;
+  isFirstLine: boolean;
+  isLastLine: boolean;
+};
+
+function getInactiveBlockquoteLines(
+  startOffset: number,
+  endOffset: number,
+  source: string
+): InactiveBlockquoteLine[] {
+  const lines: InactiveBlockquoteLine[] = [];
+  let cursor = startOffset;
+  let isFirstLine = true;
+
+  while (cursor < endOffset) {
+    const nextBreak = source.indexOf("\n", cursor);
+    const lineEnd = nextBreak === -1 || nextBreak >= endOffset ? endOffset : nextBreak;
+    const lineText = source.slice(cursor, lineEnd);
+    const markerMatch = /^\s{0,3}>\s?/.exec(lineText);
+    const markerEnd = cursor + (markerMatch?.[0].length ?? 0);
+    const nextCursor = nextBreak === -1 || nextBreak >= endOffset ? endOffset : nextBreak + 1;
+
+    lines.push({
+      lineStart: cursor,
+      markerEnd,
+      isFirstLine,
+      isLastLine: nextCursor >= endOffset
+    });
+
+    cursor = nextCursor;
+    isFirstLine = false;
+  }
+
+  return lines;
+}
+
 type ParsedListLine =
   | {
       indent: string;
@@ -404,6 +478,7 @@ type ParsedListLine =
 
 const LIST_LINE_PATTERN = /^(\s*)([*+-]|\d+[.)])(?:[ \t]+|$)(.*)$/;
 const TASK_CONTENT_PATTERN = /^\[( |x|X)\](?:[ \t]+|$)(.*)$/;
+const BLOCKQUOTE_LINE_PATTERN = /^(\s{0,3})>(?:[ \t]?)(.*)$/;
 
 function runListEnter(view: EditorView): boolean {
   const selection = view.state.selection.main;
@@ -456,6 +531,57 @@ function runListEnter(view: EditorView): boolean {
   return true;
 }
 
+function runBlockquoteEnter(view: EditorView): boolean {
+  const selection = view.state.selection.main;
+  if (!selection.empty) {
+    return false;
+  }
+
+  const line = view.state.doc.lineAt(selection.head);
+  const parsed = parseBlockquoteLine(line.text);
+  if (!parsed) {
+    return false;
+  }
+
+  if (parsed.content.trim().length === 0) {
+    const deleteTo =
+      line.to < view.state.doc.length && view.state.doc.sliceString(line.to, line.to + 1) === "\n"
+        ? line.to + 1
+        : line.to;
+
+    view.dispatch({
+      changes: {
+        from: line.from,
+        to: deleteTo,
+        insert: ""
+      },
+      selection: {
+        anchor: line.from,
+        head: line.from
+      }
+    });
+    return true;
+  }
+
+  const continuationPrefix = `${parsed.indent}> `;
+  const insertAt = selection.head;
+  const nextAnchor = insertAt + 1 + continuationPrefix.length;
+
+  view.dispatch({
+    changes: {
+      from: insertAt,
+      to: insertAt,
+      insert: `\n${continuationPrefix}`
+    },
+    selection: {
+      anchor: nextAnchor,
+      head: nextAnchor
+    }
+  });
+
+  return true;
+}
+
 function parseListLine(text: string): ParsedListLine | null {
   const match = LIST_LINE_PATTERN.exec(text);
   if (!match) {
@@ -483,6 +609,18 @@ function parseListLine(text: string): ParsedListLine | null {
       checked: taskMatch[1]?.toLowerCase() === "x"
     },
     content: taskMatch[2] ?? ""
+  };
+}
+
+function parseBlockquoteLine(text: string): { indent: string; content: string } | null {
+  const match = BLOCKQUOTE_LINE_PATTERN.exec(text);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    indent: match[1] ?? "",
+    content: match[2] ?? ""
   };
 }
 

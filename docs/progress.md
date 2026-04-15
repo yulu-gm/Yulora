@@ -20,7 +20,7 @@
 从源码可确认的未完成内容：
 - 已接入 micromark，并能在 `packages/markdown-engine` 中生成最小 top-level block map
 - 已能基于光标位置跟踪当前 top-level active block，并把结果从 CodeMirror 控制器桥接到 renderer
-- 尚未实现任何块级渲染
+- 已实现标题、段落、列表与引用块的 top-level 非激活态渲染，激活块仍保持 Markdown 源码态
 - 尚未实现 crash recovery、image import、outline、search、export
 
 当前工作区依赖已安装，并已在 2026-04-15 本轮会话中重新验证 `lint`、`typecheck`、`test`、`build`。其中 `test` 与 `build` 在当前沙箱环境下会遇到 Vite / Vitest 的 `spawn EPERM` 限制，需要在提权环境下运行才能得到通过证据。
@@ -55,7 +55,7 @@
 | TASK-010 | 标题渲染 | CLOSED | 标题 `#` 弱化、激活回源码态、目标测试、人工验收与合并前门禁均已完成。 |
 | TASK-011 | 段落渲染 | CLOSED | 非激活段落轻量渲染、激活回源码态、目标测试、人工验收与合并前门禁均已完成。 |
 | TASK-012 | 列表与任务列表渲染 | DEV_DONE | 已补齐列表项 block metadata、非激活态列表/任务列表渲染、Enter 续项与空项退出规则，并新增 harness scenario 覆盖回归路径。 |
-| TASK-013 | 引用块渲染 | TODO | 引用块显示与编辑行为。 |
+| TASK-013 | 引用块渲染 | DEV_DONE | 已为 top-level 引用块补上非激活态淡色背景与缩进显示，隐藏 `>` 前缀，并在激活时恢复完整 Markdown 源码态；新增 blockquote 交互与 composition flush 回归测试。 |
 | TASK-014 | 链接显示与编辑 | TODO | 链接文本渲染与浏览器打开。 |
 | TASK-015 | 图片粘贴 | TODO | 粘贴图片落盘。 |
 | TASK-016 | 图片拖放 | TODO | 拖放图片导入。 |

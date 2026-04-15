@@ -714,6 +714,30 @@ body {
   padding-left: 0.8rem;
 }
 
+.document-editor .cm-inactive-blockquote {
+  color: #475467;
+  background: #f6f8fb;
+  padding-left: 1.25rem;
+  padding-right: 0.9rem;
+}
+
+.document-editor .cm-inactive-blockquote-start {
+  padding-top: 0.35rem;
+  border-top-left-radius: 0.7rem;
+  border-top-right-radius: 0.7rem;
+}
+
+.document-editor .cm-inactive-blockquote-end {
+  padding-bottom: 0.35rem;
+  border-bottom-left-radius: 0.7rem;
+  border-bottom-right-radius: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+
+.document-editor .cm-inactive-blockquote-marker {
+  display: none;
+}
+
 .document-editor .cm-focused {
   outline: none;
 }

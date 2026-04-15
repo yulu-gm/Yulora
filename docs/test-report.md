@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-04-16 | TASK-013 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 先补引用块非激活态装饰、激活恢复源码态、`Enter` 续写/退出与 composition flush 回归测试，再验证 `code-editor` 目标测试 26 项全部通过。 |
+| 2026-04-16 | TASK-013 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 新增真实 CRLF 文档回归测试，确认 `replaceDocument()` 后 heading / blockquote / list decorations 在 `MVP_BACKLOG.md` 这类 Windows 文档中不会错位；目标测试更新为 27 项全部通过。 |
+| 2026-04-16 | TASK-013 | `npm run lint` | 通过 | blockquote decoration 逻辑、样式与新增测试均通过 ESLint。 |
+| 2026-04-16 | TASK-013 | `npm run typecheck` | 通过 | renderer、electron、vitest、cli 四套 TypeScript 检查全部通过。 |
+| 2026-04-16 | TASK-013 | `npm run test` | 通过 | Vitest 报告 29 个文件、161 条测试全部通过，包含新增 blockquote rendering、blockquote Enter 与 CRLF 文档回归 coverage。 |
+| 2026-04-16 | TASK-013 | `npm run build` | 通过 | renderer、electron 与 cli 构建通过；保留 Vite 默认的大 bundle warning，但不阻塞本轮引用块交付。 |
 | 2026-04-15 | TASK-012 | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖列表项 metadata、任务列表勾选标记、嵌套列表缩进与 list/blockquotes 边界。 |
 | 2026-04-15 | TASK-012 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖非激活态列表 / 任务列表渲染、ordered marker 样式、Enter 续项、空项退出与既有 heading/paragraph/IME 回归。 |
 | 2026-04-15 | TASK-012 | `npm run test -- src/renderer/editor-test-driver.test.ts` | 通过 | 覆盖 editor test driver 对 `set-editor-selection` 与 `press-editor-enter` 两个最小命令的支持。 |

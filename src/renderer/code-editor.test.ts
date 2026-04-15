@@ -391,6 +391,164 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("applies inactive blockquote decorations when focus moves into a non-blockquote block", () => {
+    const host = document.createElement("div");
+    const source = ["> Quote line", "> Still quoted", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const firstQuoteLine = getLineElementByText(host, "> Quote line");
+    const secondQuoteLine = getLineElementByText(host, "> Still quoted");
+    const quoteMarkers = host.querySelectorAll(".cm-inactive-blockquote-marker");
+
+    expect(firstQuoteLine).not.toBeNull();
+    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
+    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote-start")).toBe(true);
+    expect(secondQuoteLine).not.toBeNull();
+    expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
+    expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote-start")).toBe(false);
+    expect(quoteMarkers.length).toBe(2);
+    expect(Array.from(quoteMarkers, (marker) => marker.textContent)).toEqual(["> ", "> "]);
+
+    controller.destroy();
+  });
+
+  it("removes inactive blockquote decorations when that blockquote becomes active again", async () => {
+    const host = document.createElement("div");
+    const source = ["> Quote line", "> Still quoted", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).not.toBeNull();
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Quote line") } });
+
+    const firstQuoteLine = getLineElementByText(host, "> Quote line");
+
+    expect(firstQuoteLine).not.toBeNull();
+    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(false);
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).toBeNull();
+
+    controller.destroy();
+  });
+
+  it("flushes inactive blockquote decorations once when composition ends", () => {
+    const host = document.createElement("div");
+    const source = ["> Quote line", "> Still quoted", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).not.toBeNull();
+
+    const originalDispatch = view?.dispatch.bind(view);
+    const dispatchSpy = vi.fn((spec: Parameters<NonNullable<typeof originalDispatch>>[0]) =>
+      originalDispatch?.(spec)
+    );
+
+    if (view) {
+      view.dispatch = dispatchSpy as unknown as typeof view.dispatch;
+    }
+
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "x");
+    view?.dispatch({
+      changes: { from: source.length, insert: "x" },
+      selection: { anchor: source.length + 1 }
+    });
+
+    dispatchSpy.mockClear();
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "x");
+
+    const decorationFlushCount = dispatchSpy.mock.calls.filter(
+      ([spec]) => typeof spec === "object" && spec !== null && "effects" in spec
+    ).length;
+
+    expect(decorationFlushCount).toBe(1);
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).not.toBeNull();
+
+    controller.destroy();
+  });
+
+  it("continues a non-empty blockquote line on Enter", () => {
+    const host = document.createElement("div");
+    const source = "> quote";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("> quote\n> ");
+
+    controller.destroy();
+  });
+
+  it("exits an empty blockquote line on Enter", () => {
+    const host = document.createElement("div");
+    const source = ["> quote", "> "].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("> quote\n");
+
+    controller.destroy();
+  });
+
   it("continues a non-empty task list item on Enter", () => {
     const host = document.createElement("div");
     const source = "- [ ] todo";
@@ -680,6 +838,43 @@ describe("createCodeEditorController", () => {
     controller.replaceDocument("> Quote");
 
     expect(activeBlockTypes).toEqual(["heading", "blockquote"]);
+
+    controller.destroy();
+  });
+
+  it("keeps heading, blockquote, and list decorations aligned when replacing with CRLF content", () => {
+    const host = document.createElement("div");
+    const source = [
+      "# MVP Backlog",
+      "",
+      "> 这是项目唯一有效的执行计划文档。",
+      "",
+      "## 使用规则",
+      "",
+      "- 一次只推进一个 `TASK`。",
+      "",
+      "Paragraph"
+    ].join("\r\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "",
+      onChange: vi.fn()
+    });
+
+    controller.replaceDocument(source);
+
+    const quoteLine = getLineElementByText(host, "这是项目唯一有效的执行计划文档");
+    const secondHeadingLine = getLineElementByText(host, "使用规则");
+    const listLine = getLineElementByText(host, "一次只推进一个");
+
+    expect(quoteLine).not.toBeNull();
+    expect(quoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
+    expect(secondHeadingLine).not.toBeNull();
+    expect(secondHeadingLine?.classList.contains("cm-inactive-heading")).toBe(true);
+    expect(secondHeadingLine?.classList.contains("cm-inactive-heading-depth-2")).toBe(true);
+    expect(listLine).not.toBeNull();
+    expect(listLine?.classList.contains("cm-inactive-list")).toBe(true);
 
     controller.destroy();
   });

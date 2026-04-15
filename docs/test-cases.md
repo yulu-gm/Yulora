@@ -143,6 +143,23 @@
 - 光标位于块间空白区域时，active block 为空
 - CodeMirror 选择变化会把 active block 更新推送到 renderer 侧
 
+### TC-015 引用块渲染
+
+步骤：
+1. 输入两行引用块，例如 `> Quote line` 与 `> Still quoted`。
+2. 把光标移动到引用块外的普通段落。
+3. 观察引用块在非激活态的显示。
+4. 再把光标移回引用块内部。
+5. 如需自动化回归，运行 `npm run test -- src/renderer/code-editor.test.ts`。
+
+预期：
+- 非激活引用块显示为带缩进和整块淡色背景的连续区域
+- 非激活时 `>` 前缀被隐藏，不破坏原始 Markdown 文本
+- 光标重新进入引用块后，完整 `>` Markdown 源码立即恢复并可直接编辑
+- 在非空引用行按 `Enter` 会续出新的 `> ` 行
+- 在空引用行按 `Enter` 会退出当前引用块
+- composition 期间不会提前切换装饰，结束后只做一次 flush
+
 ## 3. 输入法
 
 ### TC-020 中文 IME
