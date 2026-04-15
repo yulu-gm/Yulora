@@ -2,71 +2,191 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { CodeEditorView, type CodeEditorHandle } from "./code-editor-view";
 import {
+  type AppState,
   applyEditorContentChanged,
   applyOpenMarkdownResult,
   applySaveMarkdownResult,
   createInitialAppState,
   startOpeningMarkdownFile,
-  startSavingDocument
+  startAutosavingDocument,
+  startManualSavingDocument
 } from "./document-state";
+
+const AUTOSAVE_IDLE_MS = 1000;
+const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
 
 export default function App() {
   const [state, setState] = useState(createInitialAppState);
   const editorRef = useRef<CodeEditorHandle | null>(null);
   const editorContentRef = useRef("");
+  const stateRef = useRef(state);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAutosaveReplayRef = useRef(false);
+  const inFlightSaveOriginRef = useRef<"manual" | "autosave" | null>(null);
+
+  function applyState(updater: (current: AppState) => AppState): void {
+    const next = updater(stateRef.current);
+    stateRef.current = next;
+    setState(next);
+  }
 
   function getEditorContent(): string {
     return editorRef.current?.getContent() ?? editorContentRef.current;
   }
 
+  function clearAutosaveTimer(): void {
+    if (autosaveTimerRef.current !== null) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+  }
+
+  function resetAutosaveRuntime(): void {
+    clearAutosaveTimer();
+    pendingAutosaveReplayRef.current = false;
+    inFlightSaveOriginRef.current = null;
+  }
+
+  async function runAutosave(): Promise<void> {
+    clearAutosaveTimer();
+
+    const snapshot = stateRef.current;
+
+    if (!snapshot.currentDocument || !snapshot.isDirty || inFlightSaveOriginRef.current) {
+      return;
+    }
+
+    inFlightSaveOriginRef.current = "autosave";
+    pendingAutosaveReplayRef.current = false;
+    applyState((current) => startAutosavingDocument(current));
+
+    const result = await window.yulora.saveMarkdownFile({
+      path: snapshot.currentDocument.path,
+      content: getEditorContent()
+    });
+
+    const effectiveResult =
+      result.status === "error"
+        ? {
+            ...result,
+            error: {
+              ...result.error,
+              message: AUTOSAVE_FAILED_MESSAGE
+            }
+          }
+        : result;
+
+    const currentEditorContent = getEditorContent();
+
+    applyState((current) => {
+      const savedState = applySaveMarkdownResult(current, effectiveResult);
+
+      return effectiveResult.status === "success"
+        ? applyEditorContentChanged(savedState, currentEditorContent)
+        : savedState;
+    });
+    inFlightSaveOriginRef.current = null;
+
+    if (pendingAutosaveReplayRef.current) {
+      pendingAutosaveReplayRef.current = false;
+      void runAutosave();
+    }
+  }
+
+  function scheduleAutosave(nextState: AppState): void {
+    clearAutosaveTimer();
+
+    if (!nextState.currentDocument || !nextState.isDirty) {
+      pendingAutosaveReplayRef.current = false;
+      return;
+    }
+
+    if (inFlightSaveOriginRef.current) {
+      pendingAutosaveReplayRef.current = true;
+      return;
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+      void runAutosave();
+    }, AUTOSAVE_IDLE_MS);
+  }
+
+  async function runManualSave(
+    request: () => ReturnType<typeof window.yulora.saveMarkdownFile>
+  ): Promise<void> {
+    const snapshot = stateRef.current;
+
+    if (!snapshot.currentDocument || inFlightSaveOriginRef.current) {
+      return;
+    }
+
+    clearAutosaveTimer();
+    inFlightSaveOriginRef.current = "manual";
+    pendingAutosaveReplayRef.current = false;
+    applyState((current) => startManualSavingDocument(current));
+
+    const result = await request();
+
+    const currentEditorContent = getEditorContent();
+
+    applyState((current) => {
+      const savedState = applySaveMarkdownResult(current, result);
+
+      return result.status === "success"
+        ? applyEditorContentChanged(savedState, currentEditorContent)
+        : savedState;
+    });
+    inFlightSaveOriginRef.current = null;
+
+    if (pendingAutosaveReplayRef.current) {
+      pendingAutosaveReplayRef.current = false;
+      scheduleAutosave(stateRef.current);
+    }
+  }
+
   const handleOpenMarkdown = useEffectEvent(async (): Promise<void> => {
-    setState((current) => startOpeningMarkdownFile(current));
+    applyState((current) => startOpeningMarkdownFile(current));
 
     const result = await window.yulora.openMarkdownFile();
 
+    resetAutosaveRuntime();
+
     if (result.status === "success") {
       editorContentRef.current = result.document.content;
     }
 
-    setState((current) => applyOpenMarkdownResult(current, result));
+    applyState((current) => applyOpenMarkdownResult(current, result));
   });
 
   const handleSaveMarkdown = useEffectEvent(async (): Promise<void> => {
-    if (!state.currentDocument) {
+    const currentDocument = state.currentDocument;
+
+    if (!currentDocument) {
       return;
     }
 
-    setState((current) => startSavingDocument(current));
-
-    const result = await window.yulora.saveMarkdownFile({
-      path: state.currentDocument.path,
-      content: getEditorContent()
-    });
-
-    if (result.status === "success") {
-      editorContentRef.current = result.document.content;
-    }
-
-    setState((current) => applySaveMarkdownResult(current, result));
+    await runManualSave(() =>
+      window.yulora.saveMarkdownFile({
+        path: currentDocument.path,
+        content: getEditorContent()
+      })
+    );
   });
 
   const handleSaveMarkdownAs = useEffectEvent(async (): Promise<void> => {
-    if (!state.currentDocument) {
+    const currentDocument = state.currentDocument;
+
+    if (!currentDocument) {
       return;
     }
 
-    setState((current) => startSavingDocument(current));
-
-    const result = await window.yulora.saveMarkdownFileAs({
-      currentPath: state.currentDocument.path,
-      content: getEditorContent()
-    });
-
-    if (result.status === "success") {
-      editorContentRef.current = result.document.content;
-    }
-
-    setState((current) => applySaveMarkdownResult(current, result));
+    await runManualSave(() =>
+      window.yulora.saveMarkdownFileAs({
+        currentPath: currentDocument.path,
+        content: getEditorContent()
+      })
+    );
   });
 
   useEffect(() => {
@@ -84,6 +204,8 @@ export default function App() {
       void handleSaveMarkdownAs();
     });
   }, []);
+
+  useEffect(() => () => clearAutosaveTimer(), []);
 
   return (
     <main className="app-shell">
@@ -119,8 +241,10 @@ export default function App() {
             </div>
             <div className="document-status-row">
               <p className={`save-status ${state.isDirty ? "is-dirty" : "is-clean"}`}>
-                {state.saveState === "saving"
+                {state.saveState === "manual-saving"
                   ? "Saving changes..."
+                  : state.saveState === "autosaving"
+                    ? "Autosaving..."
                   : state.isDirty
                     ? "Unsaved changes"
                     : "All changes saved"}
@@ -134,7 +258,17 @@ export default function App() {
             loadRevision={state.editorLoadRevision}
             onChange={(nextContent) => {
               editorContentRef.current = nextContent;
-              setState((current) => applyEditorContentChanged(current, nextContent));
+              let nextState: AppState = stateRef.current;
+
+              applyState((current) => {
+                nextState = applyEditorContentChanged(current, nextContent);
+                return nextState;
+              });
+
+              scheduleAutosave(nextState);
+            }}
+            onBlur={() => {
+              void runAutosave();
             }}
           />
         </section>
