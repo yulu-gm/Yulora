@@ -86,6 +86,7 @@ describe("package scripts", () => {
     const config = JSON.parse(readFileSync(configPath, "utf8")) as {
       appId?: string;
       afterPack?: string;
+      electronLanguages?: string[];
       productName?: string;
       directories?: { output?: string };
       files?: string[];
@@ -105,6 +106,7 @@ describe("package scripts", () => {
 
     expect(config.appId).toBe("com.yulora.app");
     expect(config.afterPack).toBe("./scripts/after-pack-win-icon.mjs");
+    expect(config.electronLanguages).toEqual(["en-US", "zh-CN", "zh-TW"]);
     expect(config.productName).toBe("Yulora");
     expect(config.directories?.output).toBe("release");
     expect(config.files).toEqual(
@@ -112,6 +114,8 @@ describe("package scripts", () => {
         "dist/**/*",
         "dist-electron/**/*",
         "dist-cli/**/*",
+        "!dist-electron/**/*.d.ts",
+        "!dist-cli/**/*.map",
         "!src{,/**}",
         "!tests{,/**}",
         "!docs{,/**}",
@@ -130,6 +134,26 @@ describe("package scripts", () => {
       oneClick: false,
       allowToChangeInstallationDirectory: true
     });
+  });
+
+  it("keeps renderer libraries as build-time dependencies instead of packaged runtime dependencies", () => {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+
+    expect(packageJson.dependencies ?? {}).toEqual({});
+    expect(packageJson.devDependencies).toEqual(
+      expect.objectContaining({
+        "@codemirror/commands": expect.any(String),
+        "@codemirror/state": expect.any(String),
+        "@codemirror/view": expect.any(String),
+        "micromark": expect.any(String),
+        "react": expect.any(String),
+        "react-dom": expect.any(String)
+      })
+    );
   });
 
   it("ignores the release output directory", () => {

@@ -84,3 +84,14 @@ release/
 - macOS 打包产物
 - 自动更新接入
 - `.icns` 生成与安装器视觉定制
+
+## Package Size Guardrails
+
+Current Windows packaging keeps the installer lean without changing editor behavior:
+
+- Keep only the Electron locales for `en-US`, `zh-CN`, and `zh-TW`.
+- Exclude generated declaration files under `dist-electron/` from packaged output.
+- Exclude generated source maps under `dist-cli/` from packaged output.
+- Treat renderer-only libraries such as `react`, `react-dom`, `@codemirror/*`, and `micromark` as build-time dependencies so Vite bundles them instead of copying them into packaged runtime `node_modules`.
+
+If Yulora later adds first-party UI localization for more languages, add the matching Electron locale back to `electron-builder.json` before shipping that language.
