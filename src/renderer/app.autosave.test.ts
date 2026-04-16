@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,6 +39,13 @@ type MockCodeEditorModule = typeof codeEditorViewModule & {
 };
 
 const codeEditorMock = (codeEditorViewModule as MockCodeEditorModule).__mock;
+const baseStylesheetPath = join(process.cwd(), "src/renderer/styles/base.css");
+const appUiStylesheetPath = join(process.cwd(), "src/renderer/styles/app-ui.css");
+const settingsStylesheetPath = join(process.cwd(), "src/renderer/styles/settings.css");
+const lightTokenStylesheetPath = join(
+  process.cwd(),
+  "src/renderer/styles/themes/default-light/tokens.css"
+);
 
 vi.mock("./code-editor-view", async () => {
   const React = await import("react");
@@ -670,23 +679,71 @@ describe("App autosave", () => {
     expect(container.textContent).toContain("today.md");
   });
 
-  it("renders rail, workspace, document header, status strip, and word count for an open document", async () => {
+  it("renders rail, workspace header, status strip, and word count for an open document", async () => {
     await renderAndOpenDocument();
 
     const rail = container.querySelector('[data-yulora-layout="rail"]');
     const workspace = container.querySelector('[data-yulora-layout="workspace"]');
-    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
+    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
     const statusStrip = container.querySelector('[data-yulora-region="status-strip"]');
 
     expect(rail).not.toBeNull();
     expect(workspace).not.toBeNull();
-    expect(documentHeader?.textContent).toContain("today.md");
-    expect(documentHeader?.textContent).toContain("C:/notes/today.md");
+    expect(workspaceHeader?.textContent).toContain("today.md");
+    expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
     expect(statusStrip?.textContent).toContain("All changes saved");
     expect(statusStrip?.textContent).toContain("字数 6");
     expect(statusStrip?.textContent).toContain("Bridge: win32");
-    expect(documentHeader?.textContent).not.toContain("Bridge: win32");
-    expect(documentHeader?.textContent).not.toContain("All changes saved");
+    expect(workspaceHeader?.textContent).not.toContain("Bridge: win32");
+    expect(workspaceHeader?.textContent).not.toContain("All changes saved");
+  });
+
+  it("uses the workspace header as the single open-document identity surface", async () => {
+    await renderAndOpenDocument();
+
+    const rail = container.querySelector('[data-yulora-layout="rail"]');
+    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
+    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
+
+    expect(workspaceHeader?.textContent).toContain("today.md");
+    expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
+    expect(rail?.textContent).not.toContain("Workspace");
+    expect(rail?.textContent).not.toContain("Outline");
+    expect(documentHeader).toBeNull();
+  });
+
+  it("renders the empty state inside a shared workspace canvas", async () => {
+    await act(async () => {
+      root.render(createElement(App));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
+    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
+    const emptyState = container.querySelector('[data-yulora-region="empty-state"]');
+
+    expect(workspaceHeader).not.toBeNull();
+    expect(workspaceCanvas).not.toBeNull();
+    expect(emptyState).not.toBeNull();
+    expect(workspaceCanvas?.contains(emptyState)).toBe(true);
+  });
+
+  it("renders a fixed app status bar outside the scrolling document flow", async () => {
+    await renderAndOpenDocument();
+
+    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
+    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
+    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
+    const appStatusBar = container.querySelector('[data-yulora-region="app-status-bar"]');
+
+    expect(workspaceHeader).not.toBeNull();
+    expect(workspaceCanvas).not.toBeNull();
+    expect(documentHeader).toBeNull();
+    expect(workspaceCanvas?.contains(appStatusBar)).toBe(false);
+    expect(appStatusBar?.textContent).toContain("All changes saved");
+    expect(appStatusBar?.textContent).toContain("字数 6");
+    expect(appStatusBar?.textContent).toContain("Bridge: win32");
   });
 
   it("autosaves dirty content when opening settings and restores editor focus when the drawer closes", async () => {
@@ -752,6 +809,90 @@ describe("App autosave", () => {
     expect(closeButton).not.toBeNull();
     expect(themeSelect).not.toBeNull();
     expect(recentFilesInput?.disabled).toBe(true);
+  });
+
+  it("marks settings as a floating drawer overlay surface", async () => {
+    await act(async () => {
+      root.render(createElement(App));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+    expect(settingsButton).not.toBeNull();
+
+    await act(async () => {
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const overlay = container.querySelector<HTMLElement>('[data-yulora-dialog="settings-drawer"]');
+    const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');
+
+    expect(overlay?.getAttribute("data-yulora-overlay-style")).toBe("floating-drawer");
+    expect(drawerPanel?.getAttribute("data-yulora-surface")).toBe("floating-drawer");
+  });
+
+  it("anchors the rail to the viewport so the settings trigger stays visible", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+
+    expect(appUiStylesheet).toContain(".app-rail");
+    expect(appUiStylesheet).toContain("height: 100dvh;");
+    expect(appUiStylesheet).toContain("align-self: start;");
+  });
+
+  it("defines shared scrollbar styling for the desktop shell", () => {
+    const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
+
+    expect(baseStylesheet).toContain("scrollbar-width: thin;");
+    expect(baseStylesheet).toContain("scrollbar-color:");
+    expect(baseStylesheet).toContain("::-webkit-scrollbar");
+    expect(baseStylesheet).toContain("::-webkit-scrollbar-thumb");
+  });
+
+  it("locks shell scrolling to the editor surface", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const editorStylesheet = readFileSync(join(process.cwd(), "src/renderer/styles/editor-source.css"), "utf-8");
+
+    expect(appUiStylesheet).toContain(".app-shell");
+    expect(appUiStylesheet).toContain("overflow: hidden;");
+    expect(appUiStylesheet).toContain(".app-workspace");
+    expect(appUiStylesheet).toContain("height: 100dvh;");
+    expect(appUiStylesheet).toContain(".workspace-canvas");
+    expect(appUiStylesheet).toContain("overflow: hidden;");
+    expect(appUiStylesheet).toContain(".document-editor");
+    expect(appUiStylesheet).toContain("height: 100%;");
+    expect(editorStylesheet).toContain(".document-editor .cm-editor");
+    expect(editorStylesheet).toContain("height: 100%;");
+    expect(editorStylesheet).toContain(".document-editor .cm-scroller");
+    expect(editorStylesheet).toContain("overflow: auto;");
+  });
+
+  it("lets the document stage occupy most of the workspace width", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const editorStylesheet = readFileSync(join(process.cwd(), "src/renderer/styles/editor-source.css"), "utf-8");
+
+    expect(appUiStylesheet).toContain(".workspace-canvas");
+    expect(appUiStylesheet).toContain("width: 100%;");
+    expect(appUiStylesheet).toContain("max-width: none;");
+    expect(editorStylesheet).toContain(".document-editor .cm-content");
+    expect(editorStylesheet).toContain("padding: 40px 48px 56px;");
+  });
+
+  it("styles preferences as a semi-transparent glass drawer", () => {
+    const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
+    const lightTokenStylesheet = readFileSync(lightTokenStylesheetPath, "utf-8");
+
+    expect(settingsStylesheet).toContain("backdrop-filter: blur(28px) saturate(1.12);");
+    expect(settingsStylesheet).toContain(".settings-shell::before");
+    expect(settingsStylesheet).toContain("background: linear-gradient(");
+    expect(settingsStylesheet).toContain(
+      "background: color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, transparent);"
+    );
+    expect(lightTokenStylesheet).toContain("--yulora-glass-bg: rgba(");
+    expect(lightTokenStylesheet).toContain("--yulora-glass-bg: rgba(250, 249, 245, 0.42);");
+    expect(lightTokenStylesheet).toContain("--yulora-glass-strong-bg: rgba(255, 254, 250, 0.62);");
+    expect(lightTokenStylesheet).toContain("--yulora-glass-sheen:");
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {

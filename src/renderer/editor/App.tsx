@@ -152,6 +152,23 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const currentDocumentMetrics = state.currentDocument
     ? getDocumentMetrics(currentDocumentContent)
     : null;
+  const isDocumentOpen = Boolean(state.currentDocument);
+  const hintText =
+    state.openState === "opening"
+      ? "Opening document..."
+      : state.currentDocument
+        ? "Use File to open, save, or save as."
+        : "Use File > Open... to load a Markdown document.";
+  const headerEyebrow = isDocumentOpen ? "Current document" : "Yulora";
+  const headerTitle = isDocumentOpen
+    ? state.currentDocument?.name ?? "Untitled"
+    : "Local-first Markdown writing";
+  const headerDetail =
+    state.openState === "opening"
+      ? "Opening document..."
+      : isDocumentOpen
+        ? state.currentDocument?.path ?? ""
+        : "Markdown remains the source of truth, and the writing canvas stays calm and stable.";
   const saveStatusLabel =
     state.saveState === "manual-saving"
       ? "Saving changes..."
@@ -568,93 +585,85 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
   return (
     <main className="app-shell">
-      <>
-        <div className="app-layout">
-          <aside
-            className="app-rail"
-            data-yulora-layout="rail"
-          >
-            <div className="app-rail-brand">
-              <p className="app-name">Yulora</p>
-              <p className="app-subtitle">Markdown workspace</p>
-            </div>
-            <div className="app-rail-nav">
-              <span className="app-rail-label">Workspace</span>
-              <span className="app-rail-label">Outline</span>
-            </div>
-            <button
-              type="button"
-              className="settings-entry"
-              ref={settingsEntryRef}
-              onMouseDown={captureSettingsOpenOrigin}
-              onClick={openSettingsDrawer}
-              aria-label="打开偏好设置"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M19.14 12.94a7.94 7.94 0 0 0 .05-.94 7.94 7.94 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.94 7.94 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.9 7.9 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="2.8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-              </svg>
-              <span>设置</span>
-            </button>
-          </aside>
-
+      <div className="app-layout">
+        <aside
+          className="app-rail"
+          data-yulora-layout="rail"
+        >
+          <div className="app-rail-brand">
+            <p className="app-name">Yulora</p>
+            <p className="app-subtitle">Desktop editor</p>
+          </div>
           <div
-            className="app-workspace"
-            data-yulora-layout="workspace"
+            className="app-rail-spacer"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            className="settings-entry"
+            ref={settingsEntryRef}
+            onMouseDown={captureSettingsOpenOrigin}
+            onClick={openSettingsDrawer}
+            aria-label="鎵撳紑鍋忓ソ璁剧疆"
           >
-            <header className="app-header">
-              <div className="app-brand">
-                <p className="app-name">Yulora</p>
-                <p className="app-subtitle">Local-first Markdown writing workspace</p>
-              </div>
-              <p className="app-hint">
-                {state.openState === "opening"
-                  ? "Opening document..."
-                  : state.currentDocument
-                    ? "Use File to open, save, or save as."
-                    : "Use File > Open... to load a Markdown document."}
-              </p>
-            </header>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M19.14 12.94a7.94 7.94 0 0 0 .05-.94 7.94 7.94 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.94 7.94 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.9 7.9 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="2.8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              />
+            </svg>
+            <span>璁剧疆</span>
+          </button>
+        </aside>
 
-            {state.errorMessage ? (
-              <p
-                className="error-banner"
-                role="alert"
-              >
-                {state.errorMessage}
-              </p>
-            ) : null}
+        <div
+          className="app-workspace"
+          data-yulora-layout="workspace"
+        >
+          <header
+            className="app-header workspace-header"
+            data-yulora-region="workspace-header"
+          >
+            <div className="workspace-title-group">
+              <p className="workspace-kicker">{headerEyebrow}</p>
+              <h1 className="workspace-title">{headerTitle}</h1>
+              <p className="workspace-detail">{headerDetail}</p>
+            </div>
+            {!isDocumentOpen ? <p className="app-hint">{hintText}</p> : null}
+          </header>
 
+          {state.errorMessage ? (
+            <p
+              className="error-banner"
+              role="alert"
+            >
+              {state.errorMessage}
+            </p>
+          ) : null}
+
+          <section
+            className="workspace-canvas"
+            data-yulora-region="workspace-canvas"
+          >
             {state.currentDocument ? (
               <section className="workspace-shell">
-                <div
-                  className="document-bar"
-                  data-yulora-region="document-header"
-                >
-                  <div className="document-meta">
-                    <h1>{state.currentDocument.name}</h1>
-                    <p className="document-path">{state.currentDocument.path}</p>
-                  </div>
-                </div>
                 <div
                   className="document-canvas"
                   ref={editorContainerRef}
@@ -682,19 +691,12 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                     }}
                   />
                 </div>
-                <div
-                  className="document-status-strip"
-                  data-yulora-region="status-strip"
-                >
-                  <p className={`save-status ${state.isDirty ? "is-dirty" : "is-clean"}`}>
-                    {saveStatusLabel}
-                  </p>
-                  <p className="document-word-count">字数 {currentDocumentMetrics?.meaningfulCharacterCount ?? 0}</p>
-                  <p className="document-platform">Bridge: {yulora.platform}</p>
-                </div>
               </section>
             ) : (
-              <section className="empty-workspace">
+              <section
+                className="empty-workspace"
+                data-yulora-region="empty-state"
+              >
                 <div className="empty-inner">
                   <p className="empty-kicker">Ready</p>
                   <h1>Open a Markdown document from the File menu.</h1>
@@ -706,27 +708,43 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                 </div>
               </section>
             )}
+          </section>
+
+          <footer
+            className="app-status-bar"
+            data-yulora-region="app-status-bar"
+          >
+            <div data-yulora-region="status-strip">
+              <p className={`save-status ${state.isDirty ? "is-dirty" : "is-clean"}`}>
+                {saveStatusLabel}
+              </p>
+              <p className="document-word-count">
+                字数 {currentDocumentMetrics?.meaningfulCharacterCount ?? 0}
+              </p>
+              <p className="document-platform">Bridge: {yulora.platform}</p>
+            </div>
+          </footer>
+        </div>
+      </div>
+
+      {isSettingsOpen ? (
+        <div
+          data-yulora-dialog="settings-drawer"
+          data-yulora-overlay-style="floating-drawer"
+          onClick={closeSettingsDrawer}
+        >
+          <div onClick={(event) => event.stopPropagation()}>
+            <SettingsView
+              preferences={preferences}
+              themes={themes}
+              isRefreshingThemes={isRefreshingThemes}
+              onRefreshThemes={handleRefreshThemes}
+              onUpdate={(patch) => yulora.updatePreferences(patch)}
+              onClose={closeSettingsDrawer}
+            />
           </div>
         </div>
-
-        {isSettingsOpen ? (
-            <div
-              data-yulora-dialog="settings-drawer"
-              onClick={closeSettingsDrawer}
-            >
-              <div onClick={(event) => event.stopPropagation()}>
-                <SettingsView
-                preferences={preferences}
-                  themes={themes}
-                  isRefreshingThemes={isRefreshingThemes}
-                  onRefreshThemes={handleRefreshThemes}
-                  onUpdate={(patch) => yulora.updatePreferences(patch)}
-                  onClose={closeSettingsDrawer}
-                />
-              </div>
-            </div>
-        ) : null}
-      </>
+      ) : null}
     </main>
   );
 }

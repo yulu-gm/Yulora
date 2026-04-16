@@ -1,8 +1,8 @@
 :root {
-  --yulora-dirty-text: #a16207;
-  --yulora-clean-text: #166534;
-  --yulora-danger-bg: #fff1f1;
-  --yulora-danger-border: #efb2b2;
+  --yulora-dirty-text: #9a6700;
+  --yulora-clean-text: #285b84;
+  --yulora-danger-bg: #fff4f4;
+  --yulora-danger-border: #efc2c2;
   --yulora-danger-text: #8b1e1e;
-  --yulora-focus-ring: #1d4ed8;
+  --yulora-focus-ring: #6b9df0;
 }

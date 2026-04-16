@@ -247,6 +247,7 @@ export function SettingsView({
     <section
       className="settings-shell"
       data-yulora-panel="settings-drawer"
+      data-yulora-surface="floating-drawer"
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-heading"

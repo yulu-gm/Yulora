@@ -1,11 +1,14 @@
 .document-editor .cm-editor {
-  min-height: 68vh;
+  height: 100%;
+  min-height: 0;
   background: transparent;
   color: var(--yulora-text-body);
 }
 
 .document-editor .cm-scroller {
-  min-height: 68vh;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
 }
 
 .document-editor .cm-content,
@@ -19,7 +22,7 @@
 .document-editor .cm-content {
   max-width: 72ch;
   margin: 0 auto;
-  padding: 56px 64px 72px;
+  padding: 40px 48px 56px;
   caret-color: var(--yulora-editor-caret);
 }
 

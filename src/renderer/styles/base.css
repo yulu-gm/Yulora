@@ -4,9 +4,32 @@
 
 :root {
   color: var(--yulora-text-body, #1f2937);
-  background: var(--yulora-page-bg, #eef1f4);
-  --yulora-shell-rail-width: 88px;
-  --yulora-shell-gutter: clamp(14px, 2vw, 30px);
+  background: var(--yulora-page-bg, #f3f4f6);
+  --yulora-space-1: 4px;
+  --yulora-space-2: 8px;
+  --yulora-space-3: 12px;
+  --yulora-space-4: 16px;
+  --yulora-space-5: 20px;
+  --yulora-space-6: 24px;
+  --yulora-space-8: 32px;
+  --yulora-space-10: 40px;
+  --yulora-space-12: 48px;
+  --yulora-space-14: 56px;
+  --yulora-radius-sm: 8px;
+  --yulora-radius-md: 12px;
+  --yulora-radius-lg: 16px;
+  --yulora-radius-xl: 20px;
+  --yulora-radius-2xl: 24px;
+  --yulora-radius-pill: 999px;
+  --yulora-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --yulora-shadow-2: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --yulora-shadow-3: 0 22px 54px rgba(15, 23, 42, 0.14);
+  --yulora-shell-rail-width: 76px;
+  --yulora-workspace-max-width: 1120px;
+  --yulora-canvas-max-width: 920px;
+  --yulora-status-bar-height: 46px;
+  --yulora-shell-gutter: clamp(18px, 3vw, 36px);
+  --yulora-shell-edge: 12px;
   font-size: var(--yulora-ui-font-size, 16px);
   font-family:
     "Aptos",
@@ -17,19 +40,47 @@
   font-weight: 400;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 4% -4%, rgba(148, 163, 184, 0.16), transparent 40%),
-    radial-gradient(circle at 96% 4%, rgba(99, 102, 241, 0.08), transparent 36%),
-    var(--yulora-page-bg, #eef1f4);
+  overflow: hidden;
+  background: var(--yulora-page-bg, #f3f4f6);
   color: var(--yulora-text-body, #1f2937);
   font-size: inherit;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--yulora-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--yulora-scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--yulora-scrollbar-thumb-hover);
+  background-clip: padding-box;
 }
 
 button,
@@ -40,7 +91,7 @@ textarea {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100dvh;
 }
 
 @media (prefers-reduced-motion: reduce) {
