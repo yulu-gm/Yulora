@@ -903,11 +903,14 @@ describe("App autosave", () => {
     const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
     const lightTokenStylesheet = readFileSync(lightTokenStylesheetPath, "utf-8");
 
+    expect(settingsStylesheet).toContain(
+      'background: color-mix(in srgb, var(--yulora-surface-bg) 78%, var(--yulora-scrim) 22%);'
+    );
     expect(settingsStylesheet).toContain("backdrop-filter: blur(28px) saturate(1.12);");
     expect(settingsStylesheet).toContain(".settings-shell::before");
     expect(settingsStylesheet).toContain("linear-gradient(");
     expect(settingsStylesheet).toContain(
-      "background: color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, transparent);"
+      "color-mix(in srgb, var(--yulora-surface-bg) 96%, var(--yulora-glass-strong-bg) 4%, transparent);"
     );
     expect(lightTokenStylesheet).toContain("--yulora-glass-bg: rgba(");
     expect(lightTokenStylesheet).toContain("--yulora-glass-bg: rgba(250, 249, 245, 0.42);");

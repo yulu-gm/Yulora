@@ -26,6 +26,9 @@ export default defineConfig({
   },
   build: {
     outDir: "../../dist",
-    emptyOutDir: true
+    emptyOutDir: true,
+    // Keep standard backdrop-filter declarations in built CSS so Electron/Windows
+    // renders the settings drawer blur the same way as the dev server.
+    cssMinify: false
   }
 });
