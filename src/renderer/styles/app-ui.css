@@ -16,7 +16,7 @@
   position: sticky;
   top: 0;
   height: 100dvh;
-  padding: var(--yulora-space-5) var(--yulora-space-3) var(--yulora-space-5);
+  padding: var(--yulora-space-6) var(--yulora-space-3) var(--yulora-space-5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -29,19 +29,25 @@
   width: 100%;
   display: grid;
   justify-items: center;
-  gap: var(--yulora-space-1);
+  gap: 2px;
   text-align: center;
 }
 
 .app-rail-brand .app-name {
-  font-size: 0.96rem;
+  font-size: 0.94rem;
+  letter-spacing: 0.01em;
 }
 
 .app-rail-brand .app-subtitle {
   margin: 0;
-  max-width: 5ch;
-  font-size: 0.72rem;
+  max-width: 100%;
+  color: var(--yulora-text-subtle);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   line-height: 1.35;
+  text-transform: uppercase;
+  word-break: keep-all;
 }
 
 .app-rail-spacer {
@@ -49,53 +55,35 @@
   width: 1px;
 }
 
+/* ── Settings entry icon button ─────────────────────────────── */
+/*   Visual appearance (bg, border, color, shadow) is in          */
+/*   primitives.css. Only size lives here.                        */
+
 .settings-entry {
   width: 44px;
   min-height: 44px;
-  padding: 0;
-  border: 1px solid var(--yulora-border-subtle);
-  border-radius: var(--yulora-radius-md);
-  background: var(--yulora-surface-bg);
-  color: var(--yulora-text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--yulora-shadow-1);
-  transition:
-    color 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
 }
 
 .settings-entry span {
   display: none;
 }
 
+/* Subtle lift unique to the rail button */
 .settings-entry:hover {
-  color: var(--yulora-text-strong);
-  border-color: var(--yulora-border-strong);
-  background: var(--yulora-surface-raised-bg);
   transform: translateY(-1px);
-}
-
-.settings-entry:focus-visible {
-  outline: 2px solid var(--yulora-focus-ring);
-  outline-offset: 2px;
 }
 
 .app-workspace {
   min-width: 0;
   height: 100dvh;
   padding:
-    var(--yulora-space-6)
+    var(--yulora-space-4)
     var(--yulora-shell-gutter)
-    calc(var(--yulora-status-bar-height) + var(--yulora-space-8) + env(safe-area-inset-bottom));
+    calc(var(--yulora-status-bar-height) + var(--yulora-space-5) + env(safe-area-inset-bottom));
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   align-content: start;
-  gap: var(--yulora-space-5);
+  gap: var(--yulora-space-4);
   overflow: hidden;
 }
 
@@ -107,45 +95,67 @@
 
 .app-header {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--yulora-space-6);
+  padding: var(--yulora-space-1) var(--yulora-space-1) var(--yulora-space-2);
 }
 
 .workspace-title-group {
+  flex: 1;
   min-width: 0;
-  display: grid;
-  gap: var(--yulora-space-1);
+  display: flex;
+  align-items: baseline;
+  gap: var(--yulora-space-3);
+  overflow: hidden;
 }
 
+/* Kicker ("Current document") — hidden; redundant in a compact title bar */
 .workspace-kicker {
-  margin: 0;
-  color: var(--yulora-text-subtle);
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: none;
 }
 
+/* Title: document filename — compact label, no giant heading */
 .workspace-title {
   margin: 0;
+  flex-shrink: 0;
   color: var(--yulora-text-strong);
-  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
-  line-height: 1.2;
+  font-size: 1.02rem;
+  line-height: 1.3;
   font-weight: 640;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
-.workspace-detail,
-.app-subtitle,
-.app-hint {
+/* Detail: file path — monospace, muted, truncates when narrow */
+.workspace-detail {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--yulora-text-subtle);
+  font-size: 0.74rem;
+  font-family: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.app-subtitle {
   margin: 0;
   color: var(--yulora-text-muted);
   font-size: 0.94rem;
 }
 
 .app-hint {
-  max-width: 24ch;
+  margin: 0;
+  color: var(--yulora-text-muted);
+  font-size: 0.84rem;
+  max-width: 28ch;
   text-align: right;
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .app-name {
@@ -181,26 +191,27 @@
   min-height: 0;
 }
 
+/* ── Document editor card ───────────────────────────────────── */
+/*   Clean, desktop-grade card with refined depth.               */
+
 .document-editor {
   width: 100%;
-  border: 1px solid var(--yulora-border-subtle);
-  border-radius: var(--yulora-radius-2xl);
-  background: var(--yulora-surface-bg);
-  box-shadow: var(--yulora-shadow-2);
+  border-radius: var(--yulora-radius-xl);
+  background: transparent;
   overflow: hidden;
 }
+
+/* ── Status bar (floating glass pill) ───────────────────────── */
 
 .app-status-bar {
   position: fixed;
   left: calc(var(--yulora-shell-rail-width) + var(--yulora-shell-gutter));
   right: var(--yulora-shell-gutter);
-  bottom: calc(var(--yulora-space-4) + env(safe-area-inset-bottom));
+  bottom: calc(var(--yulora-space-3) + env(safe-area-inset-bottom));
   min-height: var(--yulora-status-bar-height);
-  padding: 0 var(--yulora-space-4);
-  border: 1px solid var(--yulora-border-subtle);
+  padding: 0 var(--yulora-space-5);
   border-radius: var(--yulora-radius-pill);
-  background: color-mix(in srgb, var(--yulora-surface-raised-bg) 92%, transparent);
-  box-shadow: var(--yulora-shadow-1);
+  background: transparent;
   z-index: 15;
 }
 
@@ -210,31 +221,32 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--yulora-space-2) var(--yulora-space-4);
+  gap: var(--yulora-space-2) var(--yulora-space-5);
 }
 
 .save-status,
 .document-word-count,
 .document-platform {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
+  letter-spacing: 0.005em;
 }
 
 .save-status {
-  color: var(--yulora-text-secondary);
+  color: var(--yulora-text-muted);
 }
 
 .save-status.is-dirty {
-  color: var(--yulora-dirty-text);
+  color: color-mix(in srgb, var(--yulora-dirty-text) 72%, var(--yulora-text-muted));
 }
 
 .save-status.is-clean {
-  color: var(--yulora-clean-text);
+  color: color-mix(in srgb, var(--yulora-clean-text) 68%, var(--yulora-text-muted));
 }
 
 .document-word-count,
 .document-platform {
-  color: var(--yulora-text-muted);
+  color: var(--yulora-text-subtle);
 }
 
 .document-platform {
@@ -249,43 +261,53 @@
 }
 
 .empty-inner {
-  width: 100%;
-  padding: var(--yulora-space-10) clamp(20px, 4vw, 36px);
+  width: min(100%, 56ch);
+  padding: var(--yulora-space-12) clamp(24px, 5vw, 48px);
   border: 1px solid var(--yulora-border-subtle);
-  border-radius: var(--yulora-radius-2xl);
+  border-radius: var(--yulora-radius-xl);
   background: color-mix(in srgb, var(--yulora-surface-bg) 96%, transparent);
-  box-shadow: var(--yulora-shadow-1);
-  text-align: left;
+  box-shadow:
+    var(--yulora-shadow-1),
+    0 12px 32px -22px rgba(15, 23, 42, 0.14);
+  text-align: center;
 }
 
 .empty-kicker {
   margin: 0;
   color: var(--yulora-text-subtle);
-  font-size: 0.76rem;
-  letter-spacing: 0.1em;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .empty-inner h1 {
-  width: min(100%, 16ch);
-  margin: var(--yulora-space-3) 0 0;
+  width: 100%;
+  margin: var(--yulora-space-3) auto 0;
   color: var(--yulora-text-strong);
-  font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 620;
-  line-height: 1.12;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
 }
 
 .empty-copy {
-  width: min(100%, 50ch);
-  margin: var(--yulora-space-4) 0 0;
+  width: min(100%, 48ch);
+  margin: var(--yulora-space-4) auto 0;
   color: var(--yulora-text-muted);
-  font-size: 0.98rem;
+  font-size: 0.96rem;
+  line-height: 1.6;
 }
 
 .empty-meta {
-  margin: var(--yulora-space-5) 0 0;
-  color: var(--yulora-text-secondary);
-  font-size: 0.92rem;
+  display: inline-block;
+  margin: var(--yulora-space-6) auto 0;
+  padding: 4px 12px;
+  border: 1px solid var(--yulora-border-faint);
+  border-radius: var(--yulora-radius-pill);
+  color: var(--yulora-text-subtle);
+  font-size: 0.78rem;
+  font-family: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 980px) {
@@ -312,7 +334,11 @@
   }
 
   .document-editor {
-    border-radius: var(--yulora-radius-xl);
+    border-radius: var(--yulora-radius-lg);
+  }
+
+  .empty-inner {
+    border-radius: var(--yulora-radius-lg);
   }
 
   .app-status-bar {
@@ -330,7 +356,7 @@
   }
 
   .app-workspace {
-    padding-top: var(--yulora-space-5);
+    padding-top: var(--yulora-space-3);
   }
 
   .app-status-bar {

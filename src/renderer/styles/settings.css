@@ -10,6 +10,8 @@
   z-index: 1;
 }
 
+/* ── Glass drawer panel ─────────────────────────────────────── */
+
 .settings-shell {
   position: fixed;
   top: var(--yulora-shell-edge);
@@ -21,7 +23,8 @@
   padding: var(--yulora-space-5) var(--yulora-space-5) var(--yulora-space-6);
   border: 1px solid var(--yulora-glass-border);
   border-radius: var(--yulora-radius-2xl);
-  background: linear-gradient(
+  background:
+    linear-gradient(
       180deg,
       color-mix(in srgb, var(--yulora-glass-strong-bg) 96%, transparent) 0%,
       color-mix(in srgb, var(--yulora-glass-bg) 100%, transparent) 100%
@@ -36,12 +39,14 @@
   animation: settings-drawer-enter 220ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
 }
 
+/* Subtle top-edge sheen */
 .settings-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       140deg,
       color-mix(in srgb, var(--yulora-glass-sheen) 100%, transparent) 0%,
       transparent 28%
@@ -62,6 +67,8 @@
   z-index: 1;
 }
 
+/* ── Sticky header ──────────────────────────────────────────── */
+
 .settings-header {
   position: sticky;
   top: calc(var(--yulora-space-5) * -1);
@@ -77,36 +84,17 @@
   z-index: 2;
 }
 
+/* ── Back button ────────────────────────────────────────────── */
+/*   Visual appearance lives in primitives.css. Only size here.  */
+
 .settings-back {
   width: 36px;
   height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--yulora-border-subtle);
-  border-radius: var(--yulora-radius-md);
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 46%, transparent);
-  color: var(--yulora-text-secondary);
-  cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease,
-    background-color 120ms ease;
-}
-
-.settings-back:hover {
-  color: var(--yulora-text-strong);
-  border-color: var(--yulora-border-strong);
+  flex-shrink: 0;
 }
 
 .settings-back span {
   display: none;
-}
-
-.settings-back:focus-visible {
-  outline: 2px solid var(--yulora-focus-ring);
-  outline-offset: 2px;
 }
 
 .settings-title-block {
@@ -127,6 +115,8 @@
   font-size: 1.4rem;
   font-weight: 620;
 }
+
+/* ── Content groups ─────────────────────────────────────────── */
 
 .settings-error {
   width: 100%;
@@ -165,6 +155,8 @@
   font-size: 0.86rem;
 }
 
+/* ── Settings row (label + control) ────────────────────────── */
+
 .settings-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 250px);
@@ -190,24 +182,12 @@
   font-weight: 400;
 }
 
+/* ── Text input ─────────────────────────────────────────────── */
+/*   Visual appearance lives in primitives.css. Only size here.  */
+
 .settings-input {
-  width: 100%;
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid var(--yulora-border-muted);
-  border-radius: var(--yulora-radius-md);
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 42%, transparent);
-  color: var(--yulora-text-body);
-  font-size: 0.92rem;
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease;
-}
-
-.settings-input:focus {
-  outline: none;
-  border-color: var(--yulora-focus-ring);
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 68%, transparent);
 }
 
 .settings-input-stack {
@@ -217,50 +197,19 @@
   justify-items: stretch;
 }
 
-.settings-input:disabled {
-  color: var(--yulora-text-muted);
-  cursor: not-allowed;
-  opacity: 1;
-}
-
 .settings-input-narrow {
   width: 140px;
   justify-self: end;
 }
 
+/* ── Segment / radio group ──────────────────────────────────── */
+/*   Visual appearance lives in primitives.css. Layout here.     */
+
 .settings-radio-group {
-  display: inline-flex;
-  padding: 3px;
-  border: 1px solid var(--yulora-border-muted);
-  border-radius: var(--yulora-radius-pill);
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 38%, transparent);
   justify-self: end;
 }
 
-.settings-radio {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 14px;
-  border-radius: var(--yulora-radius-pill);
-  cursor: pointer;
-  color: var(--yulora-text-secondary);
-  font-size: 0.88rem;
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
-}
-
-.settings-radio input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.settings-radio.is-selected {
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 68%, transparent);
-  color: var(--yulora-text-strong);
-  box-shadow: var(--yulora-shadow-1);
-}
+/* ── Footer ─────────────────────────────────────────────────── */
 
 .settings-footer {
   display: flex;
@@ -272,29 +221,18 @@
   border-top: 1px solid var(--yulora-border-subtle);
 }
 
+/* ── Reset button ───────────────────────────────────────────── */
+/*   Visual appearance lives in primitives.css. Only size here.  */
+
 .settings-reset {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--yulora-border-muted);
-  border-radius: var(--yulora-radius-md);
-  background: color-mix(in srgb, var(--yulora-glass-strong-bg) 46%, transparent);
-  color: var(--yulora-text-secondary);
   font-size: 0.9rem;
-  cursor: pointer;
-  transition:
-    color 120ms ease,
-    border-color 120ms ease,
-    background-color 120ms ease;
 }
 
 .settings-reset:disabled {
   cursor: progress;
   opacity: 0.72;
-}
-
-.settings-reset:hover {
-  color: var(--yulora-text-strong);
-  border-color: var(--yulora-border-strong);
 }
 
 .settings-save-status {

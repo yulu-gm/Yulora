@@ -106,6 +106,14 @@ describe("package scripts", () => {
       productName?: string;
       directories?: { output?: string };
       files?: string[];
+      extraResources?: Array<
+        | string
+        | {
+            from?: string;
+            to?: string;
+            filter?: string[];
+          }
+      >;
       win?: {
         icon?: string;
         signAndEditExecutable?: boolean;
@@ -136,6 +144,14 @@ describe("package scripts", () => {
         "!tests{,/**}",
         "!docs{,/**}",
         "!reports{,/**}"
+      ])
+    );
+    expect(config.extraResources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: "build/icons",
+          to: "icons"
+        })
       ])
     );
     expect(config.win?.icon).toBe("build/icons/light/icon.ico");

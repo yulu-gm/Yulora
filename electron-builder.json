@@ -7,6 +7,12 @@
   "directories": {
     "output": "release"
   },
+  "extraResources": [
+    {
+      "from": "build/icons",
+      "to": "icons"
+    }
+  ],
   "files": [
     "package.json",
     "dist/**/*",

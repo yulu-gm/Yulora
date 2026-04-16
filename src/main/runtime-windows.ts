@@ -16,6 +16,7 @@ type CreateWindowInput = {
   minWidth: number;
   minHeight: number;
   title: string;
+  icon?: string;
   webPreferences: {
     preload: string;
     contextIsolation: true;
@@ -38,11 +39,12 @@ export function resolveWindowRuntimeMode(argv: string[]): RuntimeMode {
 export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
   runtimeMode: RuntimeMode;
   preloadPath: string;
+  windowIconPath?: string;
   createWindow: (input: CreateWindowInput) => TWindow;
   getAllWindows: () => TWindow[];
   loadRenderer: (window: TWindow, runtimeMode: RuntimeMode) => void;
 }) {
-  const { runtimeMode, preloadPath, createWindow, getAllWindows, loadRenderer } = input;
+  const { runtimeMode, preloadPath, windowIconPath, createWindow, getAllWindows, loadRenderer } = input;
 
   function openWindow(
     nextRuntimeMode: RuntimeMode,
@@ -72,6 +74,11 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
             minWidth: 900,
             minHeight: 600
           }),
+      ...(windowIconPath
+        ? {
+            icon: windowIconPath
+          }
+        : {}),
       webPreferences: {
         preload: preloadPath,
         contextIsolation: true,

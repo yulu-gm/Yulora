@@ -46,6 +46,10 @@ const lightTokenStylesheetPath = join(
   process.cwd(),
   "src/renderer/styles/themes/default-light/tokens.css"
 );
+const lightMarkdownStylesheetPath = join(
+  process.cwd(),
+  "src/renderer/styles/themes/default-light/markdown.css"
+);
 
 vi.mock("./code-editor-view", async () => {
   const React = await import("react");
@@ -879,13 +883,29 @@ describe("App autosave", () => {
     expect(editorStylesheet).toContain("padding: 40px 48px 56px;");
   });
 
+  it("removes border framing from the editor shell and bottom status bar", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const documentEditorRule =
+      appUiStylesheet.match(/\.document-editor \{\s+width: 100%;[\s\S]*?\n\}/m)?.[0] ?? "";
+    const appStatusBarRule =
+      appUiStylesheet.match(/\.app-status-bar \{\s+position: fixed;[\s\S]*?\n\}/m)?.[0] ?? "";
+
+    expect(documentEditorRule).toContain("background: transparent;");
+    expect(documentEditorRule).not.toContain("border:");
+    expect(documentEditorRule).not.toContain("box-shadow:");
+    expect(appStatusBarRule).not.toContain("border:");
+    expect(appStatusBarRule).toContain("background: transparent;");
+    expect(appStatusBarRule).not.toContain("box-shadow:");
+    expect(appStatusBarRule).not.toContain("backdrop-filter:");
+  });
+
   it("styles preferences as a semi-transparent glass drawer", () => {
     const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
     const lightTokenStylesheet = readFileSync(lightTokenStylesheetPath, "utf-8");
 
     expect(settingsStylesheet).toContain("backdrop-filter: blur(28px) saturate(1.12);");
     expect(settingsStylesheet).toContain(".settings-shell::before");
-    expect(settingsStylesheet).toContain("background: linear-gradient(");
+    expect(settingsStylesheet).toContain("linear-gradient(");
     expect(settingsStylesheet).toContain(
       "background: color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, transparent);"
     );
@@ -893,6 +913,14 @@ describe("App autosave", () => {
     expect(lightTokenStylesheet).toContain("--yulora-glass-bg: rgba(250, 249, 245, 0.42);");
     expect(lightTokenStylesheet).toContain("--yulora-glass-strong-bg: rgba(255, 254, 250, 0.62);");
     expect(lightTokenStylesheet).toContain("--yulora-glass-sheen:");
+  });
+
+  it("uses a light code block palette in the default light theme", () => {
+    const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
+
+    expect(lightMarkdownStylesheet).toContain("--yulora-code-block-bg: #f3f6fa;");
+    expect(lightMarkdownStylesheet).toContain("--yulora-code-block-text: #334155;");
+    expect(lightMarkdownStylesheet).not.toContain("--yulora-code-block-bg: #17212b;");
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {

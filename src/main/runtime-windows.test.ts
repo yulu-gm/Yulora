@@ -50,6 +50,20 @@ describe("createRuntimeWindowManager", () => {
     expect(harness.loadRenderer).toHaveBeenCalledWith(harness.window, "test-workbench");
   });
 
+  it("passes the configured window icon path into BrowserWindow creation", () => {
+    const harness = createWindowHarness("editor", {
+      windowIconPath: "C:/Program Files/Yulora/resources/icons/icon.ico"
+    });
+
+    harness.manager.openPrimaryWindow();
+
+    expect(harness.createWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon: "C:/Program Files/Yulora/resources/icons/icon.ico"
+      })
+    );
+  });
+
   it("passes the startup markdown path through additional arguments", () => {
     const harness = createWindowHarness("editor");
 
@@ -105,7 +119,12 @@ describe("createRuntimeWindowManager", () => {
   });
 });
 
-function createWindowHarness(runtimeMode: RuntimeMode) {
+function createWindowHarness(
+  runtimeMode: RuntimeMode,
+  options?: {
+    windowIconPath?: string;
+  }
+) {
   const window: TestWindow = {
     loadURL: vi.fn(),
     loadFile: vi.fn(),
@@ -124,6 +143,7 @@ function createWindowHarness(runtimeMode: RuntimeMode) {
   const manager = createRuntimeWindowManager<TestWindow>({
     runtimeMode,
     preloadPath: "D:/app/dist-electron/preload/preload.js",
+    windowIconPath: options?.windowIconPath,
     createWindow,
     getAllWindows,
     loadRenderer

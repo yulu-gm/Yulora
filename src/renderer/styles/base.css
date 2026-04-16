@@ -28,8 +28,11 @@
   --yulora-workspace-max-width: 1120px;
   --yulora-canvas-max-width: 920px;
   --yulora-status-bar-height: 46px;
-  --yulora-shell-gutter: clamp(18px, 3vw, 36px);
+  --yulora-shell-gutter: clamp(10px, 1.6vw, 20px);
   --yulora-shell-edge: 12px;
+  /* Shared transition durations — use these in all feature files */
+  --yu-t-fast: 120ms ease;
+  --yu-t-base: 160ms ease;
   font-size: var(--yulora-ui-font-size, 16px);
   font-family:
     "Aptos",

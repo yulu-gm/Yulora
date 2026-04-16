@@ -604,7 +604,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             ref={settingsEntryRef}
             onMouseDown={captureSettingsOpenOrigin}
             onClick={openSettingsDrawer}
-            aria-label="鎵撳紑鍋忓ソ璁剧疆"
+            aria-label="打开偏好设置"
           >
             <svg
               width="16"
@@ -629,7 +629,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                 strokeWidth="1.6"
               />
             </svg>
-            <span>璁剧疆</span>
+            <span>设置</span>
           </button>
         </aside>
 

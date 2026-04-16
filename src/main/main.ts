@@ -12,6 +12,7 @@ import { createThemeService } from "./theme-service";
 import { createTestRunSessions } from "./test-run-sessions";
 import { resolveRendererEntry } from "./paths";
 import { createRuntimeWindowManager, resolveAppRuntimeMode } from "./runtime-windows";
+import { resolveWindowIconPath } from "./window-icon";
 import {
   COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
   type EditorTestCommandResultEnvelope
@@ -142,6 +143,7 @@ app.whenReady().then(async () => {
   const windowManager = createRuntimeWindowManager({
     runtimeMode: resolveAppRuntimeMode(process.env),
     preloadPath: path.join(__dirname, "../preload/preload.js"),
+    windowIconPath: resolveWindowIconPath(),
     createWindow: (input) =>
       new BrowserWindow({
         ...input,
