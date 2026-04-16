@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { parseBlockMap } from "@yulora/markdown-engine";
 
-import { createBlockMapCache } from "../derived-state/block-map-cache";
+import { createBlockMapCache } from "./block-map-cache";
 import { deriveInactiveBlockDecorationsState } from "./inactive-block-decorations";
 
 describe("deriveInactiveBlockDecorationsState", () => {

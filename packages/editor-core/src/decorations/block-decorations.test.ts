@@ -3,11 +3,8 @@ import { describe, expect, it } from "vitest";
 import { parseBlockMap } from "@yulora/markdown-engine";
 
 import { createActiveBlockStateFromBlockMap } from "../active-block";
-import {
-  createBlockDecorations,
-  getInactiveBlockquoteLines,
-  getInactiveCodeFenceLines
-} from "./index";
+import { createBlockDecorations } from "./block-decorations";
+import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";
 
 const collectDecorations = (source: string, decorationSet: ReturnType<typeof createBlockDecorations>["decorationSet"]) => {
   const ranges: Array<{ from: number; to: number; className: string; text: string }> = [];

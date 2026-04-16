@@ -192,9 +192,9 @@ export default function WorkbenchApp() {
               <p className="debug-run-error-label">Terminal reason</p>
               <p className="debug-run-error-message">
                 <strong>{runState.terminalError.kind ?? "step"}</strong>
-                {" 路 "}
+                {" · "}
                 {runState.terminalError.stepId ?? "scenario"}
-                {" 路 "}
+                {" · "}
                 {runState.terminalError.message}
               </p>
             </div>
@@ -240,7 +240,7 @@ export default function WorkbenchApp() {
                   <p className="debug-step-title">{step.id}</p>
                   <p className="debug-step-copy">
                     {step.title}
-                    {" 路 "}
+                    {" · "}
                     {step.kind}
                   </p>
                   {step.error ? <p className="debug-step-error">{step.error.message}</p> : null}

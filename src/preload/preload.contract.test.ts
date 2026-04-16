@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
-  type EditorTestCommandEnvelope,
-  type EditorTestCommandResultEnvelope,
+  type EditorTestCommandEnvelope as SharedEditorTestCommandEnvelope,
+  type EditorTestCommandResultEnvelope as SharedEditorTestCommandResultEnvelope,
   EDITOR_TEST_COMMAND_EVENT
 } from "../shared/editor-test-command";
+import {
+  type EditorTestCommandEnvelope as PreloadEditorTestCommandEnvelope,
+  type EditorTestCommandResultEnvelope as PreloadEditorTestCommandResultEnvelope
+} from "./preload";
 import { APP_MENU_COMMAND_EVENT, type AppMenuCommand } from "../shared/menu-command";
 import {
   OPEN_MARKDOWN_FILE_CHANNEL,
@@ -49,6 +53,22 @@ async function loadApi() {
 }
 
 describe("preload contract", () => {
+  type TypeEquals<A, B> = A extends B ? (B extends A ? true : never) : never;
+
+  it("aligns editor-test command types with shared contract types", () => {
+    const editorEnvelopeContract: TypeEquals<
+      SharedEditorTestCommandEnvelope,
+      PreloadEditorTestCommandEnvelope
+    > = true;
+    const resultEnvelopeContract: TypeEquals<
+      SharedEditorTestCommandResultEnvelope,
+      PreloadEditorTestCommandResultEnvelope
+    > = true;
+
+    void editorEnvelopeContract;
+    void resultEnvelopeContract;
+  });
+
   beforeEach(() => {
     exposeInMainWorld.mockClear();
     invoke.mockClear();
@@ -65,7 +85,7 @@ describe("preload contract", () => {
     const saveAsInput = { currentPath: "D:/fixtures/note.md", content: "# note" };
     const startRunInput = { scenarioId: "open-markdown-file-basic" };
     const interruptInput = { runId: "run-1" };
-    const completeInput: EditorTestCommandResultEnvelope = {
+    const completeInput: SharedEditorTestCommandResultEnvelope = {
       sessionId: "session-1",
       commandId: "command-1",
       result: {
@@ -133,7 +153,7 @@ describe("preload contract", () => {
       status: "passed",
       resultPath: ".artifacts/test-runs/run-1/result.json"
     };
-    const selectionCommandPayload: EditorTestCommandEnvelope = {
+    const selectionCommandPayload: SharedEditorTestCommandEnvelope = {
       sessionId: "session-1",
       commandId: "command-1",
       command: {
@@ -142,7 +162,7 @@ describe("preload contract", () => {
         head: 7
       }
     };
-    const enterCommandPayload: EditorTestCommandEnvelope = {
+    const enterCommandPayload: SharedEditorTestCommandEnvelope = {
       sessionId: "session-1",
       commandId: "command-2",
       command: {

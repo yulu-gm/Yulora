@@ -1,9 +1,7 @@
 import {
   defaultKeymap,
-  deleteCharBackward,
   history,
-  historyKeymap,
-  insertNewlineAndIndent
+  historyKeymap
 } from "@codemirror/commands";
 import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, keymap } from "@codemirror/view";
@@ -12,10 +10,8 @@ import {
   createActiveBlockStateFromBlockMap,
   createBlockMapCache,
   deriveInactiveBlockDecorationsState,
-  runBlockquoteEnter,
-  runCodeFenceBackspace,
-  runCodeFenceEnter,
-  runListEnter,
+  runMarkdownBackspace,
+  runMarkdownEnter,
   type ActiveBlockState
 } from "@yulora/editor-core";
 import { parseBlockMap } from "@yulora/markdown-engine";
@@ -116,19 +112,11 @@ export function createCodeEditorController(
         keymap.of([
           {
             key: "Backspace",
-            run: (editorView) =>
-              runCodeFenceBackspace(editorView, activeBlockState) || deleteCharBackward(editorView)
+            run: (editorView) => runMarkdownBackspace(editorView, activeBlockState)
           },
           {
             key: "Enter",
-            run: (editorView) => {
-              return (
-                runCodeFenceEnter(editorView, activeBlockState) ||
-                runListEnter(editorView) ||
-                runBlockquoteEnter(editorView) ||
-                insertNewlineAndIndent(editorView)
-              );
-            }
+            run: (editorView) => runMarkdownEnter(editorView, activeBlockState)
           },
           ...historyKeymap,
           ...defaultKeymap
@@ -277,18 +265,10 @@ export function createCodeEditorController(
       });
     },
     pressEnter() {
-      if (
-        !runCodeFenceEnter(view, activeBlockState) &&
-        !runListEnter(view) &&
-        !runBlockquoteEnter(view)
-      ) {
-        insertNewlineAndIndent(view);
-      }
+      runMarkdownEnter(view, activeBlockState);
     },
     pressBackspace() {
-      if (!runCodeFenceBackspace(view, activeBlockState)) {
-        deleteCharBackward(view);
-      }
+      runMarkdownBackspace(view, activeBlockState);
     },
     destroy() {
       view.dom.removeEventListener("compositionstart", handleCompositionStart);

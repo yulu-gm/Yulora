@@ -1,6 +1,6 @@
 import type { DecorationSet } from "@codemirror/view";
 
-import type { BlockMapCache } from "../derived-state/block-map-cache";
+import type { BlockMapCache } from "./block-map-cache";
 import {
   createActiveBlockStateFromBlockMap,
   type ActiveBlockSelection,

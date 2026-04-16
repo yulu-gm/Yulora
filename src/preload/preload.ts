@@ -17,12 +17,13 @@ const APP_MENU_COMMAND_EVENT = "yulora:app-menu-command";
 const RUNTIME_MODE_ARGUMENT_PREFIX = "--yulora-runtime-mode=";
 const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--yulora-startup-open-path=";
 
-type AppMenuCommand = "open-markdown-file" | "save-markdown-file" | "save-markdown-file-as";
 type EditorTestCommand =
   | { type: "wait-for-editor-ready" }
   | { type: "open-fixture-file"; fixturePath: string }
   | { type: "set-editor-content"; content: string }
   | { type: "insert-editor-text"; text: string }
+  | { type: "set-editor-selection"; anchor: number; head?: number }
+  | { type: "press-editor-enter" }
   | { type: "save-document" }
   | { type: "assert-document-path"; expectedPath: string }
   | { type: "assert-editor-content"; expectedContent: string }
@@ -45,6 +46,10 @@ type EditorTestCommandResultEnvelope = {
     details?: Record<string, unknown>;
   };
 };
+
+export type { EditorTestCommandEnvelope, EditorTestCommandResultEnvelope };
+
+type AppMenuCommand = "open-markdown-file" | "save-markdown-file" | "save-markdown-file-as";
 
 type ScenarioRunStatus = "idle" | "running" | "passed" | "failed" | "timed-out" | "interrupted";
 

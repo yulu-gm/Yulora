@@ -266,6 +266,8 @@ describe("Test workbench shell", () => {
     expect(container.textContent).toContain("boom");
     expect(container.textContent).toContain("launch-dev-shell");
     expect(container.textContent).toContain("out/result.json");
+    expect(container.textContent).toContain("step · launch-dev-shell · boom");
+    expect(container.textContent).toContain("Launch shell · setup");
   });
 
   it("interrupts the active run through the run bridge", async () => {

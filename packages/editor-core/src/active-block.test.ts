@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createActiveBlockState } from "./index";
+import { createActiveBlockState } from "./active-block";
 
 describe("createActiveBlockState", () => {
   const source = ["# Title", "", "Paragraph", "", "- one", "- two", "", "> quote"].join("\n");
