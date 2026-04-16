@@ -1,4 +1,5 @@
 import type { BlockMap } from "@yulora/markdown-engine";
+import { createMarkdownDocumentCache } from "./markdown-document-cache";
 
 export type ParseBlockMap = (source: string) => BlockMap;
 
@@ -8,23 +9,14 @@ export type BlockMapCache = {
 };
 
 export function createBlockMapCache(parseBlockMap: ParseBlockMap): BlockMapCache {
-  let cachedSource: string | null = null;
-  let cachedBlockMap: BlockMap | null = null;
+  const documentCache = createMarkdownDocumentCache(parseBlockMap);
 
   return {
     read(source) {
-      if (cachedBlockMap && cachedSource === source) {
-        return cachedBlockMap;
-      }
-
-      cachedSource = source;
-      cachedBlockMap = parseBlockMap(source);
-
-      return cachedBlockMap;
+      return documentCache.read(source);
     },
     clear() {
-      cachedSource = null;
-      cachedBlockMap = null;
+      documentCache.clear();
     }
   };
 }

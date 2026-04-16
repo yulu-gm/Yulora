@@ -7,7 +7,7 @@ import {
   runMarkdownEnter,
   type ActiveBlockState
 } from "@yulora/editor-core";
-import { parseBlockMap } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
 export type CreateCodeEditorControllerOptions = {
   parent: Element;
@@ -31,7 +31,7 @@ export function createCodeEditorController(
   options: CreateCodeEditorControllerOptions
 ): CodeEditorController {
   let activeBlockState: ActiveBlockState = {
-    blockMap: parseBlockMap(""),
+    blockMap: parseMarkdownDocument(""),
     activeBlock: null,
     selection: {
       anchor: 0,
@@ -43,7 +43,7 @@ export function createCodeEditorController(
     EditorState.create({
       doc: content,
       extensions: createYuloraMarkdownExtensions({
-        parseBlockMap,
+        parseMarkdownDocument,
         onContentChange: options.onChange,
         onActiveBlockChange: (nextState) => {
           activeBlockState = nextState;

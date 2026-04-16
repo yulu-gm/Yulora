@@ -34,6 +34,22 @@ describe("package scripts", () => {
     );
   });
 
+  it("uses cross-env via npm bin resolution instead of a hard-coded node_modules path", () => {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["dev:electron"]).toContain("cross-env VITE_DEV_SERVER_URL=http://localhost:5173");
+    expect(packageJson.scripts?.["dev:electron"]).not.toContain("node ./node_modules/cross-env/");
+    expect(packageJson.scripts?.["dev:electron:test-workbench"]).toContain(
+      "cross-env YULORA_START_MODE=test-workbench VITE_DEV_SERVER_URL=http://localhost:5174"
+    );
+    expect(packageJson.scripts?.["dev:electron:test-workbench"]).not.toContain(
+      "node ./node_modules/cross-env/"
+    );
+  });
+
   it("lets vite derive the dev port from the environment", () => {
     const viteConfigPath = path.join(process.cwd(), "vite.config.ts");
     const viteConfigSource = readFileSync(viteConfigPath, "utf8");

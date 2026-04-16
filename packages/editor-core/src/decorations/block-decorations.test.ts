@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBlockMap } from "@yulora/markdown-engine";
+import { parseBlockMap, parseMarkdownDocument } from "@yulora/markdown-engine";
 
 import { createActiveBlockStateFromBlockMap } from "../active-block";
 import { createBlockDecorations } from "./block-decorations";
@@ -20,10 +20,149 @@ const collectDecorations = (source: string, decorationSet: ReturnType<typeof cre
     });
   });
 
-  return ranges;
+  return ranges.sort((left, right) => {
+    if (left.from !== right.from) {
+      return left.from - right.from;
+    }
+
+    if (left.to !== right.to) {
+      return left.to - right.to;
+    }
+
+    if (left.className !== right.className) {
+      return left.className.localeCompare(right.className);
+    }
+
+    return left.text.localeCompare(right.text);
+  });
+};
+
+const createInactiveInlineDecorations = (source: string) => {
+  const blockMap = parseMarkdownDocument(source);
+  const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+    anchor: 0,
+    head: 0
+  });
+
+  return collectDecorations(
+    source,
+    createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: false,
+      source
+    }).decorationSet
+  );
+};
+
+const getCoveredClassesAtRange = (
+  ranges: Array<{ from: number; to: number; className: string; text: string }>,
+  from: number,
+  to: number
+) =>
+  ranges
+    .filter((range) => range.from <= from && range.to >= to)
+    .map((range) => range.className)
+    .sort();
+
+const getExactClassesAtRange = (
+  ranges: Array<{ from: number; to: number; className: string; text: string }>,
+  from: number,
+  to: number
+) => ranges.filter((range) => range.from === from && range.to === to).map((range) => range.className).sort();
+
+const expectCoveredRangeClasses = (
+  ranges: Array<{ from: number; to: number; className: string; text: string }>,
+  from: number,
+  to: number,
+  expected: string[]
+) => {
+  expect(getCoveredClassesAtRange(ranges, from, to)).toEqual(expected);
+};
+
+const expectExactRangeClasses = (
+  ranges: Array<{ from: number; to: number; className: string; text: string }>,
+  from: number,
+  to: number,
+  expected: string[]
+) => {
+  expect(getExactClassesAtRange(ranges, from, to)).toEqual(expected);
 };
 
 describe("createBlockDecorations", () => {
+  it("applies inline strong decorations to inactive paragraph content and hides bold markers", () => {
+    const source = "**bold**";
+    const ranges = createInactiveInlineDecorations(source);
+
+    expectExactRangeClasses(ranges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(ranges, 0, 2, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 2, 6, ["cm-inactive-inline-strong"]);
+    expectCoveredRangeClasses(ranges, 6, 8, ["cm-inactive-inline-marker"]);
+  });
+
+  it("stacks strong and emphasis classes for triple-marker inline content", () => {
+    const source = "***both***";
+    const ranges = createInactiveInlineDecorations(source);
+
+    expectExactRangeClasses(ranges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(ranges, 0, 1, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 1, 3, ["cm-inactive-inline-emphasis", "cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 1, 9, ["cm-inactive-inline-emphasis"]);
+    expectCoveredRangeClasses(ranges, 3, 7, [
+      "cm-inactive-inline-emphasis",
+      "cm-inactive-inline-strong"
+    ]);
+    expectCoveredRangeClasses(ranges, 7, 9, ["cm-inactive-inline-emphasis", "cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 9, 10, ["cm-inactive-inline-marker"]);
+  });
+
+  it("keeps nested strikethrough and strong decorations layered for inactive content", () => {
+    const source = "~~**mix**~~";
+    const ranges = createInactiveInlineDecorations(source);
+
+    expectExactRangeClasses(ranges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(ranges, 0, 2, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 2, 4, ["cm-inactive-inline-marker", "cm-inactive-inline-strikethrough"]);
+    expectCoveredRangeClasses(ranges, 2, 9, ["cm-inactive-inline-strikethrough"]);
+    expectCoveredRangeClasses(ranges, 4, 7, [
+      "cm-inactive-inline-strikethrough",
+      "cm-inactive-inline-strong"
+    ]);
+    expectCoveredRangeClasses(ranges, 7, 9, ["cm-inactive-inline-marker", "cm-inactive-inline-strikethrough"]);
+    expectCoveredRangeClasses(ranges, 9, 11, ["cm-inactive-inline-marker"]);
+  });
+
+  it("hides code span markers and does not infer emphasis from code text", () => {
+    const source = "`a * b`";
+    const ranges = createInactiveInlineDecorations(source);
+
+    expectExactRangeClasses(ranges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(ranges, 0, 1, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(ranges, 1, 6, ["cm-inactive-inline-code"]);
+    expectCoveredRangeClasses(ranges, 6, 7, ["cm-inactive-inline-marker"]);
+    expect(ranges.some((range) => range.className === "cm-inactive-inline-emphasis")).toBe(false);
+  });
+
+  it("recurses through link and image label or alt children without replacing their text", () => {
+    const linkSource = "[**label**](https://example.com)";
+    const linkRanges = createInactiveInlineDecorations(linkSource);
+    const imageSource = "![alt *x*](./demo.png)";
+    const imageRanges = createInactiveInlineDecorations(imageSource);
+
+    expectExactRangeClasses(linkRanges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(linkRanges, 0, 1, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(linkRanges, 1, 3, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(linkRanges, 3, 8, ["cm-inactive-inline-strong"]);
+    expectCoveredRangeClasses(linkRanges, 8, 10, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(linkRanges, 10, 11, ["cm-inactive-inline-marker"]);
+
+    expectExactRangeClasses(imageRanges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
+    expectCoveredRangeClasses(imageRanges, 1, 2, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(imageRanges, 6, 7, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(imageRanges, 7, 8, ["cm-inactive-inline-emphasis"]);
+    expectCoveredRangeClasses(imageRanges, 8, 9, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(imageRanges, 9, 10, ["cm-inactive-inline-marker"]);
+  });
+
   it("derives inactive block decorations and a stable signature for non-active top-level blocks", () => {
     const source = [
       "# Title",

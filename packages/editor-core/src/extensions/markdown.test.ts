@@ -4,7 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it, vi } from "vitest";
 
-import { parseBlockMap } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
 import { createYuloraMarkdownExtensions } from "./markdown";
 
@@ -30,19 +30,19 @@ type HarnessOptions = {
 const createHarness = (options: HarnessOptions) => {
   const host = document.createElement("div");
 
-  const view = new EditorView({
-    state: EditorState.create({
-      doc: options.source,
-      extensions: createYuloraMarkdownExtensions({
-        parseBlockMap,
-        onContentChange: options.onContentChange ?? vi.fn(),
-        onActiveBlockChange: (state) => {
-          options.onActiveBlockChange?.(state.activeBlock?.type ?? null, state.selection.anchor);
-        },
-        onBlur: options.onBlur
-      })
-    }),
-    parent: host
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: options.source,
+        extensions: createYuloraMarkdownExtensions({
+          parseMarkdownDocument,
+          onContentChange: options.onContentChange ?? vi.fn(),
+          onActiveBlockChange: (state) => {
+            options.onActiveBlockChange?.(state.activeBlock?.type ?? null, state.selection.anchor);
+          },
+          onBlur: options.onBlur
+        })
+      }),
+      parent: host
   });
 
   return {

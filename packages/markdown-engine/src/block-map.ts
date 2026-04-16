@@ -1,3 +1,16 @@
+import type { InlineRoot } from "./inline-ast";
+
+export type InlineLine = {
+  text: string;
+  startOffset: number;
+  endOffset: number;
+  lineNumber: number;
+  markerEnd: number;
+  contentStartOffset: number;
+  contentEndOffset: number;
+  inline: InlineRoot;
+};
+
 export interface BaseBlock {
   id: string;
   type: "heading" | "paragraph" | "list" | "blockquote" | "codeFence" | "thematicBreak";
@@ -10,10 +23,13 @@ export interface BaseBlock {
 export interface HeadingBlock extends BaseBlock {
   type: "heading";
   depth: number;
+  markerEnd?: number;
+  inline?: InlineRoot;
 }
 
 export interface ParagraphBlock extends BaseBlock {
   type: "paragraph";
+  inline?: InlineRoot;
 }
 
 export interface ListItemTaskMarker {
@@ -32,6 +48,9 @@ export interface ListItemBlock {
   marker: string;
   markerStart: number;
   markerEnd: number;
+  contentStartOffset?: number;
+  contentEndOffset?: number;
+  inline?: InlineRoot;
   task: ListItemTaskMarker | null;
 }
 
@@ -43,6 +62,7 @@ export interface ListBlock extends BaseBlock {
 
 export interface BlockquoteBlock extends BaseBlock {
   type: "blockquote";
+  lines?: InlineLine[];
 }
 
 export interface CodeFenceBlock extends BaseBlock {

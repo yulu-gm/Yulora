@@ -1,4 +1,5 @@
 export { createBlockDecorations, type BlockDecorationsResult } from "./block-decorations";
+export { createInactiveInlineDecorations } from "./inline-decorations";
 export {
   getBlockLineInfos,
   getInactiveBlockquoteLines,

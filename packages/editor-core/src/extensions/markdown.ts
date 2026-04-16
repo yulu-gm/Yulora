@@ -11,21 +11,22 @@ import {
   keymap
 } from "@codemirror/view";
 
-import type { BlockMap } from "@yulora/markdown-engine";
+import type { MarkdownDocument } from "@yulora/markdown-engine";
 
 import {
-  createActiveBlockStateFromBlockMap,
+  createActiveBlockStateFromMarkdownDocument,
   type ActiveBlockSelection,
   type ActiveBlockState
 } from "../active-block";
 import { runMarkdownBackspace, runMarkdownEnter } from "../commands";
-import { createBlockMapCache } from "../derived-state/block-map-cache";
+import { createMarkdownDocumentCache } from "../derived-state/markdown-document-cache";
 import { deriveInactiveBlockDecorationsState } from "../derived-state/inactive-block-decorations";
 
-export type ParseBlockMap = (source: string) => BlockMap;
+export type ParseMarkdownDocument = (source: string) => MarkdownDocument;
 
 export type CreateYuloraMarkdownExtensionsOptions = {
-  parseBlockMap: ParseBlockMap;
+  parseBlockMap?: ParseMarkdownDocument;
+  parseMarkdownDocument?: ParseMarkdownDocument;
   onContentChange: (doc: string) => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
   onBlur?: () => void;
@@ -47,9 +48,17 @@ const createSelectionSnapshot = (state: EditorState): ActiveBlockSelection => ({
 export function createYuloraMarkdownExtensions(
   options: CreateYuloraMarkdownExtensionsOptions
 ): Extension[] {
-  const blockMapCache = createBlockMapCache(options.parseBlockMap);
+  const parseMarkdownDocument = options.parseMarkdownDocument ?? options.parseBlockMap;
+
+  if (!parseMarkdownDocument) {
+    throw new Error(
+      "createYuloraMarkdownExtensions requires parseBlockMap or parseMarkdownDocument"
+    );
+  }
+
+  const markdownDocumentCache = createMarkdownDocumentCache(parseMarkdownDocument);
   const runtime: MarkdownExtensionRuntime = {
-    activeBlockState: createActiveBlockStateFromBlockMap(blockMapCache.read(""), {
+    activeBlockState: createActiveBlockStateFromMarkdownDocument(markdownDocumentCache.read(""), {
       anchor: 0,
       head: 0
     }),
@@ -81,7 +90,7 @@ export function createYuloraMarkdownExtensions(
       source: state.doc.toString(),
       selection: createSelectionSnapshot(state),
       hasEditorFocus: runtime.hasEditorFocus,
-      blockMapCache
+      markdownDocumentCache
     });
 
   const blockDecorationsField = StateField.define<DecorationSet>({

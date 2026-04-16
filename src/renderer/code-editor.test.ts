@@ -18,6 +18,9 @@ const getLineElementByText = (host: HTMLElement, text: string) => {
   return lines.find((line) => line.textContent?.includes(text)) ?? null;
 };
 
+const getInlineDecorationCount = (line: Element | null, className: string) =>
+  line?.querySelectorAll(`.${className}`).length ?? 0;
+
 const dispatchCompositionEvent = (
   target: HTMLElement,
   type: "compositionstart" | "compositionupdate" | "compositionend",
@@ -185,6 +188,177 @@ describe("createCodeEditorController", () => {
     expect(headingLine).not.toBeNull();
     expect(headingLine?.classList.contains("cm-inactive-heading")).toBe(false);
     expect(host.querySelector(".cm-inactive-heading-marker")).toBeNull();
+
+    controller.destroy();
+  });
+
+  it("renders inactive inline decorations for paragraph content and restores the raw markdown when the block becomes active again", async () => {
+    const host = document.createElement("div");
+    const sourceLine = "**bold** *italic* `code` ~~strike~~";
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const inactiveLine = getLineElementByText(host, sourceLine);
+
+    expect(inactiveLine).not.toBeNull();
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-marker")).toBe(8);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strong")).toBe(1);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-emphasis")).toBe(1);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-code")).toBe(1);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strikethrough")).toBe(1);
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: source.indexOf(sourceLine) + 2 } });
+
+    expect(inactiveLine?.textContent).toBe(sourceLine);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-marker")).toBe(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strong")).toBe(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-emphasis")).toBe(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-code")).toBe(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strikethrough")).toBe(0);
+
+    controller.destroy();
+  });
+
+  it("keeps nested inline styles on inactive heading, list, and blockquote content", () => {
+    const host = document.createElement("div");
+    const source = [
+      "# Heading with **bold**",
+      "",
+      "- Item with *italic*",
+      "",
+      "> Quote with `code`",
+      "",
+      "Paragraph"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const headingLine = getLineElementByText(host, "# Heading with **bold**");
+    const listLine = getLineElementByText(host, "- Item with *italic*");
+    const quoteLine = getLineElementByText(host, "> Quote with `code`");
+
+    expect(headingLine).not.toBeNull();
+    expect(getInlineDecorationCount(headingLine, "cm-inactive-inline-strong")).toBe(1);
+    expect(getInlineDecorationCount(headingLine, "cm-inactive-inline-marker")).toBe(2);
+
+    expect(listLine).not.toBeNull();
+    expect(getInlineDecorationCount(listLine, "cm-inactive-inline-emphasis")).toBe(1);
+    expect(getInlineDecorationCount(listLine, "cm-inactive-inline-marker")).toBe(2);
+
+    expect(quoteLine).not.toBeNull();
+    expect(getInlineDecorationCount(quoteLine, "cm-inactive-inline-code")).toBe(1);
+    expect(getInlineDecorationCount(quoteLine, "cm-inactive-inline-marker")).toBe(2);
+
+    controller.destroy();
+  });
+
+  it("keeps combined strong and strikethrough inline styles layered on inactive content", () => {
+    const host = document.createElement("div");
+    const source = ["***both***", "~~**mix**~~", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const bothLine = getLineElementByText(host, "***both***");
+    const mixLine = getLineElementByText(host, "~~**mix**~~");
+
+    expect(bothLine).not.toBeNull();
+    expect(getInlineDecorationCount(bothLine, "cm-inactive-inline-strong")).toBeGreaterThanOrEqual(1);
+    expect(getInlineDecorationCount(bothLine, "cm-inactive-inline-emphasis")).toBeGreaterThanOrEqual(1);
+    expect(getInlineDecorationCount(bothLine, "cm-inactive-inline-marker")).toBeGreaterThanOrEqual(2);
+
+    expect(mixLine).not.toBeNull();
+    expect(getInlineDecorationCount(mixLine, "cm-inactive-inline-strong")).toBeGreaterThanOrEqual(1);
+    expect(getInlineDecorationCount(mixLine, "cm-inactive-inline-strikethrough")).toBeGreaterThanOrEqual(1);
+    expect(getInlineDecorationCount(mixLine, "cm-inactive-inline-marker")).toBeGreaterThanOrEqual(2);
+
+    controller.destroy();
+  });
+
+  it("flushes inline decorations once when composition ends", () => {
+    const host = document.createElement("div");
+    const source = ["**bold**", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+    expect(getInlineDecorationCount(getLineElementByText(host, "**bold**"), "cm-inactive-inline-strong")).toBe(
+      1
+    );
+
+    const originalDispatch = view?.dispatch.bind(view);
+    const dispatchSpy = vi.fn((spec: Parameters<NonNullable<typeof originalDispatch>>[0]) =>
+      originalDispatch?.(spec)
+    );
+
+    if (view) {
+      view.dispatch = dispatchSpy as unknown as typeof view.dispatch;
+    }
+
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "x");
+    view?.dispatch({
+      changes: { from: source.length, insert: "x" },
+      selection: { anchor: source.length + 1 }
+    });
+
+    dispatchSpy.mockClear();
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "x");
+
+    const decorationFlushCount = dispatchSpy.mock.calls.filter(
+      ([spec]) => typeof spec === "object" && spec !== null && "effects" in spec
+    ).length;
+
+    expect(decorationFlushCount).toBe(1);
+    expect(getInlineDecorationCount(getLineElementByText(host, "**bold**"), "cm-inactive-inline-strong")).toBe(
+      1
+    );
 
     controller.destroy();
   });
@@ -418,7 +592,7 @@ describe("createCodeEditorController", () => {
     expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
     expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote-start")).toBe(false);
     expect(quoteMarkers.length).toBe(2);
-    expect(Array.from(quoteMarkers, (marker) => marker.textContent)).toEqual(["> ", "> "]);
+    expect(Array.from(quoteMarkers, (marker) => marker.textContent)).toEqual([">", ">"]);
 
     controller.destroy();
   });

@@ -1,4 +1,17 @@
-import type { MarkdownBlock } from "@yulora/markdown-engine";
+import type {
+  BlockquoteBlock,
+  InlineASTNode,
+  InlineCodeSpan,
+  InlineRoot,
+  ListItemBlock,
+  MarkdownBlock
+} from "@yulora/markdown-engine";
+
+type InlineCapable = {
+  inline?: InlineRoot;
+};
+
+type BlockquoteLine = NonNullable<BlockquoteBlock["lines"]>[number];
 
 export function getInactiveHeadingMarkerEnd(
   startOffset: number,
@@ -20,21 +33,27 @@ export function getInactiveHeadingMarkerEnd(
 
 export function createBlockDecorationSignature(block: MarkdownBlock): string {
   if (block.type === "heading") {
-    return `${block.type}:${block.id}:${block.startOffset}:${block.depth}`;
+    return `${block.type}:${block.id}:${block.startOffset}:${block.depth}${getInlineSignature(
+      block as InlineCapable
+    )}`;
   }
 
   if (block.type === "paragraph") {
-    return `${block.type}:${block.id}:${block.startOffset}`;
+    return `${block.type}:${block.id}:${block.startOffset}${getInlineSignature(
+      block as InlineCapable
+    )}`;
   }
 
   if (block.type === "list") {
     return `${block.type}:${block.id}:${block.startOffset}:${block.ordered}:${block.items
-      .map((item) => `${item.id}:${item.indent}:${item.task?.checked ?? "none"}`)
+      .map((item) => `${createListItemSignature(item)}`)
       .join(",")}`;
   }
 
   if (block.type === "blockquote") {
-    return `${block.type}:${block.id}:${block.startOffset}:${block.endOffset}`;
+    const lineSignature = block.lines?.map((line) => createBlockquoteLineSignature(line)).join("|") ?? "";
+
+    return `${block.type}:${block.id}:${block.startOffset}:${block.endOffset}${lineSignature ? `:${lineSignature}` : ""}`;
   }
 
   if (block.type === "codeFence") {
@@ -42,4 +61,55 @@ export function createBlockDecorationSignature(block: MarkdownBlock): string {
   }
 
   return `${block.type}:${block.id}:${block.marker}`;
+}
+
+function createListItemSignature(item: ListItemBlock): string {
+  return `${item.id}:${item.indent}:${item.task?.checked ?? "none"}${getInlineSignature(item)}`;
+}
+
+function createBlockquoteLineSignature(line: BlockquoteLine): string {
+  return `${line.lineNumber}:${line.markerEnd}:${line.contentStartOffset}:${line.contentEndOffset}${getInlineSignature(
+    line
+  )}`;
+}
+
+function getInlineSignature(node: InlineCapable): string {
+  return node.inline ? `|inline:${createInlineFingerprint(node.inline)}` : "";
+}
+
+function createInlineFingerprint(node: InlineASTNode): string {
+  switch (node.type) {
+    case "root":
+      return `root(${node.startOffset}-${node.endOffset}:${node.children
+        .map((child) => createInlineFingerprint(child))
+        .join(",")})`;
+    case "text":
+      return `text(${node.startOffset}-${node.endOffset}:${JSON.stringify(node.value)})`;
+    case "codeSpan":
+      return `codeSpan(${node.startOffset}-${node.endOffset}:${formatMarker(node.openMarker)}:${formatMarker(
+        node.closeMarker
+      )}:${JSON.stringify(node.text)})`;
+    case "strong":
+    case "emphasis":
+    case "strikethrough":
+      return `${node.type}(${node.startOffset}-${node.endOffset}:${formatMarker(node.openMarker)}:${formatMarker(
+        node.closeMarker
+      )}:${node.children.map((child) => createInlineFingerprint(child)).join(",")})`;
+    case "link":
+    case "image":
+      return `${node.type}(${node.startOffset}-${node.endOffset}:${formatMarker(node.openMarker)}:${formatMarker(
+        node.closeMarker
+      )}:${JSON.stringify(node.href)}:${JSON.stringify(node.title)}:${offsetRange(
+        node.destinationStartOffset,
+        node.destinationEndOffset
+      )}:${node.children.map((child) => createInlineFingerprint(child)).join(",")})`;
+  }
+}
+
+function formatMarker(marker: InlineCodeSpan["openMarker"] | InlineCodeSpan["closeMarker"]): string {
+  return `${marker.startOffset}-${marker.endOffset}`;
+}
+
+function offsetRange(startOffset: number | null, endOffset: number | null): string {
+  return `${startOffset ?? ""}-${endOffset ?? ""}`;
 }

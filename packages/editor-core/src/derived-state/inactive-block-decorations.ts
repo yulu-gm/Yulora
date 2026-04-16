@@ -1,32 +1,47 @@
-import type { DecorationSet } from "@codemirror/view";
+import type { MarkdownDocument } from "@yulora/markdown-engine";
 
-import type { BlockMapCache } from "./block-map-cache";
+import { createBlockDecorations } from "../decorations";
 import {
-  createActiveBlockStateFromBlockMap,
+  createActiveBlockStateFromMarkdownDocument,
   type ActiveBlockSelection,
   type ActiveBlockState
 } from "../active-block";
-import { createBlockDecorations } from "../decorations";
+import type { BlockMapCache } from "./block-map-cache";
+import type { MarkdownDocumentCache } from "./markdown-document-cache";
 
 export type DeriveInactiveBlockDecorationsStateOptions = {
   source: string;
   selection: ActiveBlockSelection;
   hasEditorFocus: boolean;
-  blockMapCache: BlockMapCache;
+  markdownDocumentCache?: MarkdownDocumentCache;
+  blockMapCache?: BlockMapCache;
 };
 
 export type InactiveBlockDecorationsDerivedState = {
   activeBlockState: ActiveBlockState;
-  decorationSet: DecorationSet;
+  decorationSet: ReturnType<typeof createBlockDecorations>["decorationSet"];
   signature: string;
 };
 
 export function deriveInactiveBlockDecorationsState(
   options: DeriveInactiveBlockDecorationsStateOptions
 ): InactiveBlockDecorationsDerivedState {
-  const blockMap = options.blockMapCache.read(options.source);
-  const activeBlockState = createActiveBlockStateFromBlockMap(blockMap, options.selection);
-  const { decorationSet, signature } = createBlockDecorations({
+  if (!options.markdownDocumentCache && !options.blockMapCache) {
+    throw new Error(
+      "deriveInactiveBlockDecorationsState requires markdownDocumentCache or blockMapCache"
+    );
+  }
+
+  const markdownDocument: MarkdownDocument = options.markdownDocumentCache
+    ? options.markdownDocumentCache.read(options.source)
+    : options.blockMapCache!.read(options.source);
+
+  const activeBlockState = createActiveBlockStateFromMarkdownDocument(
+    markdownDocument,
+    options.selection
+  );
+
+  const { decorationSet, signature: blockSignature } = createBlockDecorations({
     activeBlockState,
     hasEditorFocus: options.hasEditorFocus,
     source: options.source
@@ -35,6 +50,6 @@ export function deriveInactiveBlockDecorationsState(
   return {
     activeBlockState,
     decorationSet,
-    signature
+    signature: blockSignature
   };
 }

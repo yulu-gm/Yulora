@@ -6,14 +6,20 @@ import type {
   BlockquoteBlock,
   CodeFenceBlock,
   HeadingBlock,
-  ListItemBlock,
   ListBlock,
+  ListItemBlock,
   MarkdownBlock,
   ParagraphBlock,
   ThematicBreakBlock
 } from "./block-map";
 
 export function parseBlockMap(source: string): BlockMap {
+  return {
+    blocks: parseTopLevelBlocks(source)
+  };
+}
+
+export function parseTopLevelBlocks(source: string): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
   let containerDepth = 0;
 
@@ -73,7 +79,7 @@ export function parseBlockMap(source: string): BlockMap {
     }
   }
 
-  return { blocks };
+  return blocks;
 }
 
 function parseEvents(source: string): Event[] {

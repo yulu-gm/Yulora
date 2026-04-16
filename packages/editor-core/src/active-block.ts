@@ -1,4 +1,9 @@
-import { parseBlockMap, type BlockMap, type MarkdownBlock } from "../../markdown-engine/src";
+import {
+  parseBlockMap,
+  type BlockMap,
+  type MarkdownBlock,
+  type MarkdownDocument
+} from "../../markdown-engine/src";
 
 export type ActiveBlockSelection = {
   anchor: number;
@@ -6,7 +11,7 @@ export type ActiveBlockSelection = {
 };
 
 export type ActiveBlockState = {
-  blockMap: BlockMap;
+  blockMap: MarkdownDocument;
   activeBlock: MarkdownBlock | null;
   selection: ActiveBlockSelection;
 };
@@ -22,25 +27,32 @@ export function createActiveBlockStateFromBlockMap(
   blockMap: BlockMap,
   selection: ActiveBlockSelection
 ): ActiveBlockState {
+  return createActiveBlockStateFromMarkdownDocument(blockMap, selection);
+}
+
+export function createActiveBlockStateFromMarkdownDocument(
+  markdownDocument: MarkdownDocument,
+  selection: ActiveBlockSelection
+): ActiveBlockState {
   return {
-    blockMap,
-    activeBlock: resolveActiveBlock(blockMap, selection.head),
+    blockMap: markdownDocument,
+    activeBlock: resolveActiveBlock(markdownDocument, selection.head),
     selection
   };
 }
 
 export function resolveActiveBlock(
-  blockMap: BlockMap,
+  markdownDocument: MarkdownDocument,
   selectionOffset: number
 ): MarkdownBlock | null {
-  for (const block of blockMap.blocks) {
+  for (const block of markdownDocument.blocks) {
     if (selectionOffset >= block.startOffset && selectionOffset < block.endOffset) {
       return block;
     }
   }
 
-  for (let index = blockMap.blocks.length - 1; index >= 0; index -= 1) {
-    const block = blockMap.blocks[index]!;
+  for (let index = markdownDocument.blocks.length - 1; index >= 0; index -= 1) {
+    const block = markdownDocument.blocks[index]!;
 
     if (selectionOffset === block.endOffset) {
       return block;

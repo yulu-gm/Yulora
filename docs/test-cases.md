@@ -208,6 +208,25 @@
 - 用 CRLF 文本替换当前文档后，分割线装饰不会整体错位
 - 现有 heading、paragraph、list、blockquote 与 code block 渲染不回归
 
+### TC-034 行内格式渲染
+
+步骤：
+1. 输入一组普通段落内的行内格式示例：`**bold**`、`*italic*`、`` `code` ``、`~~strike~~`。
+2. 再输入两组嵌套示例：`***both***` 与 `~~**mix**~~`。
+3. 额外输入三种块内示例：`# Heading with **bold**`、`- Item with *italic*`、`> Quote with code`（其中 `code` 部分使用反引号包裹）。
+4. 把光标移动到这些 block 外的普通段落，观察非激活态渲染。
+5. 再把光标移回任一包含行内格式的 block，观察源码态恢复。
+6. 切换到中文输入法，在包含行内格式的文档中进行一次 composition 输入，再结束 composition。
+7. 如需自动化回归，运行 `npm run test -- packages/markdown-engine/src/parse-inline-ast.test.ts packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/derived-state/inactive-block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor.test.ts`。
+
+预期：
+- 非激活态段落中的 `**bold**`、`*italic*`、`` `code` ``、`~~strike~~` 会显示为渲染态，Markdown markers 被隐藏
+- `***both***` 与 `~~**mix**~~` 的嵌套样式会保持叠加，不会丢失内层样式
+- heading、list、blockquote 内的行内格式在非激活态同样成立
+- 光标重新进入对应 block 后，完整 Markdown 源码立即恢复并可直接编辑
+- composition 期间不会提前抖动，`compositionend` 后只做一次 decorations flush
+- link/image 即使本轮不做专门视觉替换，也不会破坏 label/alt children 的行内 decorations
+
 ## 3. 输入法
 
 ### TC-020 中文 IME

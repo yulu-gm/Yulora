@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBlockMap } from "./index";
+import { parseBlockMap, parseMarkdownDocument } from "./index";
+import type {
+  BlockquoteBlock,
+  HeadingBlock,
+  InlineRoot,
+  ListBlock,
+  ListItemBlock
+} from "./index";
 
 describe("parseBlockMap", () => {
   it("returns top-level heading, paragraph, list, and blockquote blocks in source order", () => {
@@ -19,7 +26,7 @@ describe("parseBlockMap", () => {
 
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "heading:0-7",
         type: "heading",
@@ -88,7 +95,7 @@ describe("parseBlockMap", () => {
 
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "heading:0-11",
         type: "heading",
@@ -139,6 +146,27 @@ describe("parseBlockMap", () => {
     expect(source.slice(result.blocks[1]!.startOffset, result.blocks[1]!.endOffset)).toBe("1. one\n2. two");
   });
 
+  it("keeps parseBlockMap as block-only parse without rich inline stitch fields", () => {
+    const source = ["# **Title**", "", "- [x] done `code`", "", "> ~~quote~~"].join("\n");
+    const result = parseBlockMap(source);
+
+    const heading = result.blocks[0] as HeadingBlock;
+    expect(heading.type).toBe("heading");
+    expect(heading.markerEnd).toBeUndefined();
+    expect(heading.inline).toBeUndefined();
+
+    const list = result.blocks[1] as ListBlock;
+    expect(list.type).toBe("list");
+    const item = list.items[0] as ListItemBlock;
+    expect(item.contentStartOffset).toBeUndefined();
+    expect(item.contentEndOffset).toBeUndefined();
+    expect(item.inline).toBeUndefined();
+
+    const blockquote = result.blocks[2] as BlockquoteBlock;
+    expect(blockquote.type).toBe("blockquote");
+    expect(blockquote.lines).toBeUndefined();
+  });
+
   it("returns no blocks for empty or whitespace-only input", () => {
     expect(parseBlockMap("").blocks).toEqual([]);
     expect(parseBlockMap("\n  \n\t").blocks).toEqual([]);
@@ -147,7 +175,7 @@ describe("parseBlockMap", () => {
   it("does not emit nested paragraph blocks from lists or blockquotes", () => {
     const source = ["- item", "  still item", "", "> quote", "> more"].join("\n");
 
-    expect(parseBlockMap(source).blocks).toEqual([
+    expect(parseBlockMap(source).blocks).toMatchObject([
       {
         id: "list:0-19",
         type: "list",
@@ -186,7 +214,7 @@ describe("parseBlockMap", () => {
     const source = ["- one", "  - [x] done", "1. first", "2. [ ] second"].join("\n");
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "list:0-18",
         type: "list",
@@ -280,7 +308,7 @@ describe("parseBlockMap", () => {
 
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "codeFence:0-51",
         type: "codeFence",
@@ -307,10 +335,9 @@ describe("parseBlockMap", () => {
 
   it("captures thematic breaks for both CommonMark dashes and Yulora plus separators", () => {
     const source = ["Paragraph", "", "---", "", "+++", "", "After"].join("\n");
-
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "paragraph:0-9",
         type: "paragraph",
@@ -349,11 +376,10 @@ describe("parseBlockMap", () => {
   });
 
   it("splits compact plus separators into thematic breaks even when they touch adjacent text", () => {
-    const source = ["+++", "\u5206\u5272\u7EBF", "+++"].join("\n");
-
+    const source = ["+++", "sep", "+++"].join("\n");
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "thematicBreak:0-3",
         type: "thematicBreak",
@@ -384,11 +410,10 @@ describe("parseBlockMap", () => {
   });
 
   it("keeps a leading plus separator when a trailing single dash would otherwise form a setext heading", () => {
-    const source = ["+++", "\u5206\u5272\u7EBF", "-"].join("\n");
-
+    const source = ["+++", "sep", "-"].join("\n");
     const result = parseBlockMap(source);
 
-    expect(result.blocks).toEqual([
+    expect(result.blocks).toMatchObject([
       {
         id: "thematicBreak:0-3",
         type: "thematicBreak",
@@ -407,5 +432,173 @@ describe("parseBlockMap", () => {
         endLine: 3
       }
     ]);
+  });
+
+  it("stitches heading inline AST with markerEnd and nested marks", () => {
+    const source = "# **Bold *mix***";
+    const result = parseMarkdownDocument(source);
+
+    const heading = result.blocks[0] as HeadingBlock;
+    expect(heading.type).toBe("heading");
+    expect(heading.markerEnd).toBe(2);
+    expect(heading.inline).toMatchObject({
+      type: "root",
+      startOffset: 2,
+      endOffset: source.length
+    } satisfies Partial<InlineRoot>);
+    expect(heading.inline?.children).toMatchObject([
+      {
+        type: "strong",
+        children: [
+          { type: "text", value: "Bold " },
+          {
+            type: "emphasis",
+            children: [{ type: "text", value: "mix" }]
+          }
+        ]
+      }
+    ]);
+  });
+
+  it("stitches task list item content range and inline code AST on item level", () => {
+    const source = "- [x] done `code`";
+    const result = parseMarkdownDocument(source);
+
+    const listBlock = result.blocks[0] as ListBlock;
+    expect(listBlock.type).toBe("list");
+    expect("inline" in listBlock).toBe(false);
+
+    const item = listBlock.items[0] as ListItemBlock;
+    expect(item.contentStartOffset).toBe(6);
+    expect(item.contentEndOffset).toBe(source.length);
+    expect(item.inline).toMatchObject({
+      type: "root",
+      startOffset: 6,
+      endOffset: source.length,
+      children: [
+        { type: "text", value: "done " },
+        { type: "codeSpan", text: "code" }
+      ]
+    });
+  });
+
+  it("stitches multi-line blockquote line ranges and inline AST", () => {
+    const source = ["> **alpha**", "> `beta` and ~~gamma~~"].join("\n");
+    const result = parseMarkdownDocument(source);
+
+    const blockquote = result.blocks[0] as BlockquoteBlock;
+    expect(blockquote.type).toBe("blockquote");
+    expect(blockquote.lines).toHaveLength(2);
+    expect(blockquote.lines?.[0]).toMatchObject({
+      markerEnd: 1,
+      contentStartOffset: 2,
+      contentEndOffset: 11,
+      inline: {
+        type: "root",
+        startOffset: 2,
+        endOffset: 11,
+        children: [{ type: "strong" }]
+      }
+    });
+    expect(blockquote.lines?.[1]).toMatchObject({
+      markerEnd: 13,
+      contentStartOffset: 14,
+      contentEndOffset: source.length,
+      inline: {
+        type: "root",
+        startOffset: 14,
+        endOffset: source.length,
+        children: [
+          { type: "codeSpan", text: "beta" },
+          { type: "text", value: " and " },
+          { type: "strikethrough" }
+        ]
+      }
+    });
+  });
+
+  it("keeps absolute offsets correct on CRLF source", () => {
+    const source = "# title\r\n\r\n- [ ] item `code`\r\n> **quote**\r\n> line";
+    const result = parseMarkdownDocument(source);
+
+    const heading = result.blocks[0] as HeadingBlock;
+    expect(heading.inline).toMatchObject({
+      startOffset: 2,
+      endOffset: 7,
+      children: [{ type: "text", value: "title" }]
+    });
+
+    const list = result.blocks[1] as ListBlock;
+    const item = list.items[0] as ListItemBlock;
+    expect(item.contentStartOffset).toBe(17);
+    expect(item.contentEndOffset).toBe(28);
+    expect(item.inline).toMatchObject({
+      startOffset: 17,
+      endOffset: 28,
+      children: [
+        { type: "text", value: "item " },
+        { type: "codeSpan", text: "code" }
+      ]
+    });
+
+    const blockquote = result.blocks[2] as BlockquoteBlock;
+    expect(blockquote.lines?.[0]).toMatchObject({
+      markerEnd: 31,
+      contentStartOffset: 32,
+      contentEndOffset: 41,
+      inline: {
+        startOffset: 32,
+        endOffset: 41,
+        children: [{ type: "strong" }]
+      }
+    });
+    expect(blockquote.lines?.[1]).toMatchObject({
+      markerEnd: 44,
+      contentStartOffset: 45,
+      contentEndOffset: 49,
+      inline: {
+        startOffset: 45,
+        endOffset: 49,
+        children: [{ type: "text", value: "line" }]
+      }
+    });
+  });
+
+  it("keeps parseBlockMap lean while parseMarkdownDocument remains rich", () => {
+    const source = ["# **title**", "", "- [x] item `code`", "", "> **quote**"].join("\n");
+    const blockMap = parseBlockMap(source);
+    const document = parseMarkdownDocument(source);
+
+    const leanHeading = blockMap.blocks[0] as HeadingBlock;
+    const richHeading = document.blocks[0] as HeadingBlock;
+    expect(leanHeading.inline).toBeUndefined();
+    expect(leanHeading.markerEnd).toBeUndefined();
+    expect(richHeading.inline?.children[0]).toMatchObject({ type: "strong" });
+    expect(richHeading.markerEnd).toBe(2);
+
+    const leanList = blockMap.blocks[1] as ListBlock;
+    const richList = document.blocks[1] as ListBlock;
+    expect(leanList.items[0]?.inline).toBeUndefined();
+    expect(leanList.items[0]?.contentStartOffset).toBeUndefined();
+    expect(richList.items[0]?.inline?.children[1]).toMatchObject({ type: "codeSpan", text: "code" });
+    expect(richList.items[0]?.contentStartOffset).toBeGreaterThan(leanList.items[0]!.markerEnd);
+
+    const leanBlockquote = blockMap.blocks[2] as BlockquoteBlock;
+    const richBlockquote = document.blocks[2] as BlockquoteBlock;
+    expect(leanBlockquote.lines).toBeUndefined();
+    expect(richBlockquote.lines?.[0]?.inline.children[0]).toMatchObject({ type: "strong" });
+  });
+
+  it("retains top-level block offsets under MarkdownDocument parsing", () => {
+    const source = ["# title", "", "paragraph"].join("\n");
+    const result = parseMarkdownDocument(source);
+
+    const baseline = parseBlockMap(source);
+
+    expect(result.blocks[0]).toMatchObject({
+      id: baseline.blocks[0]!.id,
+      startOffset: baseline.blocks[0]!.startOffset,
+      endOffset: baseline.blocks[0]!.endOffset
+    });
   });
 });

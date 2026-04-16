@@ -2,6 +2,7 @@ import { Decoration, type DecorationSet } from "@codemirror/view";
 
 import type { ActiveBlockState } from "../active-block";
 import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";
+import { createInactiveInlineDecorations } from "./inline-decorations";
 import {
   createBlockDecorationSignature,
   getInactiveHeadingMarkerEnd
@@ -49,6 +50,7 @@ export function createBlockDecorations(
           }
         }).range(block.startOffset, markerEnd)
       );
+      ranges.push(...createInactiveInlineDecorations(block.inline));
       continue;
     }
 
@@ -60,6 +62,7 @@ export function createBlockDecorations(
           }
         }).range(block.startOffset)
       );
+      ranges.push(...createInactiveInlineDecorations(block.inline));
       continue;
     }
 
@@ -111,12 +114,51 @@ export function createBlockDecorations(
             }).range(item.task.markerStart, item.task.markerEnd)
           );
         }
+
+        ranges.push(...createInactiveInlineDecorations(item.inline));
       }
 
       continue;
     }
 
     if (block.type === "blockquote") {
+      if (block.lines) {
+        const lineCount = block.lines.length;
+
+        block.lines.forEach((line, index) => {
+          const lineClasses = ["cm-inactive-blockquote"];
+
+          if (index === 0) {
+            lineClasses.push("cm-inactive-blockquote-start");
+          }
+
+          if (index === lineCount - 1) {
+            lineClasses.push("cm-inactive-blockquote-end");
+          }
+
+          ranges.push(
+            Decoration.line({
+              attributes: {
+                class: lineClasses.join(" ")
+              }
+            }).range(line.startOffset)
+          );
+
+          if (line.markerEnd > line.startOffset) {
+            ranges.push(
+              Decoration.mark({
+                attributes: {
+                  class: "cm-inactive-blockquote-marker"
+                }
+              }).range(line.startOffset, line.markerEnd)
+            );
+          }
+
+          ranges.push(...createInactiveInlineDecorations(line.inline));
+        });
+        continue;
+      }
+
       for (const line of getInactiveBlockquoteLines(block.startOffset, block.endOffset, source)) {
         const lineClasses = ["cm-inactive-blockquote"];
 

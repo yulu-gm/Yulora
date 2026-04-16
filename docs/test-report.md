@@ -9,6 +9,13 @@
 
 ## 记录
 
+| 2026-04-16 | TASK-034 | `npm run test -- packages/markdown-engine/src/parse-inline-ast.test.ts packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖 inline AST parser、本地 `~~` extension、heading/list/blockquote 内容范围，以及 `parseMarkdownDocument()` 的 stitch 结果。 |
+| 2026-04-16 | TASK-034 | `npm run test -- packages/editor-core/src/active-block.test.ts packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/derived-state/inactive-block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor.test.ts` | 通过 | 覆盖 MarkdownDocument cache、inline signature、AST-to-decoration flattening，以及 renderer 中 paragraph/heading/list/blockquote 的 inline rendering 与 composition flush 回归。 |
+| 2026-04-16 | TASK-034 | `npm run test -- src/renderer/code-editor.test.ts` | 通过 | renderer 目标测试共 44 项通过，覆盖段落四类样式、`***both***`、`~~**mix**~~`、heading/list/blockquote 内 inline，以及回到 active block 后恢复 Markdown 源码。 |
+| 2026-04-16 | TASK-034 | `npm run lint` | 通过 | 修正 `packages/markdown-engine/src/extensions/strikethrough.ts` 的 `no-explicit-any` 后，仓库级 ESLint 全量通过。 |
+| 2026-04-16 | TASK-034 | `npm run typecheck` | 通过 | renderer、electron、vitest、cli 四套 TypeScript 检查全部通过，MarkdownDocument / inline AST / renderer 接线未破坏现有编译边界。 |
+| 2026-04-16 | TASK-034 | `npm run test` | 通过 | Vitest 全量通过，当前共 39 个文件、243 条测试通过，包含新增 markdown-engine、editor-core 与 renderer 行内格式回归。 |
+| 2026-04-16 | TASK-034 | `npm run build` | 通过 | renderer、electron 与 cli 构建通过；保留现有 Vite chunk size warning，但 exit code 为 0，不阻塞本轮交付。 |
 | 2026-04-16 | TASK-039 | `npm.cmd run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 先以失败测试锁定 `---` 与 `+++` 的 `thematicBreak` 输出，再验证 parser 已覆盖 CommonMark `---` 和 Yulora `+++` 分割线的 offset、line range 与 source order。 |
 | 2026-04-16 | TASK-039 | `npm.cmd run test -- packages/editor-core/src/active-block.test.ts` | 通过 | 补充分割线 active-block 回归，确认光标落到 `---` 或 `+++` 上时会回到源码态，而不是停留在渲染横线。 |
 | 2026-04-16 | TASK-039 | `npm.cmd run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖分割线非激活态横线渲染、激活恢复 Markdown 源码与 CRLF 文档替换边界，并确认既有块级渲染回归全部保持通过。 |
