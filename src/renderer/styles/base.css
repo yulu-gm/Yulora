@@ -1,0 +1,29 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color: var(--yulora-text-body, #1f2937);
+  background: var(--yulora-page-bg, #eef1f4);
+  font-size: var(--yulora-ui-font-size, 16px);
+  font-family:
+    "Aptos",
+    "SF Pro Text",
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--yulora-page-bg, #eef1f4);
+  color: var(--yulora-text-body, #1f2937);
+  font-size: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}

@@ -1,0 +1,311 @@
+.settings-entry {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px 7px 10px;
+  border: 1px solid var(--yulora-border-muted);
+  border-radius: 999px;
+  background: var(--yulora-surface-raised-bg);
+  color: var(--yulora-text-secondary);
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.05),
+    0 6px 16px rgba(15, 23, 42, 0.06);
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    transform 200ms ease;
+  z-index: 20;
+}
+
+.settings-entry:hover {
+  color: var(--yulora-text-body);
+  border-color: var(--yulora-text-subtle);
+}
+
+.settings-entry:hover svg {
+  transform: rotate(30deg);
+}
+
+.settings-entry svg {
+  transition: transform 320ms ease;
+}
+
+.settings-entry:focus-visible {
+  outline: 2px solid var(--yulora-focus-ring);
+  outline-offset: 2px;
+}
+
+.settings-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 8px 0 120px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--yulora-border-muted);
+  border-radius: 999px;
+  background: var(--yulora-surface-raised-bg);
+  color: var(--yulora-text-secondary);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.settings-back:hover {
+  color: var(--yulora-text-body);
+  border-color: var(--yulora-text-subtle);
+}
+
+.settings-back:focus-visible {
+  outline: 2px solid var(--yulora-focus-ring);
+  outline-offset: 2px;
+}
+
+.settings-title-block {
+  min-width: 0;
+}
+
+.settings-kicker {
+  margin: 0;
+  color: var(--yulora-text-subtle);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-title-block h1 {
+  margin: 4px 0 0;
+  color: var(--yulora-text-strong);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.settings-error {
+  width: 100%;
+  margin: 0 0 18px;
+}
+
+.settings-groups {
+  display: grid;
+  gap: 22px;
+}
+
+.settings-group {
+  padding: 22px 24px;
+  border: 1px solid var(--yulora-border-subtle);
+  border-radius: 18px;
+  background: var(--yulora-surface-raised-bg);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.settings-group-header {
+  margin-bottom: 14px;
+}
+
+.settings-group-header h2 {
+  margin: 0;
+  color: var(--yulora-text-strong);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.settings-group-header p {
+  margin: 4px 0 0;
+  color: var(--yulora-text-muted);
+  font-size: 0.88rem;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 320px);
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--yulora-border-faint);
+}
+
+.settings-row:first-of-type {
+  border-top: none;
+}
+
+.settings-label {
+  display: grid;
+  gap: 3px;
+  color: var(--yulora-text-body);
+  font-size: 0.95rem;
+}
+
+.settings-hint {
+  color: var(--yulora-text-subtle);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--yulora-border-muted);
+  border-radius: 10px;
+  background: var(--yulora-surface-muted-bg);
+  color: var(--yulora-text-body);
+  font: inherit;
+  font-size: 0.94rem;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--yulora-focus-ring);
+  background: var(--yulora-surface-raised-bg);
+}
+
+.settings-input-stack {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+}
+
+.settings-input:disabled {
+  color: var(--yulora-text-muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.settings-input-narrow {
+  width: 140px;
+  justify-self: end;
+}
+
+.settings-radio-group {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--yulora-border-muted);
+  border-radius: 999px;
+  background: var(--yulora-surface-subtle-bg);
+  justify-self: end;
+}
+
+.settings-radio {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--yulora-text-secondary);
+  font-size: 0.9rem;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.settings-radio input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-radio.is-selected {
+  background: var(--yulora-surface-raised-bg);
+  color: var(--yulora-text-strong);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+}
+
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--yulora-border-subtle);
+}
+
+.settings-reset {
+  padding: 8px 14px;
+  border: 1px solid var(--yulora-border-muted);
+  border-radius: 10px;
+  background: var(--yulora-surface-raised-bg);
+  color: var(--yulora-text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.settings-reset:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.settings-reset:hover {
+  color: var(--yulora-text-body);
+  border-color: var(--yulora-text-subtle);
+}
+
+.settings-save-status {
+  margin: 0;
+  color: var(--yulora-text-muted);
+  font-size: 0.85rem;
+}
+
+.settings-inline-note {
+  grid-column: 2;
+  margin: -10px 0 0;
+  color: var(--yulora-text-subtle);
+  font-size: 0.8rem;
+  justify-self: end;
+}
+
+.settings-inline-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+@media (max-width: 860px) {
+  .settings-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .settings-radio-group,
+  .settings-input-narrow {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .settings-inline-note {
+    grid-column: auto;
+    justify-self: stretch;
+    margin-top: -6px;
+  }
+
+  .settings-inline-actions {
+    justify-items: stretch;
+  }
+}
