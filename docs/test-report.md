@@ -9,6 +9,15 @@
 
 ## 记录
 
+| 2026-04-16 | TASK-039 | `npm.cmd run test -- packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 先以失败测试锁定 `---` 与 `+++` 的 `thematicBreak` 输出，再验证 parser 已覆盖 CommonMark `---` 和 Yulora `+++` 分割线的 offset、line range 与 source order。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run test -- packages/editor-core/src/active-block.test.ts` | 通过 | 补充分割线 active-block 回归，确认光标落到 `---` 或 `+++` 上时会回到源码态，而不是停留在渲染横线。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖分割线非激活态横线渲染、激活恢复 Markdown 源码与 CRLF 文档替换边界，并确认既有块级渲染回归全部保持通过。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run lint` | 通过 | `thematicBreak` 类型、parser 扩展、CodeMirror decoration、样式与文档更新均通过 ESLint。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run typecheck` | 通过 | renderer、electron、vitest、cli 四套 TypeScript 检查全部通过，新增 `thematicBreak` union 未破坏现有编译边界。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run test` | 通过 | Vitest 全量通过，当前共 32 个文件、189 条测试通过，包含新增分割线 parser、active-block 与 editor rendering 回归。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run build` | 通过 | renderer、electron 与 cli 构建通过；保留现有 Vite chunk size warning，但不阻塞本轮分割线渲染交付。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run test -- packages/markdown-engine/src/parse-block-map.test.ts src/renderer/code-editor.test.ts` | 通过 | bugfix 回归：覆盖 `+++` 在前后不留空行、直接贴正文时仍会被拆成 top-level `thematicBreak`，并在 renderer 中显示为横线而不是原始 `+++` 文本。 |
+| 2026-04-16 | TASK-039 | `npm.cmd run lint && npm.cmd run typecheck && npm.cmd run test && npm.cmd run build` | 通过 | 分割线 bugfix 合入前复跑全套门禁；当前全量 Vitest 为 32 个文件、191 条测试通过。 |
 | 2026-04-16 | TASK-038 | `npm run test -- src/main/package-scripts.test.ts` | 通过 | 先以失败测试锁定 `package-win.bat` 与 `package-macos.sh` 两个仓库根目录打包入口，再验证 Windows 入口调用 `npm.cmd run package:win`、macOS 入口保留清晰的预留提示。 |
 | 2026-04-16 | TASK-038 | `cmd /c package-win.bat` | 通过 | Windows 批处理入口已能从仓库根目录完成完整打包，最终产出 `release/Yulora-Setup-0.1.0.exe`。 |
 | 2026-04-16 | TASK-038 | `npm run test -- src/main/package-scripts.test.ts src/main/after-pack-win-icon.test.ts` | 通过 | 先以失败测试锁定 `afterPack` hook 配置与 `signAndEditExecutable: false` workaround，再验证独立 hook 能在当前 Windows 环境下调用 `rcedit` 补写 `Yulora.exe` 图标。 |
@@ -131,3 +140,5 @@
 | 2026-04-16 | TASK-033 | `npm run typecheck` | 通过 | CodeMirror Backspace handler、controller 暴露方法与回归测试通过 TypeScript 检查。 |
 | 2026-04-16 | TASK-033 | `npm run test` | 通过 | Vitest 报告 30 个文件、179 条测试全部通过，包含 fenced code block Enter / 点击边界 / Backspace 边界回归。 |
 | 2026-04-16 | TASK-033 | `npm run build` | 通过 | renderer 与 electron 构建通过；保留现有 Vite chunk size warning，但不阻塞本轮交付。 |
+| 2026-04-16 | TASK-039 | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/active-block.test.ts` | 通过 | 覆盖紧贴正文的 `+++` 分割线、下方输入单个 `-` 不应让上方分割线失效，以及 active-block 仍能正确命中 top-level 分割线。 |
+| 2026-04-16 | TASK-039 | `npm run lint && npm run typecheck && npm run test && npm run build` | 通过 | 修复 `+++` 与 setext heading 竞争导致的回归后，完整门禁重新通过；保留现有 Vite chunk size warning，但不阻塞本轮交付。 |

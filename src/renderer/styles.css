@@ -772,6 +772,27 @@ body {
   margin-bottom: 0.35rem;
 }
 
+.document-editor .cm-inactive-thematic-break {
+  position: relative;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  padding-top: 0.95rem;
+  padding-bottom: 0.9rem;
+  margin: 0.18rem 0 0.28rem;
+}
+
+.document-editor .cm-inactive-thematic-break::before {
+  content: "";
+  display: block;
+  border-top: 1.5px solid #d0d5dd;
+}
+
+.document-editor .cm-inactive-thematic-break-marker {
+  color: transparent;
+  font-size: 0;
+}
+
 .document-editor .cm-focused {
   outline: none;
 }

@@ -44,4 +44,22 @@ describe("createActiveBlockState", () => {
     expect(createActiveBlockState("", { anchor: 0, head: 0 }).activeBlock).toBeNull();
     expect(createActiveBlockState(source, { anchor: 19, head: 19 }).activeBlock).toBeNull();
   });
+
+  it("resolves thematic breaks as active blocks when the selection lands on the separator", () => {
+    const thematicBreakSource = ["Paragraph", "", "---", "", "+++"].join("\n");
+
+    expect(
+      createActiveBlockState(thematicBreakSource, {
+        anchor: thematicBreakSource.indexOf("---"),
+        head: thematicBreakSource.indexOf("---")
+      }).activeBlock?.type
+    ).toBe("thematicBreak");
+
+    expect(
+      createActiveBlockState(thematicBreakSource, {
+        anchor: thematicBreakSource.indexOf("+++"),
+        head: thematicBreakSource.indexOf("+++")
+      }).activeBlock?.type
+    ).toBe("thematicBreak");
+  });
 });

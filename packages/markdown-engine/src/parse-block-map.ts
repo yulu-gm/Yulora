@@ -9,7 +9,8 @@ import type {
   ListItemBlock,
   ListBlock,
   MarkdownBlock,
-  ParagraphBlock
+  ParagraphBlock,
+  ThematicBreakBlock
 } from "./block-map";
 
 export function parseBlockMap(source: string): BlockMap {
@@ -45,13 +46,23 @@ export function parseBlockMap(source: string): BlockMap {
         continue;
       }
 
-      if (token.type === "atxHeading" || token.type === "setextHeading") {
+      if (token.type === "thematicBreak") {
+        blocks.push(createThematicBreakBlock(token, source, "-"));
+        continue;
+      }
+
+      if (token.type === "atxHeading") {
         blocks.push(createHeadingBlock(token, source));
         continue;
       }
 
+      if (token.type === "setextHeading") {
+        blocks.push(...createSetextHeadingDerivedBlocks(token, source));
+        continue;
+      }
+
       if (token.type === "paragraph") {
-        blocks.push(createParagraphBlock(token));
+        blocks.push(...createParagraphDerivedBlocks(token, source));
       }
 
       continue;
@@ -79,7 +90,7 @@ function createHeadingBlock(token: Token, source: string): HeadingBlock {
 }
 
 function createParagraphBlock(token: Token): ParagraphBlock {
-  return createBaseBlock("paragraph", token);
+  return createBlockFromRange("paragraph", token.start.offset, token.end.offset, token.start.line, token.end.line);
 }
 
 function createListBlock(token: Token, ordered: boolean, source: string): ListBlock {
@@ -105,20 +116,40 @@ function createCodeFenceBlock(token: Token, source: string): CodeFenceBlock {
   };
 }
 
+function createThematicBreakBlock(
+  token: Token,
+  source: string,
+  markerOverride?: ThematicBreakBlock["marker"]
+): ThematicBreakBlock {
+  const base = createBaseBlock("thematicBreak", token);
+
+  return {
+    ...base,
+    marker: markerOverride ?? getThematicBreakMarker(source.slice(base.startOffset, base.endOffset))
+  };
+}
+
 function createBaseBlock<TType extends MarkdownBlock["type"]>(
   type: TType,
   token: Token
 ): Extract<MarkdownBlock, { type: TType }> {
-  const startOffset = token.start.offset;
-  const endOffset = token.end.offset;
+  return createBlockFromRange(type, token.start.offset, token.end.offset, token.start.line, token.end.line);
+}
 
+function createBlockFromRange<TType extends MarkdownBlock["type"]>(
+  type: TType,
+  startOffset: number,
+  endOffset: number,
+  startLine: number,
+  endLine: number
+): Extract<MarkdownBlock, { type: TType }> {
   return {
     id: `${type}:${startOffset}-${endOffset}`,
     type,
     startOffset,
     endOffset,
-    startLine: token.start.line,
-    endLine: token.end.line
+    startLine,
+    endLine
   } as Extract<MarkdownBlock, { type: TType }>;
 }
 
@@ -148,6 +179,115 @@ function getCodeFenceInfo(sourceSlice: string): string | null {
   const info = match?.[1]?.trim();
 
   return info ? info : null;
+}
+
+function createParagraphDerivedBlocks(
+  token: Token,
+  source: string
+): Array<ParagraphBlock | ThematicBreakBlock> {
+  return createDerivedTextBlocks(token, source, () => createParagraphBlock(token), true);
+}
+
+function createSetextHeadingDerivedBlocks(
+  token: Token,
+  source: string
+): Array<HeadingBlock | ParagraphBlock | ThematicBreakBlock> {
+  return createDerivedTextBlocks(
+    token,
+    source,
+    () => createHeadingBlock(token, source),
+    false
+  );
+}
+
+function createDerivedTextBlocks<TBlock extends ParagraphBlock | HeadingBlock>(
+  token: Token,
+  source: string,
+  createFallbackBlock: () => TBlock,
+  splitOnAnyThematicBreak: boolean
+): Array<TBlock | ParagraphBlock | ThematicBreakBlock> {
+  const lines = createLineInfos(
+    source.slice(token.start.offset, token.end.offset),
+    token.start.offset,
+    token.start.line
+  );
+
+  const shouldSplit = splitOnAnyThematicBreak
+    ? lines.some((line) => getExplicitThematicBreakMarker(line.text) !== null)
+    : lines.some((line) => getExplicitThematicBreakMarker(line.text) === "+");
+
+  if (!shouldSplit) {
+    return [createFallbackBlock()];
+  }
+
+  const blocks: Array<ParagraphBlock | ThematicBreakBlock> = [];
+  let paragraphStart: LineInfo | null = null;
+  let paragraphEnd: LineInfo | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraphStart || !paragraphEnd) {
+      return;
+    }
+
+    blocks.push(
+      createBlockFromRange(
+        "paragraph",
+        paragraphStart.startOffset,
+        paragraphEnd.endOffset,
+        paragraphStart.lineNumber,
+        paragraphEnd.lineNumber
+      )
+    );
+    paragraphStart = null;
+    paragraphEnd = null;
+  };
+
+  for (const line of lines) {
+    const marker = getExplicitThematicBreakMarker(line.text);
+
+    if (marker) {
+      flushParagraph();
+      blocks.push({
+        ...createBlockFromRange(
+          "thematicBreak",
+          line.startOffset,
+          line.endOffset,
+          line.lineNumber,
+          line.lineNumber
+        ),
+        marker
+      });
+      continue;
+    }
+
+    if (!paragraphStart) {
+      paragraphStart = line;
+    }
+
+    paragraphEnd = line;
+  }
+
+  flushParagraph();
+
+  return blocks as Array<TBlock | ParagraphBlock | ThematicBreakBlock>;
+}
+
+function getExplicitThematicBreakMarker(sourceSlice: string): ThematicBreakBlock["marker"] | null {
+  if (/^\s{0,3}\+(?:[ \t]*\+){2,}[ \t]*$/.test(sourceSlice)) {
+    return "+";
+  }
+
+  if (/^\s{0,3}-(?:[ \t]*-){2,}[ \t]*$/.test(sourceSlice)) {
+    return "-";
+  }
+
+  return null;
+}
+
+function getThematicBreakMarker(sourceSlice: string): ThematicBreakBlock["marker"] {
+  const firstMarker = /[+-]/.exec(sourceSlice)?.[0];
+
+  return firstMarker === "+" ? "+" : "-";
 }
 
 type LineInfo = {

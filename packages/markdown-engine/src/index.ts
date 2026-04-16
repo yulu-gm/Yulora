@@ -6,6 +6,7 @@ export type {
   ListItemBlock,
   ListBlock,
   MarkdownBlock,
-  ParagraphBlock
+  ParagraphBlock,
+  ThematicBreakBlock
 } from "./block-map";
 export { parseBlockMap } from "./parse-block-map";

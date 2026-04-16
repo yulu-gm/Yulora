@@ -411,6 +411,32 @@
 - [x] 处理激活/非激活切换与 Enter / Tab 行为
 - [x] 覆盖代码块 round-trip 与常见缩进场景
 
+### TASK-039 分割线渲染
+
+状态：开发完成
+依赖：`TASK-008`、`TASK-009`
+
+目标：让分割线在非激活态显示为稳定的横线，同时在激活态保持 Markdown 源码可直接编辑；本轮支持三个及以上同字符的 `-` 或 `+` 解析为分割线。
+
+主要落点：`packages/markdown-engine/`、`packages/editor-core/`、`src/renderer/`。
+
+交付物：
+- block map 中的 top-level `thematicBreak` 支持
+- `---` 与 `+++` 这两类分割线的识别与精确 range 保留
+- 分割线的非激活态渲染与激活态源码恢复
+- 覆盖 parser 与 editor 的回归测试
+
+验收：
+- `---` 与 `+++` 可被识别为 top-level 分割线 block
+- 非激活态分割线显示为连续横线
+- 光标回到分割线后恢复原始 Markdown 源码
+- 不破坏现有 heading / paragraph / list / blockquote / code fence 渲染链路
+
+执行切片：
+- [x] 在 block map 中补齐 `thematicBreak` 类型与 `---` / `+++` 解析
+- [x] 把分割线接入现有 CodeMirror inactive decoration 管线
+- [x] 覆盖 parser 输出、激活/非激活切换与 CRLF 边界回归
+
 ### TASK-034 行内格式渲染
 
 状态：未开始

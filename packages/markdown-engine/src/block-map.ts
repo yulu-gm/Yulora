@@ -1,6 +1,6 @@
 export interface BaseBlock {
   id: string;
-  type: "heading" | "paragraph" | "list" | "blockquote" | "codeFence";
+  type: "heading" | "paragraph" | "list" | "blockquote" | "codeFence" | "thematicBreak";
   startOffset: number;
   endOffset: number;
   startLine: number;
@@ -50,12 +50,18 @@ export interface CodeFenceBlock extends BaseBlock {
   info: string | null;
 }
 
+export interface ThematicBreakBlock extends BaseBlock {
+  type: "thematicBreak";
+  marker: "-" | "+";
+}
+
 export type MarkdownBlock =
   | HeadingBlock
   | ParagraphBlock
   | ListBlock
   | BlockquoteBlock
-  | CodeFenceBlock;
+  | CodeFenceBlock
+  | ThematicBreakBlock;
 
 export interface BlockMap {
   blocks: MarkdownBlock[];

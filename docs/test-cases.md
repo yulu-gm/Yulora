@@ -187,6 +187,27 @@
 - 保存后 fenced code block 的 info string 与原始 Markdown 结构保持不变
 - `Enter`、`Tab` 与 `Shift+Tab` 继续沿用普通 CodeMirror 文本编辑语义，不因代码块渲染额外劫持
 
+### TC-017 分割线渲染
+
+步骤：
+1. 输入两个分割线示例：`---` 与 `+++`；其中 `+++` 至少覆盖一组“前后不留空行、直接贴正文”的写法，例如：
+   `+++`
+   `分割线`
+   `+++`
+2. 把光标移动到分割线外的普通段落。
+3. 观察分割线在非激活态的显示。
+4. 在该组紧贴正文的 `+++` 示例下方另起一行，只输入单个 `-`。
+5. 再把光标移回任一分割线所在行。
+6. 如需自动化回归，运行 `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts`、`npm run test -- packages/editor-core/src/active-block.test.ts` 与 `npm run test -- src/renderer/code-editor.test.ts`。
+
+预期：
+- `---` 与 `+++` 都会被识别为 top-level 分割线
+- 非激活态分割线显示为连续横线，而不是原始 marker 文本
+- 在紧贴正文的 `+++` 下方输入单个 `-`，不会让上方已存在的 `+++` 分割线失效；该单个 `-` 自身也不会被识别为分割线
+- 光标回到分割线后，原始 Markdown 源码立即恢复并可直接编辑
+- 用 CRLF 文本替换当前文档后，分割线装饰不会整体错位
+- 现有 heading、paragraph、list、blockquote 与 code block 渲染不回归
+
 ## 3. 输入法
 
 ### TC-020 中文 IME

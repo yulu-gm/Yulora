@@ -267,6 +267,28 @@ export function createCodeEditorController(
           );
         }
       }
+
+      if (block.type === "thematicBreak") {
+        signatures.push(`${block.type}:${block.id}:${block.marker}`);
+
+        ranges.push(
+          Decoration.line({
+            attributes: {
+              class: "cm-inactive-thematic-break"
+            }
+          }).range(block.startOffset)
+        );
+
+        if (block.endOffset > block.startOffset) {
+          ranges.push(
+            Decoration.mark({
+              attributes: {
+                class: "cm-inactive-thematic-break-marker"
+              }
+            }).range(block.startOffset, block.endOffset)
+          );
+        }
+      }
     }
 
     return {

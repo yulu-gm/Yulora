@@ -304,4 +304,108 @@ describe("parseBlockMap", () => {
       ["```ts", "const answer = 42;", "  console.log(answer);", "```"].join("\n")
     );
   });
+
+  it("captures thematic breaks for both CommonMark dashes and Yulora plus separators", () => {
+    const source = ["Paragraph", "", "---", "", "+++", "", "After"].join("\n");
+
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toEqual([
+      {
+        id: "paragraph:0-9",
+        type: "paragraph",
+        startOffset: 0,
+        endOffset: 9,
+        startLine: 1,
+        endLine: 1
+      },
+      {
+        id: "thematicBreak:11-14",
+        type: "thematicBreak",
+        startOffset: 11,
+        endOffset: 14,
+        startLine: 3,
+        endLine: 3,
+        marker: "-"
+      },
+      {
+        id: "thematicBreak:16-19",
+        type: "thematicBreak",
+        startOffset: 16,
+        endOffset: 19,
+        startLine: 5,
+        endLine: 5,
+        marker: "+"
+      },
+      {
+        id: "paragraph:21-26",
+        type: "paragraph",
+        startOffset: 21,
+        endOffset: 26,
+        startLine: 7,
+        endLine: 7
+      }
+    ]);
+  });
+
+  it("splits compact plus separators into thematic breaks even when they touch adjacent text", () => {
+    const source = ["+++", "\u5206\u5272\u7EBF", "+++"].join("\n");
+
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toEqual([
+      {
+        id: "thematicBreak:0-3",
+        type: "thematicBreak",
+        startOffset: 0,
+        endOffset: 3,
+        startLine: 1,
+        endLine: 1,
+        marker: "+"
+      },
+      {
+        id: "paragraph:4-7",
+        type: "paragraph",
+        startOffset: 4,
+        endOffset: 7,
+        startLine: 2,
+        endLine: 2
+      },
+      {
+        id: "thematicBreak:8-11",
+        type: "thematicBreak",
+        startOffset: 8,
+        endOffset: 11,
+        startLine: 3,
+        endLine: 3,
+        marker: "+"
+      }
+    ]);
+  });
+
+  it("keeps a leading plus separator when a trailing single dash would otherwise form a setext heading", () => {
+    const source = ["+++", "\u5206\u5272\u7EBF", "-"].join("\n");
+
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toEqual([
+      {
+        id: "thematicBreak:0-3",
+        type: "thematicBreak",
+        startOffset: 0,
+        endOffset: 3,
+        startLine: 1,
+        endLine: 1,
+        marker: "+"
+      },
+      {
+        id: "paragraph:4-9",
+        type: "paragraph",
+        startOffset: 4,
+        endOffset: 9,
+        startLine: 2,
+        endLine: 3
+      }
+    ]);
+  });
 });

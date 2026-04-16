@@ -9,6 +9,7 @@
 
 ## 记录
 
+| 2026-04-16 | `TASK-039` 继续把分割线渲染收敛在 `src/renderer/code-editor.ts` 的现有 CodeMirror decoration 派生链里，只扩展 `packages/markdown-engine` 的 block map，不为分割线新增 React 视图层或专用输入处理。 | 这样可以复用 `TASK-009` 的 active block、`TASK-010` 到 `TASK-013` 与 `TASK-033` 的 inactive rendering 管线，以及 `TASK-035` 的 composition guard，让分割线继续直接编辑 Markdown 文本，同时把 IME、光标映射、undo/redo 和 round-trip 风险控制在最小范围。 | 本轮同时把 `+++` 明确记录为 Yulora 的窄扩展语法，只在 top-level 单行、三个及以上同字符的场景下识别为 `thematicBreak`。 |
 | 2026-04-16 | `TASK-038` 改为保留 `win.signAndEditExecutable: false`，并通过 `afterPack` hook 调用 `rcedit` 单独补写 `Yulora.exe` 图标。 | 当前 Windows 环境在 `electron-builder` 自带的 `winCodeSign` 资源解压阶段会因符号链接权限失败，直接启用内建 exe 编辑会阻塞打包；单独调用 `rcedit` 可以在同一环境下成功改写 exe 图标。 | 这样继续保留本地无签名打包路径，同时修复应用主程序仍显示默认 Electron 图标的问题。 |
 | 2026-04-16 | `TASK-038` 的正式图标继续只保留 `assets/branding/*.svg` 作为已提交源文件，并在 `package:win` 前按需生成 `build/icons/**/*.png` 与 `icon.ico`。 | 这样可以避免把 PNG / ICO 变成第二份事实来源，同时让 `electron-builder` 在 Windows 打包时稳定消费标准图标格式。 | 当前默认使用 `light` 版本作为 Windows 图标；`dark` 版本一并生成作为备用资产，macOS `.icns` 仍留待后续切片。 |
 | 2026-04-16 | `TASK-033` 继续把 fenced code block 渲染收敛在 `src/renderer/code-editor.ts` 的现有 CodeMirror decoration 派生链里，只扩展 `packages/markdown-engine` 的 block map，不为代码块新增 React 视图层或专用输入处理。 | 这样可以复用 `TASK-009` 的 active block、`TASK-010` 到 `TASK-013` 的 inactive rendering 管线，以及 `TASK-035` 的 composition guard，让代码块继续直接编辑 Markdown 文本，同时把 IME、光标映射、undo/redo 和 round-trip 风险控制在最小范围。 | 当前只交付 fenced code block 的基础渲染与源码态切换，不包含语法高亮；`Tab / Shift+Tab / Enter` 仍沿用 CodeMirror 现有行为。 |

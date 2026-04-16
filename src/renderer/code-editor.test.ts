@@ -613,6 +613,156 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("renders thematic breaks as inactive separators when focus moves into another block", () => {
+    const host = document.createElement("div");
+    const source = ["---", "", "+++", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const dashRuleLine = getLineElementByText(host, "---");
+    const plusRuleLine = getLineElementByText(host, "+++");
+    const ruleMarkers = host.querySelectorAll(".cm-inactive-thematic-break-marker");
+
+    expect(dashRuleLine).not.toBeNull();
+    expect(dashRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(plusRuleLine).not.toBeNull();
+    expect(plusRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(ruleMarkers.length).toBe(2);
+
+    controller.destroy();
+  });
+
+  it("restores thematic break markdown when the separator becomes active again", async () => {
+    const host = document.createElement("div");
+    const source = ["---", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+    expect(host.querySelector(".cm-inactive-thematic-break-marker")).not.toBeNull();
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: 0 } });
+
+    const dashRuleLine = getLineElementByText(host, "---");
+
+    expect(dashRuleLine).not.toBeNull();
+    expect(dashRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(false);
+    expect(host.querySelector(".cm-inactive-thematic-break-marker")).toBeNull();
+
+    controller.destroy();
+  });
+
+  it("keeps thematic break decorations aligned when replacing with CRLF content", () => {
+    const host = document.createElement("div");
+    const source = ["# Heading", "", "---", "", "+++", "", "Paragraph"].join("\r\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "",
+      onChange: vi.fn()
+    });
+
+    controller.replaceDocument(source);
+
+    const dashRuleLine = getLineElementByText(host, "---");
+    const plusRuleLine = getLineElementByText(host, "+++");
+
+    expect(dashRuleLine).not.toBeNull();
+    expect(dashRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(plusRuleLine).not.toBeNull();
+    expect(plusRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+
+    controller.destroy();
+  });
+
+  it("renders compact plus separators as inactive thematic breaks when the caret is on adjacent text", () => {
+    const host = document.createElement("div");
+    const source = ["+++", "\u5206\u5272\u7EBF", "+++"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("\u5206\u5272\u7EBF") } });
+
+    const topRuleLine = getLineElementByText(host, "+++");
+    const ruleMarkers = host.querySelectorAll(".cm-inactive-thematic-break-marker");
+
+    expect(topRuleLine).not.toBeNull();
+    expect(topRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(ruleMarkers.length).toBe(2);
+
+    controller.destroy();
+  });
+
+  it("keeps the leading plus separator rendered after typing a trailing single dash below it", () => {
+    const host = document.createElement("div");
+    const source = ["+++", "\u5206\u5272\u7EBF", ""].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      insertText: (text: string) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    advancedController.setSelection(source.indexOf("\u5206\u5272\u7EBF"));
+
+    expect(getLineElementByText(host, "+++")?.classList.contains("cm-inactive-thematic-break")).toBe(
+      true
+    );
+
+    advancedController.setSelection(source.length);
+    advancedController.insertText("-");
+
+    const topRuleLine = getLineElementByText(host, "+++");
+    const bottomDashLine = getLineElementByText(host, "-");
+
+    expect(topRuleLine).not.toBeNull();
+    expect(topRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(bottomDashLine?.classList.contains("cm-inactive-thematic-break")).toBe(false);
+
+    controller.destroy();
+  });
+
   it("flushes inactive blockquote decorations once when composition ends", () => {
     const host = document.createElement("div");
     const source = ["> Quote line", "> Still quoted", "", "Paragraph"].join("\n");
@@ -811,7 +961,7 @@ describe("createCodeEditorController", () => {
 
   it("deletes code content instead of the closing fence when Backspace is pressed twice from below a fenced code block", async () => {
     const host = document.createElement("div");
-    const source = ["```", "代码块", "```", ""].join("\n");
+    const source = ["```", "code block", "```", ""].join("\n");
 
     const controller = createCodeEditorController({
       parent: host,
@@ -833,13 +983,13 @@ describe("createCodeEditorController", () => {
     await flushMicrotasks();
 
     advancedController.pressBackspace();
-    expect(view?.state.selection.main.anchor).toBe(source.indexOf("代码块") + 3);
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf("code block") + 10);
     advancedController.pressBackspace();
 
-    expect(controller.getContent()).toBe(["```", "代码", "```", ""].join("\n"));
+    expect(controller.getContent()).toBe(["```", "code bloc", "```", ""].join("\n"));
     expect(host.querySelector(".cm-inactive-code-block")).toBeNull();
     expect(host.querySelector(".cm-inactive-code-block-fence")).toBeNull();
-    expect(getLineElementByText(host, "代码")).not.toBeNull();
+    expect(getLineElementByText(host, "code bloc")).not.toBeNull();
 
     controller.destroy();
   });
@@ -991,18 +1141,18 @@ describe("createCodeEditorController", () => {
     expect(activeBlockTypes).toEqual(["paragraph"]);
     expect(selectionAnchors).toEqual([0]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "你");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "x");
 
     view?.dispatch({
-      changes: { from: source.length, insert: "你" },
+      changes: { from: source.length, insert: "x" },
       selection: { anchor: source.length + 1 }
     });
 
-    expect(controller.getContent()).toBe("Paragraph你");
+    expect(controller.getContent()).toBe("Paragraphx");
     expect(activeBlockTypes).toEqual(["paragraph"]);
     expect(selectionAnchors).toEqual([0]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "你");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "x");
 
     expect(activeBlockTypes).toEqual(["paragraph", "paragraph"]);
     expect(selectionAnchors).toEqual([0, source.length + 1]);
@@ -1012,7 +1162,7 @@ describe("createCodeEditorController", () => {
 
   it("defers heading updates until composition ends without losing committed text", () => {
     const host = document.createElement("div");
-    const source = "# 标题";
+    const source = "# Title";
     const activeBlockTypes: Array<string | null> = [];
 
     const controller = createCodeEditorController({
@@ -1031,19 +1181,19 @@ describe("createCodeEditorController", () => {
     expect(editorRoot).toBeInstanceOf(HTMLElement);
     expect(activeBlockTypes).toEqual(["heading"]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "中");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "x");
 
     view?.dispatch({
-      changes: { from: source.length, insert: "中" },
+      changes: { from: source.length, insert: "x" },
       selection: { anchor: source.length + 1 }
     });
 
-    expect(controller.getContent()).toBe("# 标题中");
+    expect(controller.getContent()).toBe("# Titlex");
     expect(activeBlockTypes).toEqual(["heading"]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "中");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "x");
 
-    expect(controller.getContent()).toBe("# 标题中");
+    expect(controller.getContent()).toBe("# Titlex");
     expect(activeBlockTypes).toEqual(["heading", "heading"]);
 
     controller.destroy();
@@ -1073,18 +1223,18 @@ describe("createCodeEditorController", () => {
     expect(activeBlockTypes).toEqual(["list"]);
     expect(selectionAnchors).toEqual([0]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "测");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionstart", "x");
 
     view?.dispatch({
-      changes: { from: source.length, insert: "试" },
+      changes: { from: source.length, insert: "x" },
       selection: { anchor: source.length + 1 }
     });
 
-    expect(controller.getContent()).toBe("- item试");
+    expect(controller.getContent()).toBe("- itemx");
     expect(activeBlockTypes).toEqual(["list"]);
     expect(selectionAnchors).toEqual([0]);
 
-    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "试");
+    dispatchCompositionEvent(editorRoot as HTMLElement, "compositionend", "x");
 
     expect(activeBlockTypes).toEqual(["list", "list"]);
     expect(selectionAnchors).toEqual([0, source.length + 1]);
@@ -1117,11 +1267,11 @@ describe("createCodeEditorController", () => {
     const source = [
       "# MVP Backlog",
       "",
-      "> 这是项目唯一有效的执行计划文档。",
+      "> Project summary",
       "",
-      "## 使用规则",
+      "## Usage Rules",
       "",
-      "- 一次只推进一个 `TASK`。",
+      "- Only advance one `TASK` at a time",
       "",
       "Paragraph"
     ].join("\r\n");
@@ -1134,9 +1284,9 @@ describe("createCodeEditorController", () => {
 
     controller.replaceDocument(source);
 
-    const quoteLine = getLineElementByText(host, "这是项目唯一有效的执行计划文档");
-    const secondHeadingLine = getLineElementByText(host, "使用规则");
-    const listLine = getLineElementByText(host, "一次只推进一个");
+    const quoteLine = getLineElementByText(host, "Project summary");
+    const secondHeadingLine = getLineElementByText(host, "Usage Rules");
+    const listLine = getLineElementByText(host, "Only advance one");
 
     expect(quoteLine).not.toBeNull();
     expect(quoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
