@@ -246,6 +246,9 @@ export function SettingsView({
   return (
     <section
       className="settings-shell"
+      data-yulora-panel="settings-drawer"
+      role="dialog"
+      aria-modal="true"
       aria-labelledby="settings-heading"
     >
       <header className="settings-header">
@@ -253,7 +256,7 @@ export function SettingsView({
           type="button"
           className="settings-back"
           onClick={onClose}
-          aria-label="返回编辑器"
+          aria-label="关闭设置"
         >
           <svg
             width="16"
@@ -271,7 +274,7 @@ export function SettingsView({
               strokeLinejoin="round"
             />
           </svg>
-          <span>返回</span>
+          <span>关闭</span>
         </button>
         <div className="settings-title-block">
           <p className="settings-kicker">Preferences</p>

@@ -31,6 +31,7 @@ type MockCodeEditorModule = typeof codeEditorViewModule & {
   __mock: {
     changeContent: (content: string) => void;
     blur: () => void;
+    focus: () => void;
     reset: () => void;
   };
 };
@@ -50,16 +51,17 @@ vi.mock("./code-editor-view", async () => {
       }
     | undefined;
   let currentContent = "";
+  let latestHostElement: HTMLDivElement | null = null;
 
   const CodeEditorView = React.forwardRef(function MockCodeEditorView(
     props: {
       initialContent: string;
       loadRevision: number;
-      onChange: (content: string) => void;
-      onBlur?: () => void;
-      onActiveBlockChange?: (state: unknown) => void;
-    },
-    ref: React.ForwardedRef<{ getContent: () => string }>
+        onChange: (content: string) => void;
+        onBlur?: () => void;
+        onActiveBlockChange?: (state: unknown) => void;
+      },
+    ref: React.ForwardedRef<{ getContent: () => string; focus: () => void }>
   ) {
     const { initialContent, loadRevision } = props;
 
@@ -71,11 +73,27 @@ vi.mock("./code-editor-view", async () => {
       currentContent = initialContent;
     }, [initialContent, loadRevision]);
 
+    React.useEffect(() => {
+      const hostElement = document.querySelector('[data-testid="mock-code-editor"]');
+      latestHostElement = hostElement instanceof HTMLDivElement ? hostElement : null;
+
+      return () => {
+        if (latestHostElement === hostElement) {
+          latestHostElement = null;
+        }
+      };
+    }, []);
+
     React.useImperativeHandle(ref, () => ({
-      getContent: () => currentContent
+      getContent: () => currentContent,
+      focus: () => latestHostElement?.focus()
     }));
 
-    return React.createElement("div", { "data-testid": "mock-code-editor" });
+    return React.createElement("div", {
+      "data-testid": "mock-code-editor",
+      tabIndex: -1,
+      onBlur: () => props.onBlur?.()
+    });
   });
 
   return {
@@ -88,9 +106,13 @@ vi.mock("./code-editor-view", async () => {
       blur() {
         latestProps?.onBlur?.();
       },
+      focus() {
+        latestHostElement?.focus();
+      },
       reset() {
         latestProps = undefined;
         currentContent = "";
+        latestHostElement = null;
       }
     }
   };
@@ -619,6 +641,117 @@ describe("App autosave", () => {
 
     expect(recentFilesInput?.disabled).toBe(true);
     expect(container.textContent).toContain("将在 TASK-006 接入后开放");
+  });
+
+  it("keeps the editor mounted when settings opens and closes the drawer on Escape", async () => {
+    await renderAndOpenDocument();
+
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+    expect(settingsButton).not.toBeNull();
+    expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
+    expect(container.textContent).toContain("today.md");
+
+    await act(async () => {
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
+    expect(container.textContent).toContain("today.md");
+    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).toBeNull();
+    expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
+    expect(container.textContent).toContain("today.md");
+  });
+
+  it("renders rail, workspace, document header, status strip, and word count for an open document", async () => {
+    await renderAndOpenDocument();
+
+    const rail = container.querySelector('[data-yulora-layout="rail"]');
+    const workspace = container.querySelector('[data-yulora-layout="workspace"]');
+    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
+    const statusStrip = container.querySelector('[data-yulora-region="status-strip"]');
+
+    expect(rail).not.toBeNull();
+    expect(workspace).not.toBeNull();
+    expect(documentHeader?.textContent).toContain("today.md");
+    expect(documentHeader?.textContent).toContain("C:/notes/today.md");
+    expect(statusStrip?.textContent).toContain("All changes saved");
+    expect(statusStrip?.textContent).toContain("字数 6");
+    expect(statusStrip?.textContent).toContain("Bridge: win32");
+    expect(documentHeader?.textContent).not.toContain("Bridge: win32");
+    expect(documentHeader?.textContent).not.toContain("All changes saved");
+  });
+
+  it("autosaves dirty content when opening settings and restores editor focus when the drawer closes", async () => {
+    await renderAndOpenDocument();
+
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+    expect(settingsButton).not.toBeNull();
+
+    await act(async () => {
+      codeEditorMock.focus();
+      await Promise.resolve();
+    });
+
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Blur restore\n");
+      settingsButton?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      settingsButton?.focus();
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(saveMarkdownFile).toHaveBeenCalledTimes(1);
+    expect(saveMarkdownFile).toHaveBeenCalledWith({
+      path: "C:/notes/today.md",
+      content: "# Blur restore\n"
+    });
+    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).toBeNull();
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
+  });
+
+  it("renders settings as a drawer panel with close affordance while keeping existing controls", async () => {
+    await act(async () => {
+      root.render(createElement(App));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+    expect(settingsButton).not.toBeNull();
+
+    await act(async () => {
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');
+    const closeButton = container.querySelector<HTMLButtonElement>('[aria-label="关闭设置"]');
+    const themeSelect = container.querySelector<HTMLSelectElement>("#settings-theme-package");
+    const recentFilesInput = container.querySelector<HTMLInputElement>("#settings-recent-max");
+
+    expect(drawerPanel?.getAttribute("role")).toBe("dialog");
+    expect(drawerPanel?.getAttribute("aria-modal")).toBe("true");
+    expect(drawerPanel?.textContent).toContain("偏好设置");
+    expect(closeButton).not.toBeNull();
+    expect(themeSelect).not.toBeNull();
+    expect(recentFilesInput?.disabled).toBe(true);
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {

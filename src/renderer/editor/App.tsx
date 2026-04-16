@@ -23,9 +23,9 @@ import {
   startManualSavingDocument,
   startOpeningMarkdownFile
 } from "../document-state";
+import { getDocumentMetrics } from "../document-metrics";
 import { SettingsView } from "./settings-view";
 
-type ShellView = "editor" | "settings";
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
 type ThemeCatalogEntry = Awaited<ReturnType<Window["yulora"]["listThemes"]>>[number];
 
@@ -127,11 +127,12 @@ export default function EditorApp() {
 
 function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const [state, setState] = useState(createInitialAppState);
-  const [view, setView] = useState<ShellView>("editor");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [themes, setThemes] = useState<ThemeCatalogEntry[]>([]);
   const [isRefreshingThemes, setIsRefreshingThemes] = useState(false);
   const editorRef = useRef<CodeEditorHandle | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorContentRef = useRef("");
   const activeBlockStateRef = useRef<ActiveBlockState | null>(null);
   const startupOpenPathRef = useRef(yulora.startupOpenPath);
@@ -140,7 +141,25 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const pendingAutosaveReplayRef = useRef(false);
   const inFlightSaveOriginRef = useRef<"manual" | "autosave" | null>(null);
   const preferencesRef = useRef<Preferences>(DEFAULT_PREFERENCES);
+  const settingsEntryRef = useRef<HTMLButtonElement | null>(null);
+  const settingsOpenOriginRef = useRef<"editor" | null>(null);
+  const shouldRestoreEditorFocusRef = useRef(false);
+  const pendingFocusRestoreRef = useRef<"editor" | "settings-entry" | null>(null);
   const themeRuntimeRef = useRef<ReturnType<typeof createThemeRuntime> | null>(null);
+  const currentDocumentContent = state.currentDocument
+    ? (editorContentRef.current || state.currentDocument.content)
+    : "";
+  const currentDocumentMetrics = state.currentDocument
+    ? getDocumentMetrics(currentDocumentContent)
+    : null;
+  const saveStatusLabel =
+    state.saveState === "manual-saving"
+      ? "Saving changes..."
+      : state.saveState === "autosaving"
+        ? "Autosaving..."
+        : state.isDirty
+          ? "Unsaved changes"
+          : "All changes saved";
 
   function applyState(updater: (current: AppState) => AppState): void {
     const next = updater(stateRef.current);
@@ -282,6 +301,35 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     } finally {
       setIsRefreshingThemes(false);
     }
+  }
+
+  function openSettingsDrawer(): void {
+    const activeElement = document.activeElement;
+    shouldRestoreEditorFocusRef.current =
+      settingsOpenOriginRef.current === "editor" ||
+      (activeElement instanceof Node ? !!editorContainerRef.current?.contains(activeElement) : false);
+    settingsOpenOriginRef.current = null;
+    setIsSettingsOpen(true);
+  }
+
+  function captureSettingsOpenOrigin(): void {
+    const activeElement = document.activeElement;
+    settingsOpenOriginRef.current =
+      activeElement instanceof Node && editorContainerRef.current?.contains(activeElement)
+        ? "editor"
+        : null;
+  }
+
+  function closeSettingsDrawer(): void {
+    setIsSettingsOpen(false);
+
+    if (shouldRestoreEditorFocusRef.current) {
+      shouldRestoreEditorFocusRef.current = false;
+      pendingFocusRestoreRef.current = "editor";
+      return;
+    }
+
+    pendingFocusRestoreRef.current = "settings-entry";
   }
 
   const handleOpenMarkdown = useEffectEvent(async (): Promise<void> => {
@@ -470,6 +518,35 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [preferences, themes]);
 
   useEffect(() => {
+    if (isSettingsOpen || pendingFocusRestoreRef.current === null) {
+      return;
+    }
+
+    if (pendingFocusRestoreRef.current === "editor") {
+      editorRef.current?.focus();
+    } else {
+      settingsEntryRef.current?.focus();
+    }
+
+    pendingFocusRestoreRef.current = null;
+  }, [isSettingsOpen]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSettingsDrawer();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSettingsOpen]);
+
+  useEffect(() => {
     const startupOpenPath = startupOpenPathRef.current;
 
     if (!startupOpenPath) {
@@ -491,130 +568,165 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
   return (
     <main className="app-shell">
-      {view === "settings" ? (
-        <SettingsView
-          preferences={preferences}
-          themes={themes}
-          isRefreshingThemes={isRefreshingThemes}
-          onRefreshThemes={handleRefreshThemes}
-          onUpdate={(patch) => yulora.updatePreferences(patch)}
-          onClose={() => setView("editor")}
-        />
-      ) : (
-        <>
-          <header className="app-header">
-            <div className="app-brand">
+      <>
+        <div className="app-layout">
+          <aside
+            className="app-rail"
+            data-yulora-layout="rail"
+          >
+            <div className="app-rail-brand">
               <p className="app-name">Yulora</p>
-              <p className="app-subtitle">Local-first Markdown writing workspace</p>
+              <p className="app-subtitle">Markdown workspace</p>
             </div>
-            <p className="app-hint">
-              {state.openState === "opening"
-                ? "Opening document..."
-                : state.currentDocument
-                  ? "Use File to open, save, or save as."
-                  : "Use File > Open... to load a Markdown document."}
-            </p>
-          </header>
-
-          {state.errorMessage ? (
-            <p
-              className="error-banner"
-              role="alert"
+            <div className="app-rail-nav">
+              <span className="app-rail-label">Workspace</span>
+              <span className="app-rail-label">Outline</span>
+            </div>
+            <button
+              type="button"
+              className="settings-entry"
+              ref={settingsEntryRef}
+              onMouseDown={captureSettingsOpenOrigin}
+              onClick={openSettingsDrawer}
+              aria-label="打开偏好设置"
             >
-              {state.errorMessage}
-            </p>
-          ) : null}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M19.14 12.94a7.94 7.94 0 0 0 .05-.94 7.94 7.94 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.94 7.94 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.9 7.9 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2.8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+              </svg>
+              <span>设置</span>
+            </button>
+          </aside>
 
-          {state.currentDocument ? (
-            <section className="workspace-shell">
-              <div className="document-bar">
-                <div className="document-meta">
-                  <h1>{state.currentDocument.name}</h1>
-                  <p className="document-path">{state.currentDocument.path}</p>
+          <div
+            className="app-workspace"
+            data-yulora-layout="workspace"
+          >
+            <header className="app-header">
+              <div className="app-brand">
+                <p className="app-name">Yulora</p>
+                <p className="app-subtitle">Local-first Markdown writing workspace</p>
+              </div>
+              <p className="app-hint">
+                {state.openState === "opening"
+                  ? "Opening document..."
+                  : state.currentDocument
+                    ? "Use File to open, save, or save as."
+                    : "Use File > Open... to load a Markdown document."}
+              </p>
+            </header>
+
+            {state.errorMessage ? (
+              <p
+                className="error-banner"
+                role="alert"
+              >
+                {state.errorMessage}
+              </p>
+            ) : null}
+
+            {state.currentDocument ? (
+              <section className="workspace-shell">
+                <div
+                  className="document-bar"
+                  data-yulora-region="document-header"
+                >
+                  <div className="document-meta">
+                    <h1>{state.currentDocument.name}</h1>
+                    <p className="document-path">{state.currentDocument.path}</p>
+                  </div>
                 </div>
-                <div className="document-status-row">
+                <div
+                  className="document-canvas"
+                  ref={editorContainerRef}
+                >
+                  <CodeEditorView
+                    ref={editorRef}
+                    initialContent={state.currentDocument.content}
+                    loadRevision={state.editorLoadRevision}
+                    onActiveBlockChange={(nextActiveBlockState) => {
+                      activeBlockStateRef.current = nextActiveBlockState;
+                    }}
+                    onChange={(nextContent) => {
+                      editorContentRef.current = nextContent;
+                      let nextState: AppState = stateRef.current;
+
+                      applyState((current) => {
+                        nextState = applyEditorContentChanged(current, nextContent);
+                        return nextState;
+                      });
+
+                      scheduleAutosave(nextState);
+                    }}
+                    onBlur={() => {
+                      void runAutosave();
+                    }}
+                  />
+                </div>
+                <div
+                  className="document-status-strip"
+                  data-yulora-region="status-strip"
+                >
                   <p className={`save-status ${state.isDirty ? "is-dirty" : "is-clean"}`}>
-                    {state.saveState === "manual-saving"
-                      ? "Saving changes..."
-                      : state.saveState === "autosaving"
-                        ? "Autosaving..."
-                        : state.isDirty
-                          ? "Unsaved changes"
-                          : "All changes saved"}
+                    {saveStatusLabel}
                   </p>
+                  <p className="document-word-count">字数 {currentDocumentMetrics?.meaningfulCharacterCount ?? 0}</p>
                   <p className="document-platform">Bridge: {yulora.platform}</p>
                 </div>
-              </div>
-              <CodeEditorView
-                ref={editorRef}
-                initialContent={state.currentDocument.content}
-                loadRevision={state.editorLoadRevision}
-                onActiveBlockChange={(nextActiveBlockState) => {
-                  activeBlockStateRef.current = nextActiveBlockState;
-                }}
-                onChange={(nextContent) => {
-                  editorContentRef.current = nextContent;
-                  let nextState: AppState = stateRef.current;
+              </section>
+            ) : (
+              <section className="empty-workspace">
+                <div className="empty-inner">
+                  <p className="empty-kicker">Ready</p>
+                  <h1>Open a Markdown document from the File menu.</h1>
+                  <p className="empty-copy">
+                    Yulora keeps Markdown text as the source of truth and writes it back without
+                    reformatting the whole document.
+                  </p>
+                  <p className="empty-meta">Shortcut: Ctrl/Cmd+O</p>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
 
-                  applyState((current) => {
-                    nextState = applyEditorContentChanged(current, nextContent);
-                    return nextState;
-                  });
-
-                  scheduleAutosave(nextState);
-                }}
-                onBlur={() => {
-                  void runAutosave();
-                }}
-              />
-            </section>
-          ) : (
-            <section className="empty-workspace">
-              <div className="empty-inner">
-                <p className="empty-kicker">Ready</p>
-                <h1>Open a Markdown document from the File menu.</h1>
-                <p className="empty-copy">
-                  Yulora keeps Markdown text as the source of truth and writes it back without
-                  reformatting the whole document.
-                </p>
-                <p className="empty-meta">Shortcut: Ctrl/Cmd+O</p>
-              </div>
-            </section>
-          )}
-
-          <button
-            type="button"
-            className="settings-entry"
-            onClick={() => setView("settings")}
-            aria-label="打开偏好设置"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
+        {isSettingsOpen ? (
+            <div
+              data-yulora-dialog="settings-drawer"
+              onClick={closeSettingsDrawer}
             >
-              <path
-                d="M19.14 12.94a7.94 7.94 0 0 0 .05-.94 7.94 7.94 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.94 7.94 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.9 7.9 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <circle
-                cx="12"
-                cy="12"
-                r="2.8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-            </svg>
-            <span>设置</span>
-          </button>
-        </>
-      )}
+              <div onClick={(event) => event.stopPropagation()}>
+                <SettingsView
+                preferences={preferences}
+                  themes={themes}
+                  isRefreshingThemes={isRefreshingThemes}
+                  onRefreshThemes={handleRefreshThemes}
+                  onUpdate={(patch) => yulora.updatePreferences(patch)}
+                  onClose={closeSettingsDrawer}
+                />
+              </div>
+            </div>
+        ) : null}
+      </>
     </main>
   );
 }
