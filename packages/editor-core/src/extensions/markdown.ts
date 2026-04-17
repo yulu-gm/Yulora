@@ -30,6 +30,7 @@ export type CreateYuloraMarkdownExtensionsOptions = {
   onContentChange: (doc: string) => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
   onBlur?: () => void;
+  resolveImagePreviewUrl?: (href: string | null) => string | null;
 };
 
 type MarkdownExtensionRuntime = {
@@ -44,6 +45,8 @@ const createSelectionSnapshot = (state: EditorState): ActiveBlockSelection => ({
   anchor: state.selection.main.anchor,
   head: state.selection.main.head
 });
+
+const forceRefreshMarkdownDecorationsEffect = StateEffect.define<null>();
 
 export function createYuloraMarkdownExtensions(
   options: CreateYuloraMarkdownExtensionsOptions
@@ -90,7 +93,8 @@ export function createYuloraMarkdownExtensions(
       source: state.doc.toString(),
       selection: createSelectionSnapshot(state),
       hasEditorFocus: runtime.hasEditorFocus,
-      markdownDocumentCache
+      markdownDocumentCache,
+      resolveImagePreviewUrl: options.resolveImagePreviewUrl
     });
 
   const blockDecorationsField = StateField.define<DecorationSet>({
@@ -233,11 +237,20 @@ export function createYuloraMarkdownExtensions(
       spellcheck: "false"
     }),
     EditorView.updateListener.of((update) => {
+      const shouldForceRefresh = update.transactions.some((transaction) =>
+        transaction.effects.some((effect) => effect.is(forceRefreshMarkdownDecorationsEffect))
+      );
+
       if (update.docChanged) {
         options.onContentChange(update.state.doc.toString());
       }
 
-      if (!update.docChanged && !update.selectionSet) {
+      if (!update.docChanged && !update.selectionSet && !shouldForceRefresh) {
+        return;
+      }
+
+      if (shouldForceRefresh) {
+        recomputeDerivedState(update.view, update.state, true);
         return;
       }
 
@@ -253,4 +266,10 @@ export function createYuloraMarkdownExtensions(
       recomputeDerivedState(update.view, update.state);
     })
   ];
+}
+
+export function refreshMarkdownDecorations(view: EditorView): void {
+  view.dispatch({
+    effects: forceRefreshMarkdownDecorationsEffect.of(null)
+  });
 }

@@ -1,6 +1,5 @@
-<p align="center">
-  <img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" width="160">
-</p>
+<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />
+
 
 # Yulora
 

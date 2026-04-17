@@ -15,6 +15,7 @@ import type { ActiveBlockState } from "@yulora/editor-core";
 export type CodeEditorHandle = {
   getContent: () => string;
   setContent: (content: string) => void;
+  setDocumentPath: (documentPath: string | null) => void;
   focus: () => void;
   navigateToOffset: (offset: number) => void;
   insertText: (text: string) => void;
@@ -24,15 +25,17 @@ export type CodeEditorHandle = {
 
 type CodeEditorViewProps = {
   initialContent: string;
+  documentPath: string | null;
   loadRevision: number;
   onChange: (content: string) => void;
   onBlur?: () => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
+  importClipboardImage?: (input: { documentPath: string | null }) => Promise<string | null>;
 };
 
 export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
   function CodeEditorView(
-    { initialContent, loadRevision, onChange, onBlur, onActiveBlockChange },
+    { initialContent, documentPath, loadRevision, onChange, onBlur, onActiveBlockChange, importClipboardImage },
     ref
   ) {
     const hostRef = useRef<HTMLDivElement | null>(null);
@@ -44,6 +47,9 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
     const handleActiveBlockChange = useEffectEvent((state: ActiveBlockState) =>
       onActiveBlockChange?.(state)
     );
+    const handleImportClipboardImage = useEffectEvent((input: { documentPath: string | null }) =>
+      importClipboardImage?.(input) ?? Promise.resolve(null)
+    );
 
     useEffect(() => {
       if (!hostRef.current) {
@@ -53,9 +59,11 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
       const controller = createCodeEditorController({
         parent: hostRef.current,
         initialContent: initialContentRef.current,
+        documentPath: null,
         onChange: (content) => handleChange(content),
         onBlur: () => handleBlur(),
-        onActiveBlockChange: (state) => handleActiveBlockChange(state)
+        onActiveBlockChange: (state) => handleActiveBlockChange(state),
+        importClipboardImage: (input) => handleImportClipboardImage(input)
       });
 
       controllerRef.current = controller;
@@ -77,12 +85,19 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
       controllerRef.current?.replaceDocument(latestLoadedContentRef.current);
     }, [loadRevision]);
 
+    useEffect(() => {
+      controllerRef.current?.setDocumentPath(documentPath);
+    }, [documentPath]);
+
     useImperativeHandle(
       ref,
       () => ({
         getContent: () => controllerRef.current?.getContent() ?? initialContent,
         setContent: (content: string) => {
           controllerRef.current?.replaceDocument(content);
+        },
+        setDocumentPath: (nextDocumentPath: string | null) => {
+          controllerRef.current?.setDocumentPath(nextDocumentPath);
         },
         focus: () => {
           controllerRef.current?.focus();

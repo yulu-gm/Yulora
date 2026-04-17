@@ -265,3 +265,39 @@
   color: transparent;
   font-size: 0;
 }
+
+.document-editor .cm-markdown-image-preview {
+  display: flex;
+  width: 100%;
+  margin: 0.35rem 0 0.55rem;
+  justify-content: center;
+}
+
+.document-editor .cm-markdown-image-preview[data-image-preview-mode="active"] {
+  display: flex;
+  width: 100%;
+  margin: 0.2rem 0 0.75rem;
+}
+
+.document-editor .cm-markdown-image-preview[data-image-align="left"] {
+  justify-content: flex-start;
+}
+
+.document-editor .cm-markdown-image-preview[data-image-align="right"] {
+  justify-content: flex-end;
+}
+
+.document-editor .cm-markdown-image-preview-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.document-editor .cm-markdown-image-preview-fallback {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  font-size: 0.94em;
+}

@@ -105,6 +105,7 @@ describe("Test workbench shell", () => {
       openMarkdownFileFromPath: vi.fn(),
       saveMarkdownFile: vi.fn(),
       saveMarkdownFileAs: vi.fn(),
+      importClipboardImage: vi.fn(),
       openEditorTestWindow,
       startScenarioRun,
       interruptScenarioRun,

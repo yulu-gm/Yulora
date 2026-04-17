@@ -60,7 +60,7 @@ const getCoveredClassesAtRange = (
   to: number
 ) =>
   ranges
-    .filter((range) => range.from <= from && range.to >= to)
+    .filter((range) => range.className.length > 0 && range.from <= from && range.to >= to)
     .map((range) => range.className)
     .sort();
 
@@ -68,7 +68,11 @@ const getExactClassesAtRange = (
   ranges: Array<{ from: number; to: number; className: string; text: string }>,
   from: number,
   to: number
-) => ranges.filter((range) => range.from === from && range.to === to).map((range) => range.className).sort();
+) =>
+  ranges
+    .filter((range) => range.className.length > 0 && range.from === from && range.to === to)
+    .map((range) => range.className)
+    .sort();
 
 const expectCoveredRangeClasses = (
   ranges: Array<{ from: number; to: number; className: string; text: string }>,

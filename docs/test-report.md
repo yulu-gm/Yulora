@@ -9,6 +9,22 @@
 
 ## 记录
 
+| 2026-04-17 | TASK-015 | `npm.cmd run test -- src/renderer/code-editor.test.ts` | 通过 | 覆盖点击 Markdown / HTML 图片预览后，编辑器会聚焦并把光标直接跳回对应源码起点。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test` | 通过 | 图片预览点击回源码交互补齐后，Vitest 全量通过，当前共 51 个文件、349 条测试通过。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run typecheck && npm.cmd run build` | 通过 | 图片 widget 新增点击回源码行为后，TypeScript 与构建仍通过；`build` 仍仅保留既有 Vite chunk size warning。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test -- packages/markdown-engine/src/parse-block-map.test.ts src/renderer/code-editor.test.ts` | 通过 | 覆盖 top-level `htmlFlow` 中的单行 `<img ... style="zoom:25%;">` 与包裹式 `<p><img width="160"></p>` 被识别为图片 block，并在编辑器中保持源码 + 预览共存。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/derived-state/inactive-block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts packages/editor-core/src/active-block.test.ts` | 通过 | 覆盖新增 `htmlImage` block 后，active-block 解析、decoration signature 与 active / inactive 图片预览管线未回归。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test` | 通过 | HTML `<img>` 图片渲染补齐后，Vitest 全量通过，当前共 51 个文件、347 条测试通过。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run lint && npm.cmd run typecheck && npm.cmd run build` | 通过 | `htmlImage` block、统一图片 widget 与 Typora 风格收敛后的样式调整均通过 lint / typecheck / build；`build` 仍仅保留既有 Vite chunk size warning。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test` | 通过 | 补修本地图片预览协议后，Vitest 全量通过，当前共 51 个文件、344 条测试通过；覆盖开发态 `http://localhost` 页面下的本地图片预览不再直接依赖 `file://`。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run lint && npm.cmd run typecheck && npm.cmd run build` | 通过 | 新增 `yulora-asset://` 预览协议、主进程资源 handler 与 renderer URL 解析调整后，lint / typecheck / build 全部通过；`build` 仍仅保留既有 Vite chunk size warning。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test -- src/main/clipboard-image-import.test.ts src/preload/preload.contract.test.ts src/renderer/code-editor.test.ts` | 通过 | 覆盖剪贴板图片导入成功、重名递增、未保存文档拒绝、非图片 / 超限错误，以及编辑器中的图片预览与图片粘贴拦截。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/derived-state/inactive-block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor-view.test.tsx src/renderer/app.autosave.test.ts src/renderer/test-workbench.test.tsx` | 通过 | 覆盖图片 widget 接入现有 inline / inactive decoration 管线后，editor-core 派生状态、CodeEditorView 句柄与 renderer 壳层测试桩均未回归。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run test` | 通过 | Vitest 全量通过，当前共 50 个文件、342 条测试通过，包含新增图片导入与常驻预览回归。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run lint` | 通过 | 图片导入 bridge、editor-core widget 与 renderer 粘贴拦截未引入 ESLint 错误。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，新增图片导入 contract 与 decorations 导出边界正确。 |
+| 2026-04-17 | TASK-015 | `npm.cmd run build` | 通过 | renderer、electron 与 cli 构建通过；仍保留现有 Vite chunk size warning，但 exit code 为 0，不阻塞本轮交付。 |
+
 | 2026-04-17 | TASK-040 | `npm.cmd run test -- src/main/application-menu.test.ts src/main/save-markdown-file.test.ts src/preload/preload.contract.test.ts src/renderer/document-state.test.ts src/renderer/app.autosave.test.ts` | 通过 | 覆盖 `File > New` 菜单命令、untitled 文档状态、首次 `Save` 自动转到 `Save As`，以及 preload / save dialog 合同未回归。 |
 | 2026-04-17 | TASK-040 | `npm.cmd run lint && npm.cmd run typecheck && npm.cmd run build` | 通过 | 原生菜单、受限 bridge、untitled 文档状态与保存链路调整均通过仓库级门禁；`build` 仍仅保留现有 Vite chunk size warning。 |
 | 2026-04-17 | TASK-017 | `npm.cmd run test -- src/renderer/app.autosave.test.ts` | 通过 | 覆盖 `workspace-shell` 两列宽度过渡约束，确保 outline 开合时编辑区会跟着一起做 resize 动画，而不是只让右侧面板自身进出。 |

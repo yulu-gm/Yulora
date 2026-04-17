@@ -33,6 +33,10 @@ import {
   SAVE_MARKDOWN_FILE_CHANNEL
 } from "../shared/save-markdown-file";
 import {
+  IMPORT_CLIPBOARD_IMAGE_CHANNEL,
+  type ImportClipboardImageInput
+} from "../shared/clipboard-image-import";
+import {
   INTERRUPT_SCENARIO_RUN_CHANNEL,
   SCENARIO_RUN_EVENT,
   SCENARIO_RUN_TERMINAL_EVENT,
@@ -110,6 +114,9 @@ describe("preload contract", () => {
     const openPathInput = { targetPath: "D:/fixtures/note.md" };
     const saveInput = { path: "D:/fixtures/note.md", content: "# note" };
     const saveAsInput = { currentPath: "D:/fixtures/note.md", content: "# note" };
+    const importClipboardImageInput: ImportClipboardImageInput = {
+      documentPath: "D:/fixtures/note.md"
+    };
     const startRunInput = { scenarioId: "open-markdown-file-basic" };
     const interruptInput = { runId: "run-1" };
     const completeInput: SharedEditorTestCommandResultEnvelope = {
@@ -131,6 +138,7 @@ describe("preload contract", () => {
     void api.openMarkdownFileFromPath(openPathInput.targetPath);
     void api.saveMarkdownFile(saveInput);
     void api.saveMarkdownFileAs(saveAsInput);
+    void api.importClipboardImage(importClipboardImageInput);
     void api.openEditorTestWindow();
     void api.startScenarioRun(startRunInput);
     void api.interruptScenarioRun(interruptInput);
@@ -145,6 +153,7 @@ describe("preload contract", () => {
       [OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, openPathInput],
       [SAVE_MARKDOWN_FILE_CHANNEL, saveInput],
       [SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput],
+      [IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput],
       ["yulora:open-editor-test-window"],
       [START_SCENARIO_RUN_CHANNEL, startRunInput],
       [INTERRUPT_SCENARIO_RUN_CHANNEL, interruptInput],

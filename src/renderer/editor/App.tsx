@@ -560,6 +560,28 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     );
   });
 
+  async function handleImportClipboardImage(
+    input: { documentPath: string | null }
+  ): Promise<string | null> {
+    const result = await yulora.importClipboardImage({
+      documentPath: input.documentPath ?? ""
+    });
+
+    if (result.status === "success") {
+      applyState((current) => ({
+        ...current,
+        errorMessage: null
+      }));
+      return result.markdown;
+    }
+
+    applyState((current) => ({
+      ...current,
+      errorMessage: result.error.message
+    }));
+    return null;
+  }
+
   const handleEditorTestCommand = useEffectEvent(async (payload: {
     sessionId: string;
     commandId: string;
@@ -836,7 +858,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                   <CodeEditorView
                     ref={editorRef}
                     initialContent={state.currentDocument.content}
+                    documentPath={state.currentDocument.path}
                     loadRevision={state.editorLoadRevision}
+                    importClipboardImage={handleImportClipboardImage}
                     onActiveBlockChange={(nextActiveBlockState) => {
                       activeBlockStateRef.current = nextActiveBlockState;
                       setActiveHeadingId(

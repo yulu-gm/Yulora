@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CodeEditorView, type CodeEditorHandle } from "./code-editor-view";
 
 const replaceDocumentMock = vi.fn<(content: string) => void>();
+const setDocumentPathMock = vi.fn<(documentPath: string | null) => void>();
 const focusMock = vi.fn<() => void>();
 const navigateToOffsetMock = vi.fn<(offset: number) => void>();
 const destroyMock = vi.fn<() => void>();
@@ -28,6 +29,7 @@ describe("CodeEditorView", () => {
   beforeEach(() => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true;
     replaceDocumentMock.mockReset();
+    setDocumentPathMock.mockReset();
     destroyMock.mockReset();
     focusMock.mockReset();
     navigateToOffsetMock.mockReset();
@@ -37,6 +39,7 @@ describe("CodeEditorView", () => {
     createCodeEditorControllerMock.mockReturnValue({
       getContent: getContentMock,
       replaceDocument: replaceDocumentMock,
+      setDocumentPath: setDocumentPathMock,
       focus: focusMock,
       navigateToOffset: navigateToOffsetMock,
       destroy: destroyMock
@@ -61,6 +64,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Initial\n",
+          documentPath: "D:/notes/initial.md",
           loadRevision: 1,
           onChange: vi.fn()
         })
@@ -73,6 +77,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Updated by autosave\n",
+          documentPath: "D:/notes/initial.md",
           loadRevision: 1,
           onChange: vi.fn()
         })
@@ -87,6 +92,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Initial\n",
+          documentPath: "D:/notes/initial.md",
           loadRevision: 1,
           onChange: vi.fn()
         })
@@ -99,6 +105,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Opened from disk\n",
+          documentPath: "D:/notes/opened.md",
           loadRevision: 2,
           onChange: vi.fn()
         })
@@ -116,6 +123,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Initial\n",
+          documentPath: "D:/notes/initial.md",
           loadRevision: 1,
           onChange: vi.fn(),
           ref
@@ -136,6 +144,7 @@ describe("CodeEditorView", () => {
       root.render(
         createElement(CodeEditorView, {
           initialContent: "# Initial\n",
+          documentPath: "D:/notes/initial.md",
           loadRevision: 1,
           onChange: vi.fn(),
           ref

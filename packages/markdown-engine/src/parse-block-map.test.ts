@@ -4,6 +4,7 @@ import { parseBlockMap, parseMarkdownDocument } from "./index";
 import type {
   BlockquoteBlock,
   HeadingBlock,
+  HtmlImageBlock,
   InlineRoot,
   ListBlock,
   ListItemBlock
@@ -144,6 +145,29 @@ describe("parseBlockMap", () => {
 
     expect(source.slice(result.blocks[0]!.startOffset, result.blocks[0]!.endOffset)).toBe("Heading\n===");
     expect(source.slice(result.blocks[1]!.startOffset, result.blocks[1]!.endOffset)).toBe("1. one\n2. two");
+  });
+
+  it("recognizes top-level HTML image flow blocks and preserves image attributes", () => {
+    const source = '<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />';
+
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toMatchObject([
+      {
+        id: `htmlImage:0-${source.length}`,
+        type: "htmlImage",
+        startOffset: 0,
+        endOffset: source.length,
+        startLine: 1,
+        endLine: 1,
+        src: "assets/branding/yulora_logo_light.svg",
+        alt: "Yulora logo",
+        width: null,
+        height: null,
+        zoom: "25%",
+        align: null
+      }
+    ]);
   });
 
   it("keeps parseBlockMap as block-only parse without rich inline stitch fields", () => {
@@ -514,6 +538,27 @@ describe("parseBlockMap", () => {
           { type: "strikethrough" }
         ]
       }
+    });
+  });
+
+  it("keeps wrapped HTML image blocks rich under MarkdownDocument parsing", () => {
+    const source = [
+      '<p align="center">',
+      '  <img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" width="160">',
+      "</p>"
+    ].join("\n");
+    const result = parseMarkdownDocument(source);
+
+    const htmlImage = result.blocks[0] as HtmlImageBlock;
+
+    expect(htmlImage).toMatchObject({
+      type: "htmlImage",
+      src: "assets/branding/yulora_logo_light.svg",
+      alt: "Yulora logo",
+      width: "160",
+      height: null,
+      zoom: null,
+      align: "center"
     });
   });
 

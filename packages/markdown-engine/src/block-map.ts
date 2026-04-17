@@ -13,7 +13,7 @@ export type InlineLine = {
 
 export interface BaseBlock {
   id: string;
-  type: "heading" | "paragraph" | "list" | "blockquote" | "codeFence" | "thematicBreak";
+  type: "heading" | "paragraph" | "list" | "blockquote" | "codeFence" | "thematicBreak" | "htmlImage";
   startOffset: number;
   endOffset: number;
   startLine: number;
@@ -75,13 +75,25 @@ export interface ThematicBreakBlock extends BaseBlock {
   marker: "-" | "+";
 }
 
+export interface HtmlImageBlock extends BaseBlock {
+  type: "htmlImage";
+  src: string | null;
+  alt: string;
+  title: string | null;
+  width: string | null;
+  height: string | null;
+  zoom: string | null;
+  align: "left" | "center" | "right" | null;
+}
+
 export type MarkdownBlock =
   | HeadingBlock
   | ParagraphBlock
   | ListBlock
   | BlockquoteBlock
   | CodeFenceBlock
-  | ThematicBreakBlock;
+  | ThematicBreakBlock
+  | HtmlImageBlock;
 
 export interface BlockMap {
   blocks: MarkdownBlock[];

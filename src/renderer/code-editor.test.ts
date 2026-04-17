@@ -21,6 +21,9 @@ const getLineElementByText = (host: HTMLElement, text: string) => {
 const getInlineDecorationCount = (line: Element | null, className: string) =>
   line?.querySelectorAll(`.${className}`).length ?? 0;
 
+const getImagePreviews = (host: HTMLElement) =>
+  Array.from(host.querySelectorAll<HTMLElement>(".cm-markdown-image-preview"));
+
 const dispatchCompositionEvent = (
   target: HTMLElement,
   type: "compositionstart" | "compositionupdate" | "compositionend",
@@ -260,6 +263,221 @@ describe("createCodeEditorController", () => {
     expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-emphasis")).toBe(0);
     expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-code")).toBe(0);
     expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strikethrough")).toBe(0);
+
+    controller.destroy();
+  });
+
+  it("renders Markdown images as a preview when the paragraph is inactive and keeps the preview visible when the paragraph becomes active", async () => {
+    const host = document.createElement("div");
+    const sourceLine = "![hero](./assets/demo.png)";
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      documentPath: "D:/notes/today.md",
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const inactivePreviews = getImagePreviews(host);
+    const inactiveImage = inactivePreviews[0]?.querySelector("img");
+
+    expect(inactivePreviews).toHaveLength(1);
+    expect(inactivePreviews[0]?.dataset.imagePreviewMode).toBe("inactive");
+    expect(inactiveImage?.getAttribute("src")).toBe(
+      "yulora-asset://preview?path=D%3A%2Fnotes%2Fassets%2Fdemo.png"
+    );
+    expect(host.textContent).not.toContain(sourceLine);
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: source.indexOf(sourceLine) + 2 } });
+
+    const activePreviews = getImagePreviews(host);
+
+    expect(host.textContent).toContain(sourceLine);
+    expect(activePreviews).toHaveLength(1);
+    expect(activePreviews[0]?.dataset.imagePreviewMode).toBe("active");
+    expect(activePreviews[0]?.querySelector("img")?.getAttribute("src")).toBe(
+      "yulora-asset://preview?path=D%3A%2Fnotes%2Fassets%2Fdemo.png"
+    );
+
+    controller.destroy();
+  });
+
+  it("moves the cursor to the Markdown image source when the inactive preview is clicked", async () => {
+    const host = document.createElement("div");
+    const sourceLine = "![hero](./assets/demo.png)";
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      documentPath: "D:/notes/today.md",
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const inactivePreviewImage = getImagePreviews(host)[0]?.querySelector("img");
+
+    expect(inactivePreviewImage).toBeInstanceOf(HTMLElement);
+
+    inactivePreviewImage?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf(sourceLine));
+    expect(view?.state.selection.main.head).toBe(source.indexOf(sourceLine));
+    expect(host.textContent).toContain(sourceLine);
+
+    controller.destroy();
+  });
+
+  it("renders top-level HTML img blocks as previews and preserves zoom styling when the block becomes active", async () => {
+    const host = document.createElement("div");
+    const sourceLine =
+      '<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />';
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      documentPath: "D:/MyAgent/Yulora/Yulora/.worktrees/codex-image-render/README.md",
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const inactivePreview = getImagePreviews(host)[0];
+    const inactiveImage = inactivePreview?.querySelector("img");
+
+    expect(inactivePreview).toBeDefined();
+    expect(inactivePreview?.dataset.imagePreviewMode).toBe("inactive");
+    expect(inactiveImage?.getAttribute("src")).toBe(
+      "yulora-asset://preview?path=D%3A%2FMyAgent%2FYulora%2FYulora%2F.worktrees%2Fcodex-image-render%2Fassets%2Fbranding%2Fyulora_logo_light.svg"
+    );
+    expect(inactiveImage?.style.zoom).toBe("25%");
+    expect(host.textContent).not.toContain(sourceLine);
+
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: source.indexOf(sourceLine) + 2 } });
+
+    const activePreview = getImagePreviews(host)[0];
+    const activeImage = activePreview?.querySelector("img");
+
+    expect(host.textContent).toContain(sourceLine);
+    expect(activePreview?.dataset.imagePreviewMode).toBe("active");
+    expect(activeImage?.style.zoom).toBe("25%");
+
+    controller.destroy();
+  });
+
+  it("moves the cursor to the HTML image source when the active preview is clicked", async () => {
+    const host = document.createElement("div");
+    const sourceLine =
+      '<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />';
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      documentPath: "D:/MyAgent/Yulora/Yulora/.worktrees/codex-image-render/README.md",
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view?.dispatch({ selection: { anchor: source.indexOf(sourceLine) + 12 } });
+
+    const activePreviewImage = getImagePreviews(host)[0]?.querySelector("img");
+
+    expect(activePreviewImage).toBeInstanceOf(HTMLElement);
+
+    activePreviewImage?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf(sourceLine));
+    expect(view?.state.selection.main.head).toBe(source.indexOf(sourceLine));
+
+    controller.destroy();
+  });
+
+  it("intercepts image paste, imports the clipboard image, and inserts the returned Markdown", async () => {
+    const host = document.createElement("div");
+    const importClipboardImage = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValue("![today](assets/pasted.png)");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "Paragraph",
+      documentPath: "D:/notes/today.md",
+      onChange: vi.fn(),
+      importClipboardImage
+    });
+
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    advancedController.setSelection("Paragraph".length);
+
+    const pasteEvent = new Event("paste", {
+      bubbles: true,
+      cancelable: true
+    });
+
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: {
+        items: [{ type: "image/png" }]
+      }
+    });
+
+    editorRoot?.dispatchEvent(pasteEvent);
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(pasteEvent.defaultPrevented).toBe(true);
+    expect(importClipboardImage).toHaveBeenCalledTimes(1);
+    expect(importClipboardImage).toHaveBeenCalledWith({
+      documentPath: "D:/notes/today.md"
+    });
+    expect(controller.getContent()).toBe("Paragraph![today](assets/pasted.png)");
 
     controller.destroy();
   });

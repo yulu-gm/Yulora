@@ -2,6 +2,7 @@ import { Decoration } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 
 import type { InlineASTNode, InlineRoot } from "@yulora/markdown-engine";
+import { createInactiveImagePreviewDecoration } from "./image-widgets";
 
 const INACTIVE_INLINE_MARKER_CLASS = "cm-inactive-inline-marker";
 const INACTIVE_INLINE_CONTENT_CLASSES = {
@@ -13,22 +14,33 @@ const INACTIVE_INLINE_CONTENT_CLASSES = {
 
 type InlineDecorationRange = Range<Decoration>;
 
-export function createInactiveInlineDecorations(inline: InlineRoot | undefined): InlineDecorationRange[] {
+type CreateInactiveInlineDecorationsOptions = {
+  resolveImagePreviewUrl?: (href: string | null) => string | null;
+};
+
+export function createInactiveInlineDecorations(
+  inline: InlineRoot | undefined,
+  options: CreateInactiveInlineDecorationsOptions = {}
+): InlineDecorationRange[] {
   const ranges: InlineDecorationRange[] = [];
 
   if (!inline) {
     return ranges;
   }
 
-  appendInlineDecorations(inline, ranges);
+  appendInlineDecorations(inline, ranges, options);
   return ranges;
 }
 
-function appendInlineDecorations(node: InlineASTNode, ranges: InlineDecorationRange[]) {
+function appendInlineDecorations(
+  node: InlineASTNode,
+  ranges: InlineDecorationRange[],
+  options: CreateInactiveInlineDecorationsOptions
+) {
   switch (node.type) {
     case "root":
       for (const child of node.children) {
-        appendInlineDecorations(child, ranges);
+        appendInlineDecorations(child, ranges, options);
       }
       return;
     case "text":
@@ -54,15 +66,22 @@ function appendInlineDecorations(node: InlineASTNode, ranges: InlineDecorationRa
         INACTIVE_INLINE_CONTENT_CLASSES[node.type]
       );
       for (const child of node.children) {
-        appendInlineDecorations(child, ranges);
+        appendInlineDecorations(child, ranges, options);
       }
       appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.closeMarker.endOffset);
       return;
     case "link":
-    case "image":
       appendMarkerDecoration(ranges, node.openMarker.startOffset, node.openMarker.endOffset);
       for (const child of node.children) {
-        appendInlineDecorations(child, ranges);
+        appendInlineDecorations(child, ranges, options);
+      }
+      appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.closeMarker.endOffset);
+      return;
+    case "image":
+      ranges.push(createInactiveImagePreviewDecoration(node, options.resolveImagePreviewUrl));
+      appendMarkerDecoration(ranges, node.openMarker.startOffset, node.openMarker.endOffset);
+      for (const child of node.children) {
+        appendInlineDecorations(child, ranges, options);
       }
       appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.closeMarker.endOffset);
       return;

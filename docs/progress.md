@@ -58,7 +58,7 @@
 | TASK-012 | 列表与任务列表渲染 | DEV_DONE | 已补齐列表项 block metadata、非激活态列表/任务列表渲染、Enter 续项与空项退出规则，并新增 harness scenario 覆盖回归路径。 |
 | TASK-013 | 引用块渲染 | DEV_DONE | 已为 top-level 引用块补上非激活态淡色背景与缩进显示，隐藏 `>` 前缀，并在激活时恢复完整 Markdown 源码态；新增 blockquote 交互与 composition flush 回归测试。 |
 | TASK-014 | 链接显示与编辑 | TODO | 链接文本渲染与浏览器打开。 |
-| TASK-015 | 图片粘贴 | TODO | 粘贴图片落盘。 |
+| TASK-015 | 图片粘贴 | DEV_DONE | 已接入剪贴板图片导入、本地 `assets/` 落盘、相对路径 Markdown 插入，以及 Markdown 图片与 HTML `<img>` 在激活态源码 + 预览 / 非激活态图片预览下的统一渲染。 |
 | TASK-016 | 图片拖放 | TODO | 拖放图片导入。 |
 | TASK-017 | 大纲侧栏 | DEV_DONE | 已补齐 heading 到 outline item 的提取、右侧悬浮可折叠大纲面板、默认收起入口、独立滚动区与点击后编辑器定位/滚动，并覆盖 renderer 回归测试。 |
 | TASK-018 | 查找替换 | TODO | 文档搜索与替换。 |

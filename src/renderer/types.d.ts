@@ -10,6 +10,10 @@ import type {
   SaveMarkdownFileInput,
   SaveMarkdownFileResult
 } from "../shared/save-markdown-file";
+import type {
+  ImportClipboardImageInput,
+  ImportClipboardImageResult
+} from "../shared/clipboard-image-import";
 import type { RunnerEventEnvelope, ScenarioRunTerminal } from "../shared/test-run-session";
 
 export {};
@@ -71,6 +75,7 @@ declare global {
       openMarkdownFileFromPath: (targetPath: string) => Promise<OpenMarkdownFileResult>;
       saveMarkdownFile: (input: SaveMarkdownFileInput) => Promise<SaveMarkdownFileResult>;
       saveMarkdownFileAs: (input: SaveMarkdownFileAsInput) => Promise<SaveMarkdownFileResult>;
+      importClipboardImage: (input: ImportClipboardImageInput) => Promise<ImportClipboardImageResult>;
       openEditorTestWindow: () => Promise<void>;
       listThemes: () => Promise<ThemeDescriptor[]>;
       refreshThemes: () => Promise<ThemeDescriptor[]>;
