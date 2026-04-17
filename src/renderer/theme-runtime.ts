@@ -47,6 +47,22 @@ export function resolveBuiltinThemeDescriptor(
   };
 }
 
+export function createBuiltinThemePackageDescriptor(mode: ThemeAppearanceMode) {
+  const descriptor = resolveBuiltinThemeDescriptor(mode);
+
+  return {
+    id: descriptor.id,
+    tokens: {
+      [mode]: descriptor.partUrls.tokens
+    },
+    styles: {
+      ui: descriptor.partUrls.ui,
+      editor: descriptor.partUrls.editor,
+      markdown: descriptor.partUrls.markdown
+    }
+  };
+}
+
 export function createThemeRuntime(document: Document): ThemeRuntime {
   const mountedLinks = new Map<ThemePart, HTMLLinkElement>();
 

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useEffectEvent, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
@@ -11,10 +11,11 @@ import { CodeEditorView, type CodeEditorHandle } from "../code-editor-view";
 import { createEditorTestDriver } from "../editor-test-driver";
 import { deriveOutlineItems, type OutlineItem } from "../outline";
 import {
-  createThemeRuntime,
   resolveBuiltinThemeDescriptor,
   type ThemeDescriptor as RuntimeThemeDescriptor
 } from "../theme-runtime";
+import { createThemePackageRuntime } from "../theme-package-runtime";
+import { resolveActiveThemePackage } from "../theme-package-catalog";
 import { resolveThemeCatalogEntry } from "../theme-catalog";
 import {
   type AppState,
@@ -36,6 +37,7 @@ const SettingsView = lazy(async () => {
 
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
 type ThemeCatalogEntry = Awaited<ReturnType<Window["yulora"]["listThemes"]>>[number];
+type ThemePackageEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
 type ThemeFallbackReason = "missing-theme" | "unsupported-mode" | null;
 type ActiveThemeResolution = {
   requestedThemeId: string | null;
@@ -160,6 +162,53 @@ function toRuntimeThemeDescriptorForMode(
   };
 }
 
+function toRuntimeThemePackageEntryForMode(
+  theme: ThemeCatalogEntry,
+  resolvedThemeMode: ResolvedThemeMode
+): ThemePackageEntry {
+  const mode = theme.modes[resolvedThemeMode];
+  const tokens: Partial<Record<"light" | "dark", string>> = {};
+  const styles: Partial<Record<"ui" | "editor" | "markdown" | "titlebar", string>> = {};
+
+  if (mode.partUrls.tokens) {
+    tokens[resolvedThemeMode] = mode.partUrls.tokens;
+  }
+
+  if (mode.partUrls.ui) {
+    styles.ui = mode.partUrls.ui;
+  }
+
+  if (mode.partUrls.editor) {
+    styles.editor = mode.partUrls.editor;
+  }
+
+  if (mode.partUrls.markdown) {
+    styles.markdown = mode.partUrls.markdown;
+  }
+
+  return {
+    id: theme.id,
+    kind: "legacy-css-family",
+    source: theme.source,
+    packageRoot: "",
+    manifest: {
+      id: theme.id,
+      name: theme.name,
+      version: "0.0.0",
+      author: null,
+      supports: {
+        light: theme.modes.light.available,
+        dark: theme.modes.dark.available
+      },
+      tokens,
+      styles,
+      layout: { titlebar: null },
+      scene: null,
+      surfaces: {}
+    }
+  };
+}
+
 function resolveActiveThemeResolution(
   preferences: Preferences,
   catalog: ThemeCatalogEntry[],
@@ -261,6 +310,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [fontFamilies, setFontFamilies] = useState<string[]>([]);
   const [themes, setThemes] = useState<ThemeCatalogEntry[]>([]);
+  const [themePackages, setThemePackages] = useState<
+    Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>
+  >([]);
   const [isRefreshingThemes, setIsRefreshingThemes] = useState(false);
   const [appUpdateState, setAppUpdateState] = useState<AppUpdateState>({
     kind: "idle"
@@ -281,7 +333,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const settingsOpenOriginRef = useRef<"editor" | null>(null);
   const shouldRestoreEditorFocusRef = useRef(false);
   const pendingFocusRestoreRef = useRef<"editor" | "settings-entry" | null>(null);
-  const themeRuntimeRef = useRef<ReturnType<typeof createThemeRuntime> | null>(null);
+  const themePackageRuntimeRef = useRef<ReturnType<typeof createThemePackageRuntime> | null>(null);
   const outlineCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -363,7 +415,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
   }
 
-  function clearNotificationTimers(): void {
+  const clearNotificationTimers = useCallback((): void => {
     if (notificationHideTimerRef.current !== null) {
       clearTimeout(notificationHideTimerRef.current);
       notificationHideTimerRef.current = null;
@@ -373,9 +425,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       clearTimeout(notificationCloseTimerRef.current);
       notificationCloseTimerRef.current = null;
     }
-  }
+  }, []);
 
-  const showNotification = useEffectEvent((nextNotification: AppNotification): void => {
+  const showNotification = useCallback((nextNotification: AppNotification): void => {
     clearNotificationTimers();
     setNotification(nextNotification);
     setNotificationState("open");
@@ -392,8 +444,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         setNotificationState("hidden");
         setNotification(null);
       }, APP_NOTIFICATION_EXIT_ANIMATION_MS);
-    }, APP_NOTIFICATION_DURATION_MS);
-  });
+      }, APP_NOTIFICATION_DURATION_MS);
+  }, [clearNotificationTimers]);
 
   function resetAutosaveRuntime(): void {
     clearAutosaveTimer();
@@ -528,8 +580,18 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     setIsRefreshingThemes(true);
 
     try {
-      const nextThemes = await yulora.refreshThemes();
-      setThemes(nextThemes);
+      const [nextThemesResult, nextThemePackagesResult] = await Promise.allSettled([
+        yulora.refreshThemes(),
+        yulora.refreshThemePackages()
+      ]);
+
+      if (nextThemesResult.status === "fulfilled") {
+        setThemes(nextThemesResult.value);
+      }
+
+      if (nextThemePackagesResult.status === "fulfilled") {
+        setThemePackages(nextThemePackagesResult.value);
+      }
     } finally {
       setIsRefreshingThemes(false);
     }
@@ -849,6 +911,19 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         // Keep the builtin theme active when the catalog is unavailable.
       });
 
+    void yulora
+      .listThemePackages()
+      .then((nextThemePackages) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setThemePackages(nextThemePackages);
+      })
+      .catch(() => {
+        // Keep the builtin theme package active when the package catalog is unavailable.
+      });
+
     const detach = yulora.onPreferencesChanged((nextPreferences) => {
       handlePreferencesSync(nextPreferences);
     });
@@ -868,20 +943,28 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    const themeRuntime = themeRuntimeRef.current ?? createThemeRuntime(document);
-    themeRuntimeRef.current = themeRuntime;
+    const themePackageRuntime =
+      themePackageRuntimeRef.current ?? createThemePackageRuntime(document);
+    themePackageRuntimeRef.current = themePackageRuntime;
 
     const applyCurrentTheme = () => {
       const root = document.documentElement;
       const resolvedThemeMode = resolveThemeMode(preferences.theme.mode);
-      const activeThemeResolution = resolveActiveThemeResolution(
-        preferences,
-        themes,
+      const activeThemePackages =
+        themePackages.length > 0
+          ? themePackages
+          : themes.map((theme) => toRuntimeThemePackageEntryForMode(theme, resolvedThemeMode));
+      const activeThemePackageResolution = resolveActiveThemePackage(
+        preferences.theme.selectedId,
+        activeThemePackages,
         resolvedThemeMode
       );
 
       applyPreferencesToDocument(root, preferences, resolvedThemeMode);
-      themeRuntime.applyTheme(activeThemeResolution.descriptor);
+      themePackageRuntime.applyPackage(
+        activeThemePackageResolution.descriptor,
+        resolvedThemeMode
+      );
     };
 
     applyCurrentTheme();
@@ -898,7 +981,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
     mediaQuery.addEventListener("change", applyCurrentTheme);
     return () => mediaQuery.removeEventListener("change", applyCurrentTheme);
-  }, [preferences, themes]);
+  }, [preferences, themePackages, themes]);
 
   useEffect(() => {
     return yulora.onAppUpdateState((nextState) => {
@@ -910,7 +993,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     return yulora.onAppNotification((nextNotification) => {
       showNotification(nextNotification);
     });
-  }, [yulora]);
+  }, [showNotification, yulora]);
 
   useEffect(() => {
     if (!themeWarningMessage) {
@@ -933,6 +1016,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     activeThemeResolution.fallbackReason,
     activeThemeResolution.requestedThemeId,
     activeThemeResolution.resolvedMode,
+    showNotification,
     themeWarningMessage
   ]);
 
@@ -982,10 +1066,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       clearOutlineCloseTimer();
       clearSettingsCloseTimer();
       clearNotificationTimers();
-      themeRuntimeRef.current?.clear();
+      themePackageRuntimeRef.current?.clear();
       clearDocumentPreferences(document.documentElement);
     },
-    []
+    [clearNotificationTimers]
   );
 
   return (

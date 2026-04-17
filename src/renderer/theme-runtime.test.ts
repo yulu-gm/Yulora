@@ -98,4 +98,8 @@ describe("theme runtime", () => {
     expect(lightDescriptor.partUrls.tokens).toContain("/styles/themes/default/light/tokens.css");
     expect(darkDescriptor.partUrls.tokens).toContain("/styles/themes/default/dark/tokens.css");
   });
+
+  it("keeps builtin default descriptors available for package fallback", () => {
+    expect(resolveBuiltinThemeDescriptor("light").id).toBe("default");
+  });
 });

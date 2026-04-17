@@ -921,7 +921,7 @@ describe("App autosave", () => {
     await act(async () => {
       preferencesChangedListener?.({
         ...DEFAULT_PREFERENCES,
-        theme: { mode: "dark", selectedId: "graphite" },
+        theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto" },
         ui: {
           fontSize: 18
         },
@@ -1057,7 +1057,7 @@ describe("App autosave", () => {
     await act(async () => {
       preferencesChangedListener?.({
         ...DEFAULT_PREFERENCES,
-        theme: { mode: "light", selectedId: "midnight" }
+        theme: { mode: "light", selectedId: "midnight", effectsMode: "auto" }
       });
       await Promise.resolve();
     });

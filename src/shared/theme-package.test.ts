@@ -39,6 +39,7 @@ describe("normalizeThemePackageManifest", () => {
       surfaces: {
         workbenchBackground: {
           kind: "fragment",
+          scene: "rain-scene",
           shader: "/tmp/rain-glass/shaders/workbench-background.glsl"
         }
       }
