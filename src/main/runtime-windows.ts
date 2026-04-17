@@ -40,11 +40,20 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
   runtimeMode: RuntimeMode;
   preloadPath: string;
   windowIconPath?: string;
+  showStrategy?: "ready-to-show" | "immediate";
   createWindow: (input: CreateWindowInput) => TWindow;
   getAllWindows: () => TWindow[];
   loadRenderer: (window: TWindow, runtimeMode: RuntimeMode) => void;
 }) {
-  const { runtimeMode, preloadPath, windowIconPath, createWindow, getAllWindows, loadRenderer } = input;
+  const {
+    runtimeMode,
+    preloadPath,
+    windowIconPath,
+    showStrategy = "ready-to-show",
+    createWindow,
+    getAllWindows,
+    loadRenderer
+  } = input;
 
   function openWindow(
     nextRuntimeMode: RuntimeMode,
@@ -88,9 +97,21 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
     });
 
     loadRenderer(window, nextRuntimeMode);
-    window.once("ready-to-show", () => {
+    let hasShown = false;
+    const showWindow = () => {
+      if (hasShown) {
+        return;
+      }
+
+      hasShown = true;
       window.show();
-    });
+    };
+
+    window.once("ready-to-show", showWindow);
+
+    if (showStrategy === "immediate" && nextRuntimeMode === "editor") {
+      showWindow();
+    }
 
     return window;
   }

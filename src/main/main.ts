@@ -9,11 +9,7 @@ import {
   protocol,
   type MenuItemConstructorOptions
 } from "electron";
-import { autoUpdater } from "electron-updater";
-
-import { createAppUpdater } from "./app-updater";
 import { createApplicationMenuTemplate } from "./application-menu";
-import { createCliProcessRunner } from "./cli-process-runner";
 import { importClipboardImage } from "./clipboard-image-import";
 import { resolveMarkdownLaunchPathFromArgv } from "./launch-open-path";
 import { openMarkdownFileFromPath, showOpenMarkdownDialog } from "./open-markdown-file";
@@ -22,11 +18,9 @@ import {
   registerPreviewAssetScheme
 } from "./preview-asset-protocol";
 import { saveMarkdownFileToPath, showSaveMarkdownDialog } from "./save-markdown-file";
-import { createEditorTestSessions } from "./editor-test-sessions";
 import { createPreferencesService } from "./preferences-service";
 import { createFontCatalogService } from "./font-catalog-service";
 import { createThemeService } from "./theme-service";
-import { createTestRunSessions } from "./test-run-sessions";
 import { resolveRendererEntry } from "./paths";
 import { configureMainProcessRuntime, shouldRequestSingleInstanceLock } from "./runtime-environment";
 import { createRuntimeWindowManager, resolveAppRuntimeMode } from "./runtime-windows";
@@ -37,7 +31,9 @@ import {
 } from "../shared/editor-test-command";
 import {
   INTERRUPT_SCENARIO_RUN_CHANNEL,
+  type RunnerEventEnvelope,
   SCENARIO_RUN_EVENT,
+  type ScenarioRunTerminal,
   SCENARIO_RUN_TERMINAL_EVENT,
   START_SCENARIO_RUN_CHANNEL
 } from "../shared/test-run-session";
@@ -65,7 +61,9 @@ import {
 import {
   APP_NOTIFICATION_EVENT,
   APP_UPDATE_STATE_EVENT,
-  CHECK_FOR_APP_UPDATES_CHANNEL
+  CHECK_FOR_APP_UPDATES_CHANNEL,
+  type AppNotification,
+  type AppUpdateState
 } from "../shared/app-update";
 
 const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
@@ -82,6 +80,28 @@ const pendingLaunchOpenPaths: string[] = [];
 
 let openEditorWindowForLaunchPath: ((targetPath: string) => void) | null = null;
 let runManualAppUpdateCheck: (() => void) | null = null;
+
+type AppUpdaterController = {
+  checkForUpdates: (source: "auto" | "manual") => Promise<void>;
+  getState: () => AppUpdateState;
+};
+
+type EditorTestSessionsController = {
+  ensureSession: () => { sessionId: string };
+  dispatchCommand: (input: {
+    sessionId: string;
+    command: import("../shared/editor-test-command").EditorTestCommand;
+    signal?: AbortSignal;
+  }) => Promise<import("../shared/editor-test-command").EditorTestCommandResult>;
+  completeCommand: (payload: EditorTestCommandResultEnvelope) => boolean;
+};
+
+type TestRunSessionsController = {
+  onRunEvent: (listener: (payload: RunnerEventEnvelope) => void) => () => void;
+  onRunTerminal: (listener: (payload: ScenarioRunTerminal) => void) => () => void;
+  startScenarioRun: (input: { scenarioId: string }) => Promise<{ runId: string }>;
+  interruptScenarioRun: (input: { runId: string }) => boolean;
+};
 
 function enqueueLaunchOpenPath(targetPath: string): void {
   pendingLaunchOpenPaths.push(targetPath);
@@ -171,6 +191,7 @@ app.whenReady().then(async () => {
   const fontCatalogService = createFontCatalogService({
     platform: process.platform
   });
+  let appUpdaterPromise: Promise<AppUpdaterController> | null = null;
 
   if (initialPreferences.source === "recovered-from-corrupt") {
     console.warn(
@@ -182,32 +203,46 @@ app.whenReady().then(async () => {
     broadcastToWindows(PREFERENCES_CHANGED_EVENT, preferences);
   });
 
-  const appUpdater = createAppUpdater({
-    app,
-    autoUpdater,
-    broadcast: (state) => {
-      broadcastToWindows(APP_UPDATE_STATE_EVENT, state);
-    },
-    dialog,
-    logger: {
-      info: (message) => console.info(message),
-      warn: (message) => console.warn(message),
-      error: (message) => console.error(message)
-    },
-    notify: (notification) => {
-      broadcastToWindows(APP_NOTIFICATION_EVENT, notification);
-    },
-    platform: process.platform,
-    runtimeMode
-  });
+  const getAppUpdater = async (): Promise<AppUpdaterController> => {
+    if (!appUpdaterPromise) {
+      appUpdaterPromise = (async () => {
+        const [{ autoUpdater }, { createAppUpdater }] = await Promise.all([
+          import("electron-updater"),
+          import("./app-updater.js")
+        ]);
+
+        return createAppUpdater({
+          app,
+          autoUpdater,
+          broadcast: (state: AppUpdateState) => {
+            broadcastToWindows(APP_UPDATE_STATE_EVENT, state);
+          },
+          dialog,
+          logger: {
+            info: (message: string) => console.info(message),
+            warn: (message: string) => console.warn(message),
+            error: (message: string) => console.error(message)
+          },
+          notify: (notification: AppNotification) => {
+            broadcastToWindows(APP_NOTIFICATION_EVENT, notification);
+          },
+          platform: process.platform,
+          runtimeMode
+        });
+      })();
+    }
+
+    return appUpdaterPromise;
+  };
   runManualAppUpdateCheck = () => {
-    void appUpdater.checkForUpdates("manual");
+    void getAppUpdater().then((controller) => controller.checkForUpdates("manual"));
   };
 
   const windowManager = createRuntimeWindowManager({
     runtimeMode,
     preloadPath: path.join(__dirname, "../preload/preload.js"),
     windowIconPath: resolveWindowIconPath(),
+    showStrategy: app.isPackaged ? "immediate" : "ready-to-show",
     createWindow: (input) =>
       new BrowserWindow({
         ...input,
@@ -219,38 +254,6 @@ app.whenReady().then(async () => {
   openEditorWindowForLaunchPath = (targetPath: string) => {
     windowManager.openEditorWindow({ startupOpenPath: targetPath });
   };
-  const cliRunner = createCliProcessRunner({
-    cliScriptPath: path.join(__dirname, "../../dist-cli/cli/bin.js"),
-    cwd: path.join(__dirname, "../.."),
-    ensureEditorSession: async () => editorTestSessions.ensureSession(),
-    dispatchEditorCommand: ({ sessionId, command, signal }) =>
-      editorTestSessions.dispatchCommand({
-        sessionId,
-        command,
-        signal
-      })
-  });
-  const editorTestSessions = createEditorTestSessions({
-    openEditorWindow: () => windowManager.openEditorWindow()
-  });
-  const testRunSessions = createTestRunSessions({
-    startRun: ({ runId, scenarioId, signal, onEvent, onTerminal }) =>
-      cliRunner.startRun({
-        runId,
-        scenarioId,
-        signal,
-        onEvent,
-        onTerminal
-      })
-  });
-
-  testRunSessions.onRunEvent((payload) => {
-    broadcastToWindows(SCENARIO_RUN_EVENT, payload);
-  });
-  testRunSessions.onRunTerminal((payload) => {
-    broadcastToWindows(SCENARIO_RUN_TERMINAL_EVENT, payload);
-  });
-
   ipcMain.handle(OPEN_MARKDOWN_FILE_CHANNEL, async () => showOpenMarkdownDialog());
   ipcMain.handle(OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, async (_event, input: { targetPath: string }) =>
     openMarkdownFileFromPath(input.targetPath)
@@ -264,29 +267,88 @@ app.whenReady().then(async () => {
   ipcMain.handle(IMPORT_CLIPBOARD_IMAGE_CHANNEL, async (_event, input: ImportClipboardImageInput) =>
     importClipboardImage(input, { clipboard })
   );
-  ipcMain.handle(OPEN_EDITOR_TEST_WINDOW_CHANNEL, async () => {
-    editorTestSessions.ensureSession();
-  });
-  ipcMain.handle(
-    COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
-    async (_event, payload: EditorTestCommandResultEnvelope) => {
-      editorTestSessions.completeCommand(payload);
-    }
-  );
   ipcMain.handle(GET_PREFERENCES_CHANNEL, async () => preferencesService.getPreferences());
   ipcMain.handle(UPDATE_PREFERENCES_CHANNEL, async (_event, patch: PreferencesUpdate | undefined) =>
     preferencesService.updatePreferences(patch)
   );
   ipcMain.handle(LIST_FONT_FAMILIES_CHANNEL, async () => fontCatalogService.listFontFamilies());
-  ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL, async () => appUpdater.checkForUpdates("manual"));
+  ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL, async () =>
+    getAppUpdater().then((controller) => controller.checkForUpdates("manual"))
+  );
   ipcMain.handle(LIST_THEMES_CHANNEL, async () => themeService.listThemes());
   ipcMain.handle(REFRESH_THEMES_CHANNEL, async () => themeService.refreshThemes());
-  ipcMain.handle(START_SCENARIO_RUN_CHANNEL, async (_event, input: { scenarioId: string }) =>
-    testRunSessions.startScenarioRun(input)
-  );
-  ipcMain.handle(INTERRUPT_SCENARIO_RUN_CHANNEL, async (_event, input: { runId: string }) => {
-    testRunSessions.interruptScenarioRun(input);
-  });
+
+  if (!app.isPackaged && runtimeMode === "test-workbench") {
+    const [
+      { createCliProcessRunner },
+      { createEditorTestSessions },
+      { createTestRunSessions }
+    ] = await Promise.all([
+      import("./cli-process-runner.js"),
+      import("./editor-test-sessions.js"),
+      import("./test-run-sessions.js")
+    ]);
+
+    const editorTestSessions: EditorTestSessionsController = createEditorTestSessions({
+      openEditorWindow: () => windowManager.openEditorWindow()
+    });
+
+    const cliRunner = createCliProcessRunner({
+      cliScriptPath: path.join(__dirname, "../../dist-cli/cli/bin.js"),
+      cwd: path.join(__dirname, "../.."),
+      ensureEditorSession: async () => editorTestSessions.ensureSession(),
+      dispatchEditorCommand: (input: {
+        sessionId: import("../shared/editor-test-command").EditorTestCommandEnvelope["sessionId"];
+        command: import("../shared/editor-test-command").EditorTestCommandEnvelope["command"];
+        signal: AbortSignal;
+      }) =>
+        editorTestSessions.dispatchCommand({
+          sessionId: input.sessionId,
+          command: input.command,
+          signal: input.signal
+        })
+    });
+
+    const testRunSessions: TestRunSessionsController = createTestRunSessions({
+      startRun: (input: {
+        runId: string;
+        scenarioId: string;
+        signal: AbortSignal;
+        onEvent: (payload: RunnerEventEnvelope) => void;
+        onTerminal: (payload: ScenarioRunTerminal) => void;
+      }) =>
+        cliRunner.startRun({
+          runId: input.runId,
+          scenarioId: input.scenarioId,
+          signal: input.signal,
+          onEvent: input.onEvent,
+          onTerminal: input.onTerminal
+        })
+    });
+
+    testRunSessions.onRunEvent((payload) => {
+      broadcastToWindows(SCENARIO_RUN_EVENT, payload);
+    });
+    testRunSessions.onRunTerminal((payload) => {
+      broadcastToWindows(SCENARIO_RUN_TERMINAL_EVENT, payload);
+    });
+
+    ipcMain.handle(OPEN_EDITOR_TEST_WINDOW_CHANNEL, async () => {
+      editorTestSessions.ensureSession();
+    });
+    ipcMain.handle(
+      COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
+      async (_event, payload: EditorTestCommandResultEnvelope) => {
+        editorTestSessions.completeCommand(payload);
+      }
+    );
+    ipcMain.handle(START_SCENARIO_RUN_CHANNEL, async (_event, input: { scenarioId: string }) =>
+      testRunSessions.startScenarioRun(input)
+    );
+    ipcMain.handle(INTERRUPT_SCENARIO_RUN_CHANNEL, async (_event, input: { runId: string }) => {
+      testRunSessions.interruptScenarioRun(input);
+    });
+  }
 
   installApplicationMenu();
   const startupOpenPath = pendingLaunchOpenPaths.shift();
@@ -303,7 +365,7 @@ app.whenReady().then(async () => {
   }
 
   setTimeout(() => {
-    void appUpdater.checkForUpdates("auto");
+    void getAppUpdater().then((controller) => controller.checkForUpdates("auto"));
   }, AUTO_UPDATE_STARTUP_DELAY_MS);
 
   app.on("activate", () => {

@@ -160,15 +160,15 @@ describe("package scripts", () => {
       expect.arrayContaining([
         "dist/**/*",
         "dist-electron/**/*",
-        "dist-cli/**/*",
         "!dist-electron/**/*.d.ts",
-        "!dist-cli/**/*.map",
         "!src{,/**}",
         "!tests{,/**}",
         "!docs{,/**}",
         "!reports{,/**}"
       ])
     );
+    expect(config.files).not.toContain("dist-cli/**/*");
+    expect(config.files).not.toContain("!dist-cli/**/*.map");
     expect(config.extraResources).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -222,6 +222,17 @@ describe("package scripts", () => {
         "react": expect.any(String),
         "react-dom": expect.any(String)
       })
+    );
+  });
+
+  it("does not package the CLI-driven test harness into the Windows installer payload", () => {
+    const configPath = path.join(process.cwd(), "electron-builder.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+      files?: string[];
+    };
+
+    expect(config.files ?? []).not.toEqual(
+      expect.arrayContaining(["dist-cli/**/*", "!dist-cli/**/*.map"])
     );
   });
 

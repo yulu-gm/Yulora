@@ -22,12 +22,14 @@ describe("main process window wiring", () => {
     const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
     const mainSource = readFileSync(mainPath, "utf8");
 
+    expect(mainSource).toContain('import("electron-updater")');
     expect(mainSource).toContain('createAppUpdater({');
     expect(mainSource).toContain('ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL');
     expect(mainSource).toContain('broadcastToWindows(APP_UPDATE_STATE_EVENT, state)');
     expect(mainSource).toContain('setTimeout(() => {');
-    expect(mainSource).toContain('void appUpdater.checkForUpdates("auto")');
+    expect(mainSource).toContain('void getAppUpdater().then((controller) => controller.checkForUpdates("auto"))');
     expect(mainSource).toContain('if (command === "check-for-updates") {');
+    expect(mainSource).not.toContain('import { autoUpdater } from "electron-updater"');
   });
 
   it("registers IPC handlers for fonts, preferences, and themes", () => {
@@ -38,5 +40,15 @@ describe("main process window wiring", () => {
     expect(mainSource).toContain('ipcMain.handle(UPDATE_PREFERENCES_CHANNEL');
     expect(mainSource).toContain('ipcMain.handle(LIST_FONT_FAMILIES_CHANNEL');
     expect(mainSource).toContain('ipcMain.handle(LIST_THEMES_CHANNEL');
+  });
+
+  it("only initializes the scenario runner stack in test-workbench mode", () => {
+    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
+    const mainSource = readFileSync(mainPath, "utf8");
+
+    expect(mainSource).toContain('if (!app.isPackaged && runtimeMode === "test-workbench") {');
+    expect(mainSource).toContain('import("./cli-process-runner.js")');
+    expect(mainSource).toContain('import("./editor-test-sessions.js")');
+    expect(mainSource).toContain('import("./test-run-sessions.js")');
   });
 });

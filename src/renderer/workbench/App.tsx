@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import "../styles/workbench.css";
 import {
   applyRunnerEventToDebugState,
   applyScenarioRunTerminalToDebugState,

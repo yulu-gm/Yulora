@@ -117,20 +117,48 @@ describe("createRuntimeWindowManager", () => {
 
     expect(harness.createWindow).toHaveBeenCalledTimes(1);
   });
+
+  it("shows editor windows immediately when configured for immediate display", () => {
+    const harness = createWindowHarness("editor", {
+      showStrategy: "immediate"
+    });
+
+    harness.manager.openPrimaryWindow();
+
+    expect(harness.window.show).toHaveBeenCalledTimes(1);
+    expect(harness.readyToShowCallback).not.toBeNull();
+  });
+
+  it("keeps workbench windows gated on ready-to-show when configured for deferred display", () => {
+    const harness = createWindowHarness("test-workbench", {
+      showStrategy: "ready-to-show"
+    });
+
+    harness.manager.openPrimaryWindow();
+
+    expect(harness.window.show).not.toHaveBeenCalled();
+    expect(harness.readyToShowCallback).not.toBeNull();
+
+    harness.readyToShowCallback?.();
+
+    expect(harness.window.show).toHaveBeenCalledTimes(1);
+  });
 });
 
 function createWindowHarness(
   runtimeMode: RuntimeMode,
   options?: {
     windowIconPath?: string;
+    showStrategy?: "ready-to-show" | "immediate";
   }
 ) {
+  let readyToShowCallback: (() => void) | null = null;
   const window: TestWindow = {
     loadURL: vi.fn(),
     loadFile: vi.fn(),
     once: vi.fn((event: "ready-to-show", callback: () => void) => {
       if (event === "ready-to-show") {
-        callback();
+        readyToShowCallback = callback;
       }
     }),
     show: vi.fn()
@@ -144,6 +172,7 @@ function createWindowHarness(
     runtimeMode,
     preloadPath: "D:/app/dist-electron/preload/preload.js",
     windowIconPath: options?.windowIconPath,
+    showStrategy: options?.showStrategy,
     createWindow,
     getAllWindows,
     loadRenderer
@@ -152,6 +181,9 @@ function createWindowHarness(
   return {
     manager,
     window,
+    get readyToShowCallback() {
+      return readyToShowCallback;
+    },
     createWindow,
     getAllWindows,
     loadRenderer
