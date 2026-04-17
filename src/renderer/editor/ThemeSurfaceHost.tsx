@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ThemeEffectsMode, ThemeSurfaceSlot } from "../../shared/theme-package";
 import { createThemeSceneState } from "../shader/theme-scene-state";
@@ -20,6 +20,18 @@ type ThemeSurfaceHostProps = {
   effectsMode: ThemeEffectsMode;
 };
 
+function serializeSharedUniforms(sharedUniforms: Record<string, number>): string {
+  return JSON.stringify(
+    Object.entries(sharedUniforms).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+  );
+}
+
+function parseSharedUniforms(serializedUniforms: string): Record<string, number> {
+  return Object.fromEntries(
+    JSON.parse(serializedUniforms) as Array<[string, number]>
+  );
+}
+
 export function ThemeSurfaceHost({
   surface,
   descriptor,
@@ -28,6 +40,14 @@ export function ThemeSurfaceHost({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef(createThemeSurfaceRuntime());
   const [mode, setMode] = useState<ThemeSurfaceRuntimeMode>("fallback");
+  const sharedUniformsSignature = useMemo(
+    () => serializeSharedUniforms(descriptor.sharedUniforms),
+    [descriptor.sharedUniforms]
+  );
+  const sharedUniforms = useMemo(
+    () => parseSharedUniforms(sharedUniformsSignature),
+    [sharedUniformsSignature]
+  );
 
   useEffect(() => {
     let isDisposed = false;
@@ -55,7 +75,7 @@ export function ThemeSurfaceHost({
         const sceneState = createThemeSceneState({
           sceneId: descriptor.sceneId,
           effectsMode,
-          sharedUniforms: descriptor.sharedUniforms
+          sharedUniforms
         });
         const result = await runtimeRef.current.mount({
           canvas: canvasRef.current,
@@ -86,7 +106,13 @@ export function ThemeSurfaceHost({
       abortController.abort();
       mountedSurface?.unmount();
     };
-  }, [descriptor, effectsMode, surface]);
+  }, [
+    descriptor.sceneId,
+    descriptor.shaderUrl,
+    sharedUniforms,
+    effectsMode,
+    surface
+  ]);
 
   return (
     <div

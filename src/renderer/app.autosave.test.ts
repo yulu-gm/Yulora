@@ -220,6 +220,8 @@ describe("App autosave", () => {
   let preferencesChangedListener: PreferencesChangedListener | null;
   let appUpdateStateListener: ((state: AppUpdateState) => void) | null;
   let appNotificationListener: ((notification: AppNotification) => void) | null;
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let canvasGetContextSpy: { mockRestore: () => void };
   let openMarkdownFile: ReturnType<typeof vi.fn<() => Promise<OpenMarkdownFileResult>>>;
   let openMarkdownFileFromPath: ReturnType<
     typeof vi.fn<(targetPath: string) => Promise<OpenMarkdownFileResult>>
@@ -304,6 +306,14 @@ describe("App autosave", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    fetchMock = vi.fn(async () => ({
+      ok: true,
+      text: async () => "void main() { gl_FragColor = vec4(1.0); }"
+    }) as unknown as Response);
+    canvasGetContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(null as ReturnType<HTMLCanvasElement["getContext"]>);
+    vi.stubGlobal("fetch", fetchMock);
 
     openMarkdownFile = vi.fn<() => Promise<OpenMarkdownFileResult>>().mockResolvedValue({
       status: "success",
@@ -438,6 +448,8 @@ describe("App autosave", () => {
     });
 
     container.remove();
+    canvasGetContextSpy.mockRestore();
+    vi.unstubAllGlobals();
     globalThis.IS_REACT_ACT_ENVIRONMENT = false;
     vi.useRealTimers();
   });
@@ -1280,6 +1292,56 @@ describe("App autosave", () => {
 
     expect(surfaceHost).not.toBeNull();
     expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+  });
+
+  it("does not refetch the workbench shader during ordinary app rerenders", async () => {
+    listThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue([
+      makeManifestThemePackage({
+        id: "rain-glass",
+        name: "Rain Glass",
+        scene: {
+          id: "rain-scene",
+          sharedUniforms: { rainAmount: 0.7 }
+        },
+        surfaces: {
+          workbenchBackground: {
+            kind: "fragment",
+            scene: "rain-scene",
+            shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+          }
+        }
+      })
+    ]);
+
+    window.yulora = {
+      ...window.yulora,
+      getPreferences: vi.fn().mockResolvedValue({
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "rain-glass",
+          effectsMode: "auto"
+        }
+      }),
+      listThemePackages
+    } as Window["yulora"];
+
+    await renderApp();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      menuCommandListener?.("open-markdown-file");
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Updated once\n");
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not mount a workbench shader surface host when theme effects are off", async () => {

@@ -5,32 +5,43 @@ import { describe, expect, it, vi } from "vitest";
 import { createThemeSceneState } from "./theme-scene-state";
 import { createThemeSurfaceRuntime } from "./theme-surface-runtime";
 
-function createCanvas(width = 640, height = 360): HTMLCanvasElement {
+type TestCanvas = HTMLCanvasElement & {
+  __setSize: (width: number, height: number) => void;
+};
+
+function createCanvas(width = 640, height = 360): TestCanvas {
   const canvas = document.createElement("canvas");
+  let currentWidth = width;
+  let currentHeight = height;
 
   Object.defineProperty(canvas, "clientWidth", {
     configurable: true,
-    value: width
+    get: () => currentWidth
   });
   Object.defineProperty(canvas, "clientHeight", {
     configurable: true,
-    value: height
+    get: () => currentHeight
   });
 
   canvas.getBoundingClientRect = () =>
     ({
-      width,
-      height,
+      width: currentWidth,
+      height: currentHeight,
       top: 0,
       left: 0,
-      right: width,
-      bottom: height,
+      right: currentWidth,
+      bottom: currentHeight,
       x: 0,
       y: 0,
       toJSON: () => ({})
     }) as DOMRect;
 
-  return canvas;
+  return Object.assign(canvas, {
+    __setSize(width: number, height: number) {
+      currentWidth = width;
+      currentHeight = height;
+    }
+  });
 }
 
 describe("theme surface runtime", () => {
@@ -92,6 +103,63 @@ describe("theme surface runtime", () => {
     result.unmount();
 
     expect(destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("redraws reduced surfaces when the canvas size changes", async () => {
+    const render = vi.fn();
+    const destroy = vi.fn();
+    const observedTargets: Element[] = [];
+    let triggerResize!: () => void;
+    let disconnected = false;
+    class FakeResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        triggerResize = () => callback([] as ResizeObserverEntry[], {} as ResizeObserver);
+      }
+
+      observe(target: Element) {
+        observedTargets.push(target);
+      }
+
+      disconnect() {
+        disconnected = true;
+      }
+    }
+
+    const runtime = createThemeSurfaceRuntime({
+      ResizeObserver: FakeResizeObserver as typeof ResizeObserver,
+      createPresenter: () => ({
+        render,
+        destroy
+      })
+    });
+    const canvas = createCanvas(320, 200);
+    const result = await runtime.mount({
+      canvas,
+      surface: "workbenchBackground",
+      shaderSource: "void main() { gl_FragColor = vec4(1.0); }",
+      effectsMode: "auto",
+      sceneState: createThemeSceneState({
+        sceneId: "rain-scene",
+        effectsMode: "auto",
+        sharedUniforms: {}
+      })
+    });
+
+    expect(result.mode).toBe("reduced");
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(observedTargets).toEqual([canvas]);
+
+    canvas.__setSize(640, 400);
+    triggerResize();
+
+    expect(render).toHaveBeenCalledTimes(2);
+    expect(canvas.width).toBe(640);
+    expect(canvas.height).toBe(400);
+
+    result.unmount();
+
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(disconnected).toBe(true);
   });
 
   it("starts an animation loop in full mode and tears it down cleanly", async () => {

@@ -31,6 +31,7 @@ type ThemeSurfaceRuntimeDependencies = {
   createPresenter?: ThemeSurfacePresenterFactory;
   requestAnimationFrame?: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame?: (handle: number) => void;
+  ResizeObserver?: typeof ResizeObserver;
 };
 
 const VERTEX_SHADER_SOURCE = `
@@ -269,6 +270,7 @@ export function createThemeSurfaceRuntime(
     dependencies.requestAnimationFrame ?? globalThis.requestAnimationFrame?.bind(globalThis);
   const cancelAnimationFrameImpl =
     dependencies.cancelAnimationFrame ?? globalThis.cancelAnimationFrame?.bind(globalThis);
+  const ResizeObserverImpl = dependencies.ResizeObserver ?? globalThis.ResizeObserver;
 
   async function mount(input: MountThemeSurfaceInput): Promise<MountedThemeSurface> {
     const mode = resolveRenderMode(input.effectsMode);
@@ -299,6 +301,7 @@ export function createThemeSurfaceRuntime(
 
     let isUnmounted = false;
     let frameHandle: number | null = null;
+    let resizeObserver: ResizeObserver | null = null;
 
     const renderFrame = (): void => {
       if (isUnmounted) {
@@ -321,6 +324,13 @@ export function createThemeSurfaceRuntime(
 
     renderFrame();
 
+    if (mode === "reduced" && typeof ResizeObserverImpl === "function") {
+      resizeObserver = new ResizeObserverImpl(() => {
+        renderFrame();
+      });
+      resizeObserver.observe(canvas);
+    }
+
     return {
       mode,
       unmount() {
@@ -335,6 +345,8 @@ export function createThemeSurfaceRuntime(
           frameHandle = null;
         }
 
+        resizeObserver?.disconnect();
+        resizeObserver = null;
         presenter.destroy();
       }
     };

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
@@ -347,10 +347,22 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     resolvedThemeMode
   );
   const themeWarningMessage = resolveThemeWarningMessage(activeThemePackageResolution);
-  const activeWorkbenchSurface =
-    preferences.theme.effectsMode === "off"
-      ? null
-      : resolveActiveWorkbenchSurface(preferences.theme.selectedId, themePackages, resolvedThemeMode);
+  const activeWorkbenchSurface = useMemo(
+    () =>
+      preferences.theme.effectsMode === "off"
+        ? null
+        : resolveActiveWorkbenchSurface(
+            preferences.theme.selectedId,
+            themePackages,
+            resolvedThemeMode
+          ),
+    [
+      preferences.theme.effectsMode,
+      preferences.theme.selectedId,
+      resolvedThemeMode,
+      themePackages
+    ]
+  );
 
   function applyState(updater: (current: AppState) => AppState): void {
     const next = updater(stateRef.current);
