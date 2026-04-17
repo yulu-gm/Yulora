@@ -63,7 +63,7 @@ Each surface should point at a fragment shader that compiles without extra runti
 
 ## Fallback And Performance
 
-Shader surfaces are always optional from the app’s point of view. If the runtime cannot fetch, compile, or mount a surface, Yulora falls back to static styling. The app records the aggregate dynamic mode on the document element and warns once only when every active dynamic surface has fallen back.
+Shader surfaces are always optional from the app’s point of view. If the runtime cannot fetch, compile, or mount a surface, Yulora falls back to static styling. The app records the aggregate dynamic mode on the document element and dedupes the warning for the current theme and dynamic state when every active dynamic surface has fallen back.
 
 When authoring a package:
 
