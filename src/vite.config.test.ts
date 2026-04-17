@@ -28,10 +28,9 @@ describe("vite renderer build", () => {
     tempDirectories.push(root);
 
     writeFileSync(
-      path.join(root, "index.html"),
-      '<!doctype html><html><head><script type="module" src="/main.js"></script></head><body></body></html>'
+      path.join(root, "main.js"),
+      'import "./style.css";'
     );
-    writeFileSync(path.join(root, "main.js"), 'import "./style.css";');
     writeFileSync(
       path.join(root, "style.css"),
       [
@@ -51,7 +50,10 @@ describe("vite renderer build", () => {
       build: {
         outDir,
         emptyOutDir: true,
-        cssMinify: viteConfig.build?.cssMinify
+        cssMinify: viteConfig.build?.cssMinify,
+        rollupOptions: {
+          input: path.join(root, "main.js")
+        }
       }
     });
 

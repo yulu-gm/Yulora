@@ -14,9 +14,9 @@ describe("createFontCatalogService", () => {
     });
 
     await expect(service.listFontFamilies()).resolves.toEqual([
-      "霞鹜文楷",
       "Segoe UI",
-      "Source Han Sans SC"
+      "Source Han Sans SC",
+      "霞鹜文楷"
     ]);
     expect(runCommand).toHaveBeenCalledWith("powershell.exe", [
       "-NoProfile",
