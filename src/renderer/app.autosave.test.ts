@@ -1158,8 +1158,6 @@ describe("App autosave", () => {
     expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
     expect(statusStrip?.textContent).toContain("All changes saved");
     expect(statusStrip?.textContent).toContain("字数 6");
-    expect(statusStrip?.textContent).toContain("Bridge: win32");
-    expect(workspaceHeader?.textContent).not.toContain("Bridge: win32");
     expect(workspaceHeader?.textContent).not.toContain("All changes saved");
   });
 
@@ -1280,7 +1278,6 @@ describe("App autosave", () => {
     expect(workspaceCanvas?.contains(appStatusBar)).toBe(false);
     expect(appStatusBar?.textContent).toContain("All changes saved");
     expect(appStatusBar?.textContent).toContain("字数 6");
-    expect(appStatusBar?.textContent).toContain("Bridge: win32");
   });
 
   it("does not render an update download message by default", async () => {

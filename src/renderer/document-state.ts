@@ -14,7 +14,6 @@ export type AppState = {
   openState: OpenState;
   saveState: SaveState;
   isDirty: boolean;
-  errorMessage: string | null;
   lastSavedContent: string | null;
 };
 
@@ -25,7 +24,6 @@ export function createInitialAppState(): AppState {
     openState: "idle",
     saveState: "idle",
     isDirty: false,
-    errorMessage: null,
     lastSavedContent: null
   };
 }
@@ -42,7 +40,6 @@ export function createNewMarkdownDocumentState(currentState: AppState): AppState
     openState: "idle",
     saveState: "idle",
     isDirty: false,
-    errorMessage: null,
     lastSavedContent: ""
   };
 }
@@ -65,23 +62,13 @@ export function applyOpenMarkdownResult(
       openState: "idle",
       saveState: "idle",
       isDirty: false,
-      errorMessage: null,
       lastSavedContent: result.document.content
-    };
-  }
-
-  if (result.status === "cancelled") {
-    return {
-      ...currentState,
-      openState: "idle",
-      errorMessage: null
     };
   }
 
   return {
     ...currentState,
-    openState: "idle",
-    errorMessage: result.error.message
+    openState: "idle"
   };
 }
 
@@ -120,22 +107,12 @@ export function applySaveMarkdownResult(
       currentDocument: result.document,
       saveState: "idle",
       isDirty: false,
-      errorMessage: null,
       lastSavedContent: result.document.content
-    };
-  }
-
-  if (result.status === "cancelled") {
-    return {
-      ...currentState,
-      saveState: "idle",
-      errorMessage: null
     };
   }
 
   return {
     ...currentState,
-    saveState: "idle",
-    errorMessage: result.error.message
+    saveState: "idle"
   };
 }

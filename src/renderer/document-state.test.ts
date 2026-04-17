@@ -13,7 +13,7 @@ import {
 } from "./document-state";
 
 describe("applyOpenMarkdownResult", () => {
-  it("loads the returned document and clears the previous error", () => {
+  it("loads the returned document on success", () => {
     const nextState = applyOpenMarkdownResult(createInitialAppState(), {
       status: "success",
       document: {
@@ -26,7 +26,6 @@ describe("applyOpenMarkdownResult", () => {
 
     expect(nextState.currentDocument?.name).toBe("today.md");
     expect(nextState.currentDocument?.content).toBe("# Today\n");
-    expect(nextState.errorMessage).toBeNull();
     expect(nextState.openState).toBe("idle");
   });
 
@@ -42,18 +41,16 @@ describe("applyOpenMarkdownResult", () => {
       openState: "opening",
       saveState: "idle",
       isDirty: false,
-      errorMessage: "old error",
       lastSavedContent: "draft"
     };
 
     const nextState = applyOpenMarkdownResult(initialState, { status: "cancelled" });
 
     expect(nextState.currentDocument?.name).toBe("existing.md");
-    expect(nextState.errorMessage).toBeNull();
     expect(nextState.openState).toBe("idle");
   });
 
-  it("stores the error message when opening fails", () => {
+  it("keeps the current document when opening fails", () => {
     const nextState = applyOpenMarkdownResult(createInitialAppState(), {
       status: "error",
       error: {
@@ -63,7 +60,6 @@ describe("applyOpenMarkdownResult", () => {
     });
 
     expect(nextState.currentDocument).toBeNull();
-    expect(nextState.errorMessage).toBe("The Markdown file could not be read.");
     expect(nextState.openState).toBe("idle");
   });
 });
@@ -79,7 +75,6 @@ describe("applyEditorContentChanged", () => {
       encoding: "utf-8"
     });
     expect(nextState.isDirty).toBe(false);
-    expect(nextState.errorMessage).toBeNull();
     expect(nextState.editorLoadRevision).toBe(1);
   });
 
@@ -95,7 +90,6 @@ describe("applyEditorContentChanged", () => {
       openState: "idle",
       saveState: "idle",
       isDirty: false,
-      errorMessage: null,
       lastSavedContent: "# Today\n"
     };
 
@@ -174,10 +168,9 @@ describe("save document state", () => {
     expect(nextState.currentDocument?.content).toBe("# Updated\n");
     expect(nextState.isDirty).toBe(false);
     expect(nextState.saveState).toBe("idle");
-    expect(nextState.errorMessage).toBeNull();
   });
 
-  it("keeps dirty state when save fails", () => {
+  it("resets save state when save fails", () => {
     const initialState = applyEditorContentChanged(
       applyOpenMarkdownResult(createInitialAppState(), {
         status: "success",
@@ -200,36 +193,6 @@ describe("save document state", () => {
     });
 
     expect(nextState.isDirty).toBe(true);
-    expect(nextState.errorMessage).toBe("The Markdown file could not be saved.");
-    expect(nextState.saveState).toBe("idle");
-  });
-
-  it("keeps dirty state and stores an autosave-safe error message when autosave fails", () => {
-    const initialState = startAutosavingDocument(
-      applyEditorContentChanged(
-        applyOpenMarkdownResult(createInitialAppState(), {
-          status: "success",
-          document: {
-            path: "C:/notes/today.md",
-            name: "today.md",
-            content: "# Today\n",
-            encoding: "utf-8"
-          }
-        }),
-        "# Updated\n"
-      )
-    );
-
-    const nextState = applySaveMarkdownResult(initialState, {
-      status: "error",
-      error: {
-        code: "write-failed",
-        message: "Autosave failed. Changes are still in memory."
-      }
-    });
-
-    expect(nextState.isDirty).toBe(true);
-    expect(nextState.errorMessage).toBe("Autosave failed. Changes are still in memory.");
     expect(nextState.saveState).toBe("idle");
   });
 

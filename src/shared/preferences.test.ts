@@ -92,42 +92,6 @@ describe("normalizePreferences", () => {
     expect(normalizePreferences({ ui: { fontSize: "big" } }).ui.fontSize).toBeNull();
   });
 
-  it("migrates legacy editor font fields into the document settings", () => {
-    const result = normalizePreferences({
-      editor: {
-        fontFamily: "  IBM Plex Serif  ",
-        fontSize: 17.6
-      }
-    });
-
-    expect(result.document).toEqual({
-      fontFamily: "IBM Plex Serif",
-      cjkFontFamily: null,
-      fontSize: 18
-    });
-    expect(result.ui).toEqual(DEFAULT_PREFERENCES.ui);
-  });
-
-  it("prefers document fields over legacy editor fields when both are present", () => {
-    const result = normalizePreferences({
-      editor: {
-        fontFamily: "Legacy Serif",
-        fontSize: 14
-      },
-      document: {
-        fontFamily: "New Serif",
-        cjkFontFamily: "Source Han Serif SC",
-        fontSize: 18
-      }
-    });
-
-    expect(result.document).toEqual({
-      fontFamily: "New Serif",
-      cjkFontFamily: "Source Han Serif SC",
-      fontSize: 18
-    });
-  });
-
   it("only accepts known theme modes and falls back to system otherwise", () => {
     expect(normalizePreferences({ theme: { mode: "dark" } }).theme.mode).toBe("dark");
     expect(normalizePreferences({ theme: { mode: "light" } }).theme.mode).toBe("light");
@@ -163,7 +127,6 @@ describe("normalizePreferences", () => {
       autosave: { idleDelayMs: 2000, extra: true },
       ui: { fontSize: 18, extra: true },
       document: { fontFamily: "Mono", cjkFontFamily: "Source Han Sans SC", fontSize: null, unknown: "x" },
-      editor: { fontFamily: "Legacy Mono", fontSize: 12, unknown: "x" },
       surprise: { nested: 1 }
     });
 

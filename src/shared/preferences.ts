@@ -141,23 +141,6 @@ function normalizeFontSize(value: unknown): number | null {
   return clampInteger(value, FONT_SIZE_MIN, FONT_SIZE_MAX);
 }
 
-function hasOwnProperty(source: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(source, key);
-}
-
-function resolveMigratedValue(
-  primarySource: Record<string, unknown>,
-  primaryKey: string,
-  fallbackSource: Record<string, unknown>,
-  fallbackKey: string
-): unknown {
-  if (hasOwnProperty(primarySource, primaryKey)) {
-    return primarySource[primaryKey];
-  }
-
-  return fallbackSource[fallbackKey];
-}
-
 function normalizeThemeMode(value: unknown): ThemeMode {
   if (typeof value !== "string") {
     return DEFAULT_PREFERENCES.theme.mode;
@@ -199,7 +182,6 @@ export function normalizePreferences(raw: unknown): Preferences {
   const recentFilesSource = isRecord(source.recentFiles) ? source.recentFiles : {};
   const uiSource = isRecord(source.ui) ? source.ui : {};
   const documentSource = isRecord(source.document) ? source.document : {};
-  const legacyEditorSource = isRecord(source.editor) ? source.editor : {};
   const themeSource = isRecord(source.theme) ? source.theme : {};
 
   return {
@@ -214,13 +196,9 @@ export function normalizePreferences(raw: unknown): Preferences {
       fontSize: normalizeFontSize(uiSource.fontSize)
     },
     document: {
-      fontFamily: normalizeFontFamily(
-        resolveMigratedValue(documentSource, "fontFamily", legacyEditorSource, "fontFamily")
-      ),
+      fontFamily: normalizeFontFamily(documentSource.fontFamily),
       cjkFontFamily: normalizeFontFamily(documentSource.cjkFontFamily),
-      fontSize: normalizeFontSize(
-        resolveMigratedValue(documentSource, "fontSize", legacyEditorSource, "fontSize")
-      )
+      fontSize: normalizeFontSize(documentSource.fontSize)
     },
     theme: {
       mode: normalizeThemeMode(themeSource.mode),

@@ -88,27 +88,6 @@ describe("loadPreferencesFromDisk", () => {
     });
   });
 
-  it("migrates legacy editor font settings into the document settings", async () => {
-    const deps = createDependencies({
-      readFile: vi.fn().mockResolvedValue(
-        JSON.stringify({
-          version: 1,
-          editor: { fontFamily: "IBM Plex Serif", fontSize: 19 }
-        })
-      )
-    });
-
-    const result = await loadPreferencesFromDisk(FILE_PATH, deps);
-
-    expect(result.source).toBe("parsed");
-    expect(result.preferences.ui).toEqual(DEFAULT_PREFERENCES.ui);
-    expect(result.preferences.document).toEqual({
-      fontFamily: "IBM Plex Serif",
-      cjkFontFamily: null,
-      fontSize: 19
-    });
-  });
-
   it("clamps out-of-range values when parsing", async () => {
     const deps = createDependencies({
       readFile: vi.fn().mockResolvedValue(

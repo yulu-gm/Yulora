@@ -53,8 +53,6 @@ const UI_FONT_SIZE_CSS_VAR = "--yulora-ui-font-size";
 const DOCUMENT_FONT_FAMILY_CSS_VAR = "--yulora-document-font-family";
 const DOCUMENT_CJK_FONT_FAMILY_CSS_VAR = "--yulora-document-cjk-font-family";
 const DOCUMENT_FONT_SIZE_CSS_VAR = "--yulora-document-font-size";
-const LEGACY_EDITOR_FONT_FAMILY_CSS_VAR = "--yulora-editor-font-family";
-const LEGACY_EDITOR_FONT_SIZE_CSS_VAR = "--yulora-editor-font-size";
 const OUTLINE_EXIT_ANIMATION_MS = 180;
 const SETTINGS_DRAWER_EXIT_ANIMATION_MS = 180;
 const APP_NOTIFICATION_DURATION_MS = 3000;
@@ -125,10 +123,8 @@ function applyPreferencesToDocument(
 
   if (preferences.document.fontFamily) {
     root.style.setProperty(DOCUMENT_FONT_FAMILY_CSS_VAR, preferences.document.fontFamily);
-    root.style.setProperty(LEGACY_EDITOR_FONT_FAMILY_CSS_VAR, preferences.document.fontFamily);
   } else {
     root.style.removeProperty(DOCUMENT_FONT_FAMILY_CSS_VAR);
-    root.style.removeProperty(LEGACY_EDITOR_FONT_FAMILY_CSS_VAR);
   }
 
   if (preferences.document.cjkFontFamily) {
@@ -138,12 +134,9 @@ function applyPreferencesToDocument(
   }
 
   if (preferences.document.fontSize !== null) {
-    const value = `${preferences.document.fontSize}px`;
-    root.style.setProperty(DOCUMENT_FONT_SIZE_CSS_VAR, value);
-    root.style.setProperty(LEGACY_EDITOR_FONT_SIZE_CSS_VAR, value);
+    root.style.setProperty(DOCUMENT_FONT_SIZE_CSS_VAR, `${preferences.document.fontSize}px`);
   } else {
     root.style.removeProperty(DOCUMENT_FONT_SIZE_CSS_VAR);
-    root.style.removeProperty(LEGACY_EDITOR_FONT_SIZE_CSS_VAR);
   }
 }
 
@@ -154,8 +147,6 @@ function clearDocumentPreferences(root: HTMLElement): void {
   root.style.removeProperty(DOCUMENT_FONT_FAMILY_CSS_VAR);
   root.style.removeProperty(DOCUMENT_CJK_FONT_FAMILY_CSS_VAR);
   root.style.removeProperty(DOCUMENT_FONT_SIZE_CSS_VAR);
-  root.style.removeProperty(LEGACY_EDITOR_FONT_FAMILY_CSS_VAR);
-  root.style.removeProperty(LEGACY_EDITOR_FONT_SIZE_CSS_VAR);
 }
 
 function toRuntimeThemeDescriptorForMode(
@@ -296,8 +287,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const notificationHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
-  const hasLoadedFontFamiliesRef = useRef(false);
-  const isLoadingFontFamiliesRef = useRef(false);
+  const fontFamilyLoadStateRef = useRef<"idle" | "loading" | "loaded">("idle");
   const currentDocumentContent = state.currentDocument
     ? (editorContentRef.current || state.currentDocument.content)
     : "";
@@ -310,11 +300,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const hintText =
     state.openState === "opening"
       ? "Opening document..."
-      : state.currentDocument
-        ? state.currentDocument.path
-          ? "Use File to open, save, or save as."
-          : "Use File > Save to choose where to create this Markdown document."
-        : "Use File > Open... to load a Markdown document.";
+      : "Use File > Open... to load a Markdown document.";
   const headerEyebrow = isDocumentOpen ? "Current document" : "Yulora";
   const headerTitle = isDocumentOpen
     ? state.currentDocument?.name ?? "Untitled"
@@ -438,23 +424,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       content: getEditorContent()
     });
 
-    const effectiveResult =
-      result.status === "error"
-        ? {
-            ...result,
-            error: {
-              ...result.error,
-              message: AUTOSAVE_FAILED_MESSAGE
-            }
-          }
-        : result;
+    if (result.status === "error") {
+      showNotification({ kind: "error", message: AUTOSAVE_FAILED_MESSAGE });
+    }
 
     const currentEditorContent = getEditorContent();
 
     applyState((current) => {
-      const savedState = applySaveMarkdownResult(current, effectiveResult);
+      const savedState = applySaveMarkdownResult(current, result);
 
-      return effectiveResult.status === "success"
+      return result.status === "success"
         ? applyEditorContentChanged(savedState, currentEditorContent)
         : savedState;
     });
@@ -501,6 +480,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
     const result = await request();
 
+    if (result.status === "error") {
+      showNotification({ kind: "error", message: result.error.message });
+    }
+
     const currentEditorContent = getEditorContent();
 
     applyState((current) => {
@@ -525,33 +508,28 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   });
 
   const handleLoadFontFamilies = useEffectEvent(async (): Promise<void> => {
-    if (hasLoadedFontFamiliesRef.current || isLoadingFontFamiliesRef.current) {
+    if (fontFamilyLoadStateRef.current !== "idle") {
       return;
     }
 
-    isLoadingFontFamiliesRef.current = true;
+    fontFamilyLoadStateRef.current = "loading";
 
     try {
       const nextFontFamilies = await yulora.listFontFamilies();
-      hasLoadedFontFamiliesRef.current = true;
+      fontFamilyLoadStateRef.current = "loaded";
       setFontFamilies(nextFontFamilies);
     } catch {
       // Keep the dropdowns usable with their fallback options.
-    } finally {
-      isLoadingFontFamiliesRef.current = false;
+      fontFamilyLoadStateRef.current = "idle";
     }
   });
-
-  function syncThemes(nextThemes: ThemeCatalogEntry[]): void {
-    setThemes(nextThemes);
-  }
 
   async function handleRefreshThemes(): Promise<void> {
     setIsRefreshingThemes(true);
 
     try {
       const nextThemes = await yulora.refreshThemes();
-      syncThemes(nextThemes);
+      setThemes(nextThemes);
     } finally {
       setIsRefreshingThemes(false);
     }
@@ -625,6 +603,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       editorContentRef.current = result.document.content;
       setOutlineItems(deriveOutlineItems(result.document.content));
       setActiveHeadingId(null);
+    } else if (result.status === "error") {
+      showNotification({ kind: "error", message: result.error.message });
     }
 
     applyState((current) => applyOpenMarkdownResult(current, result));
@@ -649,6 +629,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       editorContentRef.current = result.document.content;
       setOutlineItems(deriveOutlineItems(result.document.content));
       setActiveHeadingId(null);
+    } else if (result.status === "error") {
+      showNotification({ kind: "error", message: result.error.message });
     }
 
     applyState((current) => applyOpenMarkdownResult(current, result));
@@ -751,17 +733,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     });
 
     if (result.status === "success") {
-      applyState((current) => ({
-        ...current,
-        errorMessage: null
-      }));
       return result.markdown;
     }
 
-    applyState((current) => ({
-      ...current,
-      errorMessage: result.error.message
-    }));
+    showNotification({ kind: "error", message: result.error.message });
     return null;
   }
 
@@ -868,7 +843,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           return;
         }
 
-        syncThemes(nextThemes);
+        setThemes(nextThemes);
       })
       .catch(() => {
         // Keep the builtin theme active when the catalog is unavailable.
@@ -1099,15 +1074,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             {!isDocumentOpen ? <p className="app-hint">{hintText}</p> : null}
           </header>
 
-          {state.errorMessage ? (
-            <p
-              className="error-banner"
-              role="alert"
-            >
-              {state.errorMessage}
-            </p>
-          ) : null}
-
           <section
             className="workspace-canvas"
             data-yulora-region="workspace-canvas"
@@ -1270,7 +1236,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
               <p className="document-word-count">
                 字数 {currentDocumentMetrics?.meaningfulCharacterCount ?? 0}
               </p>
-              <p className="document-platform">Bridge: {yulora.platform}</p>
             </div>
           </footer>
         </div>

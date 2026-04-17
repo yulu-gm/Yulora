@@ -61,28 +61,6 @@ describe("createPreferencesService", () => {
     expect(service.getPreferences().theme.selectedId).toBe("graphite");
   });
 
-  it("migrates legacy editor fields when loading cached preferences from disk", async () => {
-    const dependencies = createDeps({
-      readFile: vi
-        .fn()
-        .mockResolvedValue(
-          JSON.stringify({
-            editor: { fontFamily: "Source Serif 4", fontSize: 18 }
-          })
-        )
-    });
-    const service = createPreferencesService({ userDataDir: USER_DATA_DIR, dependencies });
-
-    const loadResult = await service.initialize();
-
-    expect(loadResult.source).toBe("parsed");
-    expect(service.getPreferences().document).toEqual({
-      fontFamily: "Source Serif 4",
-      cjkFontFamily: null,
-      fontSize: 18
-    });
-  });
-
   it("only reads from disk once even when initialize is called repeatedly", async () => {
     const readFile = vi.fn().mockResolvedValue(serializePreferences(DEFAULT_PREFERENCES));
     const service = createPreferencesService({

@@ -110,6 +110,14 @@ function enqueueLaunchOpenPath(targetPath: string): void {
   pendingLaunchOpenPaths.push(targetPath);
 }
 
+function handleLaunchOpenPath(targetPath: string): void {
+  if (openEditorWindowForLaunchPath) {
+    openEditorWindowForLaunchPath(targetPath);
+  } else {
+    enqueueLaunchOpenPath(targetPath);
+  }
+}
+
 function handleLaunchOpenFromArgv(argv: string[]): boolean {
   const launchPath = resolveMarkdownLaunchPathFromArgv(argv);
 
@@ -117,12 +125,7 @@ function handleLaunchOpenFromArgv(argv: string[]): boolean {
     return false;
   }
 
-  if (openEditorWindowForLaunchPath) {
-    openEditorWindowForLaunchPath(launchPath);
-    return true;
-  }
-
-  enqueueLaunchOpenPath(launchPath);
+  handleLaunchOpenPath(launchPath);
   return true;
 }
 
@@ -137,7 +140,7 @@ if (!hasSingleInstanceLock) {
 
   app.on("open-file", (event, targetPath) => {
     event.preventDefault();
-    void handleLaunchOpenFromArgv(["yulora", targetPath]);
+    handleLaunchOpenPath(targetPath);
   });
 }
 
