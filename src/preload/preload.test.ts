@@ -16,6 +16,14 @@ vi.mock("electron", () => ({
   }
 }));
 
+async function loadApi() {
+  await import("./preload");
+
+  expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
+  const [, api] = exposeInMainWorld.mock.calls[0] ?? [];
+  return api;
+}
+
 describe("preload bridge", () => {
   beforeEach(() => {
     exposeInMainWorld.mockClear();
@@ -37,5 +45,15 @@ describe("preload bridge", () => {
       onScenarioRunEvent: expect.any(Function),
       onScenarioRunTerminal: expect.any(Function)
     });
+  });
+
+  it("wires theme package discovery and refresh IPC channels", async () => {
+    const api = await loadApi();
+
+    void api.listThemePackages();
+    void api.refreshThemePackages();
+
+    expect(invoke.mock.calls).toContainEqual(["yulora:list-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual(["yulora:refresh-theme-packages"]);
   });
 });

@@ -21,6 +21,8 @@ const PREFERENCES_CHANGED_EVENT = "yulora:preferences-changed";
 const LIST_FONT_FAMILIES_CHANNEL = "yulora:list-font-families";
 const LIST_THEMES_CHANNEL = "yulora:list-themes";
 const REFRESH_THEMES_CHANNEL = "yulora:refresh-themes";
+const LIST_THEME_PACKAGES_CHANNEL = "yulora:list-theme-packages";
+const REFRESH_THEME_PACKAGES_CHANNEL = "yulora:refresh-theme-packages";
 const CHECK_FOR_APP_UPDATES_CHANNEL = "yulora:check-for-app-updates";
 const APP_UPDATE_STATE_EVENT = "yulora:app-update-state";
 const APP_NOTIFICATION_EVENT = "yulora:app-notification";
@@ -125,6 +127,30 @@ type ThemeDescriptor = {
         markdown: string;
       }>;
     };
+  };
+};
+
+type ThemePackageDescriptor = {
+  id: string;
+  kind: "manifest-package" | "legacy-css-family";
+  source: "builtin" | "community";
+  packageRoot: string;
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    author: string | null;
+    supports: { light: boolean; dark: boolean };
+    tokens: Partial<Record<"light" | "dark", string>>;
+    styles: Partial<Record<"ui" | "editor" | "markdown" | "titlebar", string>>;
+    layout: { titlebar: string | null };
+    scene: { id: string; sharedUniforms: Record<string, number> } | null;
+    surfaces: Partial<
+      Record<
+        "workbenchBackground" | "titlebarBackdrop" | "welcomeHero",
+        { kind: "fragment"; scene: string; shader: string }
+      >
+    >;
   };
 };
 
@@ -316,6 +342,10 @@ const api = {
   listFontFamilies: (): Promise<string[]> => ipcRenderer.invoke(LIST_FONT_FAMILIES_CHANNEL),
   listThemes: (): Promise<ThemeDescriptor[]> => ipcRenderer.invoke(LIST_THEMES_CHANNEL),
   refreshThemes: (): Promise<ThemeDescriptor[]> => ipcRenderer.invoke(REFRESH_THEMES_CHANNEL),
+  listThemePackages: (): Promise<ThemePackageDescriptor[]> =>
+    ipcRenderer.invoke(LIST_THEME_PACKAGES_CHANNEL),
+  refreshThemePackages: (): Promise<ThemePackageDescriptor[]> =>
+    ipcRenderer.invoke(REFRESH_THEME_PACKAGES_CHANNEL),
   checkForUpdates: (): Promise<void> => ipcRenderer.invoke(CHECK_FOR_APP_UPDATES_CHANNEL),
   onPreferencesChanged: (listener: (preferences: Preferences) => void) => {
     const handlePreferencesChanged = (_event: unknown, preferences: Preferences) => {
