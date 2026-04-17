@@ -1,6 +1,9 @@
-import EditorApp from "./editor/App";
+import { Suspense, lazy } from "react";
+
 import { resolveRuntimeMode } from "./runtime-mode";
-import WorkbenchApp from "./workbench/App";
+
+const EditorApp = lazy(() => import("./editor/App"));
+const WorkbenchApp = lazy(() => import("./workbench/App"));
 
 export default function App() {
   const runtimeMode = resolveRuntimeMode({
@@ -8,5 +11,9 @@ export default function App() {
     bridgeMode: window.yulora?.runtimeMode
   });
 
-  return runtimeMode === "test-workbench" ? <WorkbenchApp /> : <EditorApp />;
+  return (
+    <Suspense fallback={null}>
+      {runtimeMode === "test-workbench" ? <WorkbenchApp /> : <EditorApp />}
+    </Suspense>
+  );
 }

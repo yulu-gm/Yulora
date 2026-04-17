@@ -74,7 +74,6 @@ const LIST_THEMES_CHANNEL = "yulora:list-themes";
 const REFRESH_THEMES_CHANNEL = "yulora:refresh-themes";
 const AUTO_UPDATE_STARTUP_DELAY_MS = 5000;
 registerPreviewAssetScheme({ protocol });
-registerPreviewAssetScheme({ protocol });
 configureMainProcessRuntime(app, process.env);
 const hasSingleInstanceLock = shouldRequestSingleInstanceLock(process.env)
   ? app.requestSingleInstanceLock()
@@ -172,7 +171,6 @@ app.whenReady().then(async () => {
   const fontCatalogService = createFontCatalogService({
     platform: process.platform
   });
-  await themeService.listThemes();
 
   if (initialPreferences.source === "recovered-from-corrupt") {
     console.warn(

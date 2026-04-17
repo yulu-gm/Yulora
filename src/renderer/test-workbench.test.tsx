@@ -146,10 +146,21 @@ describe("Test workbench shell", () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = false;
   });
 
-  it("renders the test workbench panels instead of the editor shell", async () => {
+  async function renderApp(): Promise<void> {
     await act(async () => {
       root.render(createElement(App));
     });
+
+    await vi.dynamicImportSettled();
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  it("renders the test workbench panels instead of the editor shell", async () => {
+    await renderApp();
 
     expect(container.textContent).toContain("Yulora Test Workbench");
     expect(container.textContent).toContain("Scenario Catalog");
@@ -163,9 +174,7 @@ describe("Test workbench shell", () => {
   });
 
   it("shows scenario detail for the selected scenario", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     const items = container.querySelectorAll<HTMLButtonElement>(".scenario-list-item");
     expect(items.length).toBeGreaterThanOrEqual(2);
@@ -182,9 +191,7 @@ describe("Test workbench shell", () => {
   });
 
   it("starts the selected scenario through the run bridge and renders live events", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     const runButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
       (button) => button.textContent?.includes("Run Selected Scenario")
@@ -221,9 +228,7 @@ describe("Test workbench shell", () => {
   });
 
   it("renders terminal failure details from the subscribed run stream", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     const runButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
       (button) => button.textContent?.includes("Run Selected Scenario")
@@ -281,9 +286,7 @@ describe("Test workbench shell", () => {
   });
 
   it("interrupts the active run through the run bridge", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     const runButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
       (button) => button.textContent?.includes("Run Selected Scenario")
@@ -307,9 +310,7 @@ describe("Test workbench shell", () => {
   });
 
   it("requests a dedicated editor window when the launch button is clicked", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     const launchButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
       (button) => button.textContent?.includes("Open Editor Test Window")
@@ -327,9 +328,7 @@ describe("Test workbench shell", () => {
     // @ts-expect-error test intentionally removes the preload bridge
     delete window.yulora;
 
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     expect(container.textContent).toContain("Yulora Test Workbench");
     expect(container.textContent).toContain("bridge unavailable");

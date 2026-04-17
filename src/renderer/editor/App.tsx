@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
@@ -28,7 +28,11 @@ import {
   startOpeningMarkdownFile
 } from "../document-state";
 import { getDocumentMetrics } from "../document-metrics";
-import { SettingsView } from "./settings-view";
+
+const SettingsView = lazy(async () => {
+  const module = await import("./settings-view");
+  return { default: module.SettingsView };
+});
 
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
 type ThemeCatalogEntry = Awaited<ReturnType<Window["yulora"]["listThemes"]>>[number];
@@ -193,6 +197,20 @@ function resolveThemeWarningMessage(
   return null;
 }
 
+function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "closing" }) {
+  return (
+    <section
+      className="settings-shell"
+      data-yulora-panel="settings-drawer"
+      data-yulora-surface="floating-drawer"
+      data-state={surfaceState}
+      role="dialog"
+      aria-modal="true"
+      aria-busy="true"
+    />
+  );
+}
+
 export default function EditorApp() {
   const yulora = window.yulora;
 
@@ -240,6 +258,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const notificationHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
+  const hasLoadedFontFamiliesRef = useRef(false);
+  const isLoadingFontFamiliesRef = useRef(false);
   const currentDocumentContent = state.currentDocument
     ? (editorContentRef.current || state.currentDocument.content)
     : "";
@@ -464,6 +484,24 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     preferencesRef.current = nextPreferences;
     setPreferences(nextPreferences);
     scheduleAutosave(stateRef.current);
+  });
+
+  const handleLoadFontFamilies = useEffectEvent(async (): Promise<void> => {
+    if (hasLoadedFontFamiliesRef.current || isLoadingFontFamiliesRef.current) {
+      return;
+    }
+
+    isLoadingFontFamiliesRef.current = true;
+
+    try {
+      const nextFontFamilies = await yulora.listFontFamilies();
+      hasLoadedFontFamiliesRef.current = true;
+      setFontFamilies(nextFontFamilies);
+    } catch {
+      // Keep the dropdowns usable with their fallback options.
+    } finally {
+      isLoadingFontFamiliesRef.current = false;
+    }
   });
 
   function syncThemes(nextThemes: ThemeCatalogEntry[]): void {
@@ -725,18 +763,30 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   useEffect(() => {
     let isCancelled = false;
 
-    void Promise.all([yulora.getPreferences(), yulora.listFontFamilies(), yulora.listThemes()])
-      .then(([nextPreferences, nextFontFamilies, nextThemes]) => {
+    void yulora
+      .getPreferences()
+      .then((nextPreferences) => {
         if (isCancelled) {
           return;
         }
 
-        setFontFamilies(nextFontFamilies);
         handlePreferencesSync(nextPreferences);
-        syncThemes(nextThemes);
       })
       .catch(() => {
         // Keep defaults when the bridge is temporarily unavailable.
+      });
+
+    void yulora
+      .listThemes()
+      .then((nextThemes) => {
+        if (isCancelled) {
+          return;
+        }
+
+        syncThemes(nextThemes);
+      })
+      .catch(() => {
+        // Keep the builtin theme active when the catalog is unavailable.
       });
 
     const detach = yulora.onPreferencesChanged((nextPreferences) => {
@@ -748,6 +798,14 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       detach();
     };
   }, [yulora]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    void handleLoadFontFamilies();
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     const themeRuntime = themeRuntimeRef.current ?? createThemeRuntime(document);
@@ -1141,16 +1199,22 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           onClick={closeSettingsDrawer}
         >
           <div onClick={(event) => event.stopPropagation()}>
-            <SettingsView
-              surfaceState={isSettingsOpen ? "open" : "closing"}
-              preferences={preferences}
-              fontFamilies={fontFamilies}
-              themes={themes}
-              isRefreshingThemes={isRefreshingThemes}
-              onRefreshThemes={handleRefreshThemes}
-              onUpdate={(patch) => yulora.updatePreferences(patch)}
-              onClose={closeSettingsDrawer}
-            />
+            <Suspense
+              fallback={
+                <SettingsDrawerFallback surfaceState={isSettingsOpen ? "open" : "closing"} />
+              }
+            >
+              <SettingsView
+                surfaceState={isSettingsOpen ? "open" : "closing"}
+                preferences={preferences}
+                fontFamilies={fontFamilies}
+                themes={themes}
+                isRefreshingThemes={isRefreshingThemes}
+                onRefreshThemes={handleRefreshThemes}
+                onUpdate={(patch) => yulora.updatePreferences(patch)}
+                onClose={closeSettingsDrawer}
+              />
+            </Suspense>
           </div>
         </div>
       ) : null}

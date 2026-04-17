@@ -22,15 +22,33 @@ let writeAppUpdateMetadata: (input: {
   builderConfig: Record<string, unknown>;
 }) => Promise<void>;
 let writeLatestReleaseMetadata: (input: { projectDir: string; version: string }) => Promise<void>;
+let loadReleaseNotes: (input: { projectDir: string; version: string }) => Promise<{
+  version: string;
+  title: string;
+  body: string;
+}>;
+let ensureRelease: (input: {
+  owner: string;
+  repo: string;
+  version: string;
+  token: string;
+  releaseNotes: {
+    version: string;
+    title: string;
+    body: string;
+  };
+}) => Promise<{ html_url?: string }>;
 
 beforeAll(async () => {
   const moduleUrl = pathToFileURL(path.join(process.cwd(), "scripts", "build-win-release.mjs")).href;
-  const releaseScriptModule = await import(moduleUrl);
+  const releaseScriptModule = (await import(moduleUrl)) as Record<string, unknown>;
 
-  buildWindowsArtifacts = releaseScriptModule.buildWindowsArtifacts;
-  preparePackagedWindowsApp = releaseScriptModule.preparePackagedWindowsApp;
-  writeAppUpdateMetadata = releaseScriptModule.writeAppUpdateMetadata;
-  writeLatestReleaseMetadata = releaseScriptModule.writeLatestReleaseMetadata;
+  buildWindowsArtifacts = releaseScriptModule.buildWindowsArtifacts as typeof buildWindowsArtifacts;
+  preparePackagedWindowsApp = releaseScriptModule.preparePackagedWindowsApp as typeof preparePackagedWindowsApp;
+  writeAppUpdateMetadata = releaseScriptModule.writeAppUpdateMetadata as typeof writeAppUpdateMetadata;
+  writeLatestReleaseMetadata = releaseScriptModule.writeLatestReleaseMetadata as typeof writeLatestReleaseMetadata;
+  loadReleaseNotes = releaseScriptModule.loadReleaseNotes as typeof loadReleaseNotes;
+  ensureRelease = releaseScriptModule.ensureRelease as typeof ensureRelease;
 });
 
 afterEach(() => {
@@ -58,6 +76,66 @@ function createBuilderConfig() {
 }
 
 describe("build-win-release", () => {
+  it("loads release notes from project metadata for the target version", async () => {
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const metadataDirectory = path.join(tempDirectory, "release-metadata");
+
+    createdDirectories.push(tempDirectory);
+    mkdirSync(metadataDirectory, { recursive: true });
+    writeFileSync(
+      path.join(metadataDirectory, "release-notes.json"),
+      JSON.stringify(
+        {
+          version: "0.1.2",
+          title: "Yulora 0.1.2 Release",
+          body: "### 本次更新\n\n- 改进发布流程。"
+        },
+        null,
+        2
+      )
+    );
+
+    await expect(loadReleaseNotes({ projectDir: tempDirectory, version: "0.1.2" })).resolves.toEqual({
+      version: "0.1.2",
+      title: "Yulora 0.1.2 Release",
+      body: "### 本次更新\n\n- 改进发布流程。"
+    });
+  });
+
+  it("fails when release notes metadata is missing", async () => {
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+
+    createdDirectories.push(tempDirectory);
+
+    await expect(loadReleaseNotes({ projectDir: tempDirectory, version: "0.1.2" })).rejects.toThrow(
+      "release-metadata/release-notes.json"
+    );
+  });
+
+  it("fails when release notes metadata version does not match package.json", async () => {
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const metadataDirectory = path.join(tempDirectory, "release-metadata");
+
+    createdDirectories.push(tempDirectory);
+    mkdirSync(metadataDirectory, { recursive: true });
+    writeFileSync(
+      path.join(metadataDirectory, "release-notes.json"),
+      JSON.stringify(
+        {
+          version: "0.1.1",
+          title: "Yulora 0.1.1 Release",
+          body: "### 本次更新\n\n- 旧版本说明。"
+        },
+        null,
+        2
+      )
+    );
+
+    await expect(loadReleaseNotes({ projectDir: tempDirectory, version: "0.1.2" })).rejects.toThrow(
+      "does not match package.json version 0.1.2"
+    );
+  });
+
   it("writes app-update metadata into the packaged resources directory", async () => {
     const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
     const appOutDirectory = path.join(tempDirectory, "win-unpacked");
@@ -158,5 +236,57 @@ describe("build-win-release", () => {
     });
 
     expect(steps).toEqual(["doPack", "prepare", "package"]);
+  });
+
+  it("creates a GitHub release using the structured release note title and body", async () => {
+    const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith("/releases/tags/v0.1.2")) {
+        return {
+          status: 404,
+          ok: false,
+          statusText: "Not Found"
+        };
+      }
+
+      if (url.endsWith("/releases")) {
+        expect(init?.method).toBe("POST");
+        expect(JSON.parse(String(init?.body))).toMatchObject({
+          tag_name: "v0.1.2",
+          name: "Yulora 0.1.2 Release",
+          body: "### 本次更新\n\n- 改进发布流程。",
+          draft: false,
+          prerelease: false
+        });
+
+        return {
+          ok: true,
+          json: async () => ({ html_url: "https://example.test/release/v0.1.2" })
+        };
+      }
+
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      ensureRelease({
+        owner: "yulu-gm",
+        repo: "Yulora",
+        version: "0.1.2",
+        token: "token",
+        releaseNotes: {
+          version: "0.1.2",
+          title: "Yulora 0.1.2 Release",
+          body: "### 本次更新\n\n- 改进发布流程。"
+        }
+      })
+    ).resolves.toMatchObject({
+      html_url: "https://example.test/release/v0.1.2"
+    });
+
+    vi.unstubAllGlobals();
   });
 });

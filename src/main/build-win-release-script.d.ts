@@ -1,4 +1,13 @@
 declare module "../../scripts/build-win-release.mjs" {
+  export function loadReleaseNotes(input: {
+    projectDir: string;
+    version: string;
+  }): Promise<{
+    version: string;
+    title: string;
+    body: string;
+  }>;
+
   export function buildWindowsArtifacts(input: {
     projectDir: string;
     builderConfig: Record<string, unknown>;
@@ -29,4 +38,20 @@ declare module "../../scripts/build-win-release.mjs" {
     projectDir: string;
     version: string;
   }): Promise<void>;
+
+  export function ensureRelease(input: {
+    owner: string;
+    repo: string;
+    version: string;
+    token: string;
+    releaseNotes: {
+      version: string;
+      title: string;
+      body: string;
+    };
+  }): Promise<{
+    html_url?: string;
+    upload_url?: string;
+    assets?: Array<{ id: number; name: string }>;
+  }>;
 }

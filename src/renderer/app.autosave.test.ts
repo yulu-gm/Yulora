@@ -355,6 +355,19 @@ describe("App autosave", () => {
     vi.useRealTimers();
   });
 
+  async function renderApp(): Promise<void> {
+    await act(async () => {
+      root.render(createElement(App));
+    });
+
+    await vi.dynamicImportSettled();
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
   it("does not autosave a clean document immediately after opening", async () => {
     await renderAndOpenDocument();
 
@@ -383,21 +396,14 @@ describe("App autosave", () => {
       startupOpenPath: "C:/notes/startup.md"
     } as unknown as Window["yulora"];
 
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(openMarkdownFileFromPath).toHaveBeenCalledTimes(1);
     expect(openMarkdownFileFromPath).toHaveBeenCalledWith("C:/notes/startup.md");
   });
 
   it("opens a new untitled document from the File menu", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(menuCommandListener).not.toBeNull();
 
@@ -423,11 +429,7 @@ describe("App autosave", () => {
       }
     });
 
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(menuCommandListener).not.toBeNull();
 
@@ -698,11 +700,7 @@ describe("App autosave", () => {
       })
     } as Window["yulora"];
 
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(document.documentElement.dataset.yuloraTheme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
@@ -716,7 +714,7 @@ describe("App autosave", () => {
     expect(document.documentElement.style.getPropertyValue("--yulora-document-font-size")).toBe(
       "18px"
     );
-    expect(listFontFamilies).toHaveBeenCalledTimes(1);
+    expect(listFontFamilies).not.toHaveBeenCalled();
     expect(
       document.head
         .querySelector('link[data-yulora-theme-part="tokens"]')
@@ -725,11 +723,7 @@ describe("App autosave", () => {
   });
 
   it("updates theme variables and mounted stylesheets when preferences change", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(preferencesChangedListener).not.toBeNull();
 
@@ -777,11 +771,7 @@ describe("App autosave", () => {
       })
     } as Window["yulora"];
 
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(
       document.head
@@ -792,17 +782,15 @@ describe("App autosave", () => {
   });
 
   it("renders the theme package selector and refreshes the theme catalog from settings", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
     expect(settingsButton).not.toBeNull();
 
     await act(async () => {
       settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await vi.dynamicImportSettled();
+      await Promise.resolve();
       await Promise.resolve();
     });
 
@@ -871,11 +859,7 @@ describe("App autosave", () => {
       listThemes: vi.fn().mockResolvedValue(darkOnlyThemes)
     } as Window["yulora"];
 
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     expect(preferencesChangedListener).not.toBeNull();
 
@@ -912,11 +896,7 @@ describe("App autosave", () => {
   });
 
   it("marks recent-files capacity as pending TASK-006 in settings", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
     expect(settingsButton).not.toBeNull();
@@ -1085,11 +1065,7 @@ describe("App autosave", () => {
   });
 
   it("renders the empty state inside a shared workspace canvas", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
     const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
@@ -1292,11 +1268,7 @@ describe("App autosave", () => {
   });
 
   it("renders settings as a drawer panel with close affordance while keeping existing controls", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
     expect(settingsButton).not.toBeNull();
@@ -1329,11 +1301,7 @@ describe("App autosave", () => {
   });
 
   it("updates document font presets through dropdowns only", async () => {
-    await act(async () => {
-      root.render(createElement(App));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
     expect(settingsButton).not.toBeNull();
@@ -1374,12 +1342,35 @@ describe("App autosave", () => {
     });
   });
 
-  it("marks settings as a floating drawer overlay surface", async () => {
+  it("loads font families only after the settings drawer opens", async () => {
+    await renderApp();
+
+    expect(listFontFamilies).not.toHaveBeenCalled();
+
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+    expect(settingsButton).not.toBeNull();
+
     await act(async () => {
-      root.render(createElement(App));
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await Promise.resolve();
       await Promise.resolve();
     });
+
+    expect(listFontFamilies).toHaveBeenCalledTimes(1);
+
+    const documentFontSelect = container.querySelector<HTMLSelectElement>("#settings-document-font-preset");
+    const documentCjkFontSelect = container.querySelector<HTMLSelectElement>("#settings-document-cjk-font-preset");
+
+    expect(
+      Array.from(documentFontSelect?.options ?? []).map((option) => option.value)
+    ).toContain("Segoe UI");
+    expect(
+      Array.from(documentCjkFontSelect?.options ?? []).map((option) => option.value)
+    ).toContain("霞鹜文楷");
+  });
+
+  it("marks settings as a floating drawer overlay surface", async () => {
+    await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
     expect(settingsButton).not.toBeNull();
@@ -1563,9 +1554,7 @@ describe("App autosave", () => {
   });
 
   async function renderAndOpenDocument(): Promise<void> {
-    await act(async () => {
-      root.render(createElement(App));
-    });
+    await renderApp();
 
     expect(menuCommandListener).not.toBeNull();
 

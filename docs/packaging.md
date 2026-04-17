@@ -36,6 +36,29 @@ tools\package-win.bat
 2. `npm run generate:icons`
 3. `node scripts/build-win-release.mjs package`
 
+### 正式发版元数据
+
+Windows 正式发版额外依赖两份元数据：
+
+- `package.json` 中的 `version`
+- `release-metadata/release-notes.json`
+
+其中 `release-metadata/release-notes.json` 是 GitHub Release 标题与正文的唯一输入，推荐结构：
+
+```json
+{
+  "version": "0.1.2",
+  "title": "Yulora 0.1.2 Release",
+  "body": "### 本次更新\n\n- ...\n- ..."
+}
+```
+
+约束：
+
+- 正式发版前必须同步更新 `package.json` 与 `release-metadata/release-notes.json` 的版本号
+- `release:win` 会在真正发布前校验这两个版本是否一致
+- 不要再把 GitHub Release 正文硬编码到 `scripts/build-win-release.mjs`
+
 ### 图标生成产物
 
 `npm run generate:icons` 会按需生成：
@@ -77,8 +100,10 @@ tools\release-win.bat
 1. 清理本地 `release/` 目录
 2. 用程序化 `electron-builder` 生成 NSIS 安装包与 `latest.yml`
 3. 以重试方式补写 `Yulora.exe` 图标
-4. 使用 `GH_TOKEN` / `GITHUB_TOKEN`，或回退到本机 `git credential fill` 中的 GitHub 凭据
-5. 创建或复用 `v<version>` GitHub Release，并上传：
+4. 读取 `release-metadata/release-notes.json`，并校验其版本号与 `package.json` 一致
+5. 使用 `GH_TOKEN` / `GITHUB_TOKEN`，或回退到本机 `git credential fill` 中的 GitHub 凭据
+6. 创建或复用 `v<version>` GitHub Release，并以元数据中的标题和正文同步 Release 页面
+7. 上传：
    - `latest.yml`
    - `Yulora-Setup-<version>.exe`
    - `Yulora-Setup-<version>.exe.blockmap`
@@ -93,6 +118,8 @@ tools\release-win.bat
 ```
 
 当前这两个入口会先做基础环境检查，并明确提示 macOS 打包 / 发版尚未接入正式实现。后续补上 `.dmg` / `.zip`、`.icns` 与发版链路时，会继续沿用这两个入口。
+
+未来 macOS 正式发版也应复用同一份 `release-metadata/release-notes.json`，避免不同平台各自维护一份 Release 正文。
 
 ### 产物输出
 

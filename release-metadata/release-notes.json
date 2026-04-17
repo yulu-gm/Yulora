@@ -1,0 +1,5 @@
+{
+  "version": "0.1.2",
+  "title": "Yulora 0.1.2 Release",
+  "body": "### 本次更新\n\n- 接入 Windows 正式发版链路，统一生成并上传安装包、`latest.yml` 与 blockmap。\n- 补齐安装包图标补写与更新元数据写入，为后续自动更新分发打基础。\n- 统一 `tools/` 下的发版入口，并为 macOS 发版保留后续接入位置。"
+}

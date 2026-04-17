@@ -13,6 +13,8 @@ import patchWindowsExecutableIcon from "./after-pack-win-icon.mjs";
 
 const VALID_MODES = new Set(["package", "release"]);
 const OUTPUT_DIRECTORY = "release";
+const RELEASE_NOTES_DIRECTORY = "release-metadata";
+const RELEASE_NOTES_FILE = "release-notes.json";
 const RELEASE_ASSET_CONTENT_TYPE = "application/octet-stream";
 
 function resolveOutputDirectory() {
@@ -45,6 +47,63 @@ export async function cleanOutputDirectory(projectDir, outputDirectory = OUTPUT_
   }
 
   await rm(normalized, { recursive: true, force: true });
+}
+
+function resolveReleaseNotesPath(projectDir) {
+  return path.join(projectDir, RELEASE_NOTES_DIRECTORY, RELEASE_NOTES_FILE);
+}
+
+function validateReleaseNotesShape(releaseNotes, version) {
+  if (!releaseNotes || typeof releaseNotes !== "object") {
+    throw new Error(`${RELEASE_NOTES_DIRECTORY}/${RELEASE_NOTES_FILE} must contain a JSON object.`);
+  }
+
+  const parsedVersion =
+    typeof releaseNotes.version === "string" && releaseNotes.version.trim().length > 0
+      ? releaseNotes.version.trim()
+      : null;
+  const title =
+    typeof releaseNotes.title === "string" && releaseNotes.title.trim().length > 0
+      ? releaseNotes.title.trim()
+      : null;
+  const body =
+    typeof releaseNotes.body === "string" && releaseNotes.body.trim().length > 0 ? releaseNotes.body : null;
+
+  if (!parsedVersion || !title || !body) {
+    throw new Error(
+      `${RELEASE_NOTES_DIRECTORY}/${RELEASE_NOTES_FILE} must define non-empty version, title, and body fields.`
+    );
+  }
+
+  if (parsedVersion !== version) {
+    throw new Error(
+      `Release notes version ${parsedVersion} does not match package.json version ${version}.`
+    );
+  }
+
+  return {
+    version: parsedVersion,
+    title,
+    body
+  };
+}
+
+export async function loadReleaseNotes({ projectDir, version }) {
+  const releaseNotesPath = resolveReleaseNotesPath(projectDir);
+  let source;
+
+  try {
+    source = await readFile(releaseNotesPath, "utf8");
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      throw new Error(`Missing release notes metadata: ${RELEASE_NOTES_DIRECTORY}/${RELEASE_NOTES_FILE}`);
+    }
+
+    throw error;
+  }
+
+  const releaseNotes = parseJson(source, `${RELEASE_NOTES_DIRECTORY}/${RELEASE_NOTES_FILE}`);
+  return validateReleaseNotesShape(releaseNotes, version);
 }
 
 export function resolveGitHubToken() {
@@ -127,12 +186,48 @@ export async function getReleaseByTag({ owner, repo, tagName, token }) {
   return response.json();
 }
 
-export async function ensureRelease({ owner, repo, version, token }) {
+function buildReleasePayload({ version, releaseNotes }) {
+  return {
+    tag_name: `v${version}`,
+    target_commitish: "main",
+    name: releaseNotes.title,
+    body: releaseNotes.body,
+    draft: false,
+    prerelease: false,
+    generate_release_notes: false
+  };
+}
+
+export async function ensureRelease({ owner, repo, version, token, releaseNotes }) {
   const tagName = `v${version}`;
   const existing = await getReleaseByTag({ owner, repo, tagName, token });
+  const releasePayload = buildReleasePayload({ version, releaseNotes });
 
   if (existing) {
-    return existing;
+    const updateUrl =
+      typeof existing.url === "string"
+        ? existing.url
+        : `https://api.github.com/repos/${owner}/${repo}/releases/${existing.id}`;
+
+    const response = await githubRequest(updateUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "Yulora-Windows-Release"
+      },
+      body: JSON.stringify({
+        name: releasePayload.name,
+        body: releasePayload.body,
+        draft: releasePayload.draft,
+        prerelease: releasePayload.prerelease,
+        make_latest: "true"
+      })
+    });
+
+    return response.json();
   }
 
   const response = await githubRequest(`https://api.github.com/repos/${owner}/${repo}/releases`, {
@@ -144,20 +239,7 @@ export async function ensureRelease({ owner, repo, version, token }) {
       "X-GitHub-Api-Version": "2022-11-28",
       "User-Agent": "Yulora-Windows-Release"
     },
-    body: JSON.stringify({
-      tag_name: tagName,
-      target_commitish: "main",
-      name: `Yulora ${version} Release`,
-      body: `### 本次更新
-
-- 新增字体选择设置，可按需切换编辑时的字体风格与大小。
-- 优化输入交互和光标反馈，提升核心编辑体验。
-
-> 注意：本次发布为 Windows 平台自动更新版本，包含最新的编辑体验优化。`,
-      draft: false,
-      prerelease: false,
-      generate_release_notes: false
-    })
+    body: JSON.stringify(releasePayload)
   });
 
   return response.json();
@@ -227,11 +309,13 @@ export async function uploadReleaseAsset(uploadBaseUrl, assetPath, assetName, to
 export async function publishReleaseArtifacts({ projectDir, builderConfig, version, outputDirectory = OUTPUT_DIRECTORY }) {
   const githubConfig = resolveGithubPublishConfig(builderConfig);
   const token = resolveGitHubToken();
+  const releaseNotes = await loadReleaseNotes({ projectDir, version });
   const release = await ensureRelease({
     owner: githubConfig.owner,
     repo: githubConfig.repo,
     version,
-    token
+    token,
+    releaseNotes
   });
   const latestPath = path.join(projectDir, outputDirectory, "latest.yml");
   const installerPath = path.join(projectDir, outputDirectory, `Yulora-Setup-${version}.exe`);
@@ -389,6 +473,9 @@ export async function main() {
     throw new Error("package.json must define a version string.");
   }
 
+  if (mode === "release") {
+    await loadReleaseNotes({ projectDir, version });
+  }
   await cleanOutputDirectory(projectDir, outputDirectory);
   await buildWindowsArtifacts({ projectDir, builderConfig, outputDirectory });
   await writeLatestReleaseMetadata({ projectDir, version, outputDirectory });
