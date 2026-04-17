@@ -267,6 +267,34 @@
   min-height: 0;
   overflow: hidden;
   display: grid;
+  position: relative;
+  isolation: isolate;
+}
+
+.workspace-canvas > :not(.theme-surface-host) {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-surface-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.theme-surface-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.theme-surface-host[data-yulora-theme-surface-mode="reduced"] .theme-surface-canvas,
+.theme-surface-host[data-yulora-theme-surface-mode="full"] .theme-surface-canvas {
+  opacity: 1;
 }
 
 .workspace-shell,
@@ -598,6 +626,7 @@
   min-height: min(60vh, 44rem);
   display: grid;
   place-items: center;
+  z-index: 1;
 }
 
 .empty-inner {

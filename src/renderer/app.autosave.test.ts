@@ -50,7 +50,12 @@ type RenderEditorAppOptions = {
 };
 
 function makeManifestThemePackage(
-  overrides: Partial<{ id: string; name: string }> = {}
+  overrides: Partial<{
+    id: string;
+    name: string;
+    scene: ThemePackageDescriptor["manifest"]["scene"];
+    surfaces: ThemePackageDescriptor["manifest"]["surfaces"];
+  }> = {}
 ): ThemePackageDescriptor {
   const id = overrides.id ?? "manifest-theme";
 
@@ -75,14 +80,13 @@ function makeManifestThemePackage(
       styles: {
         ui: `/tmp/yulora/themes/${id}/ui.css`,
         editor: `/tmp/yulora/themes/${id}/editor.css`,
-        markdown: `/tmp/yulora/themes/${id}/markdown.css`,
-        titlebar: null
+        markdown: `/tmp/yulora/themes/${id}/markdown.css`
       },
       layout: {
         titlebar: null
       },
-      scene: null,
-      surfaces: {}
+      scene: overrides.scene ?? null,
+      surfaces: overrides.surfaces ?? {}
     }
   };
 }
@@ -1242,6 +1246,75 @@ describe("App autosave", () => {
     expect((themePackageSelect as HTMLSelectElement).value).toBe("rain-glass");
   });
 
+  it("mounts a workbench shader surface host for the active manifest package", async () => {
+    await renderEditorApp({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "rain-glass",
+          effectsMode: "auto"
+        }
+      },
+      listThemePackagesResult: [
+        makeManifestThemePackage({
+          id: "rain-glass",
+          name: "Rain Glass",
+          scene: {
+            id: "rain-scene",
+            sharedUniforms: { rainAmount: 0.7 }
+          },
+          surfaces: {
+            workbenchBackground: {
+              kind: "fragment",
+              scene: "rain-scene",
+              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+            }
+          }
+        })
+      ]
+    });
+
+    const surfaceHost = container.querySelector('[data-yulora-theme-surface="workbenchBackground"]');
+
+    expect(surfaceHost).not.toBeNull();
+    expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+  });
+
+  it("does not mount a workbench shader surface host when theme effects are off", async () => {
+    await renderEditorApp({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "rain-glass",
+          effectsMode: "off"
+        }
+      },
+      listThemePackagesResult: [
+        makeManifestThemePackage({
+          id: "rain-glass",
+          name: "Rain Glass",
+          scene: {
+            id: "rain-scene",
+            sharedUniforms: { rainAmount: 0.7 }
+          },
+          surfaces: {
+            workbenchBackground: {
+              kind: "fragment",
+              scene: "rain-scene",
+              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+            }
+          }
+        })
+      ]
+    });
+
+    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).toBeNull();
+  });
+
   it("shows a refresh error banner when refreshing theme packages fails", async () => {
     refreshThemePackages = vi
       .fn<() => Promise<ThemePackageDescriptor[]>>()
@@ -1912,6 +1985,16 @@ describe("App autosave", () => {
     expect(appUiStylesheet).toContain("max-width: none;");
     expect(editorStylesheet).toContain(".document-editor .cm-content");
     expect(editorStylesheet).toContain("padding: 40px 48px 56px;");
+  });
+
+  it("styles theme surfaces as non-interactive workspace backgrounds", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+
+    expect(appUiStylesheet).toContain(".theme-surface-host");
+    expect(appUiStylesheet).toContain("position: absolute;");
+    expect(appUiStylesheet).toContain("pointer-events: none;");
+    expect(appUiStylesheet).toContain(".theme-surface-canvas");
+    expect(appUiStylesheet).toContain("display: block;");
   });
 
   it("removes border framing from the editor shell and bottom status bar", () => {

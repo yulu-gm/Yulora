@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useRef, useStat
 
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
+import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
@@ -13,6 +14,7 @@ import { deriveOutlineItems, type OutlineItem } from "../outline";
 import { createThemePackageRuntime } from "../theme-package-runtime";
 import {
   normalizeThemePackageDescriptor,
+  resolveLegacyThemeFamilyId,
   resolveActiveThemePackage,
   type ThemePackageRuntimeEntry
 } from "../theme-package-catalog";
@@ -28,6 +30,10 @@ import {
   startOpeningMarkdownFile
 } from "../document-state";
 import { getDocumentMetrics } from "../document-metrics";
+import {
+  ThemeSurfaceHost,
+  type ThemeSurfaceHostDescriptor
+} from "./ThemeSurfaceHost";
 
 const SettingsView = lazy(async () => {
   const module = await import("./settings-view");
@@ -36,6 +42,7 @@ const SettingsView = lazy(async () => {
 
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
 type ThemeCatalogEntry = Awaited<ReturnType<Window["yulora"]["listThemes"]>>[number];
+type ThemePackageEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
 
 const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
 const DARK_MODE_MEDIA_QUERY = "(prefers-color-scheme: dark)";
@@ -190,6 +197,44 @@ function resolveThemeWarningMessage(
   return null;
 }
 
+function resolveActiveWorkbenchSurface(
+  selectedId: string | null,
+  themePackages: ThemePackageEntry[],
+  mode: ResolvedThemeMode
+): ThemeSurfaceHostDescriptor | null {
+  if (!selectedId) {
+    return null;
+  }
+
+  const legacyFamilyId = resolveLegacyThemeFamilyId(selectedId);
+  const activeThemePackage =
+    themePackages.find((entry) => entry.id === selectedId) ??
+    (legacyFamilyId ? themePackages.find((entry) => entry.id === legacyFamilyId) : null) ??
+    null;
+
+  if (!activeThemePackage || !activeThemePackage.manifest.supports[mode]) {
+    return null;
+  }
+
+  const fragmentSurface = activeThemePackage.manifest.surfaces.workbenchBackground;
+  const scene = activeThemePackage.manifest.scene;
+
+  if (!fragmentSurface || fragmentSurface.kind !== "fragment" || !scene) {
+    return null;
+  }
+
+  if (fragmentSurface.scene !== scene.id) {
+    return null;
+  }
+
+  return {
+    kind: "fragment",
+    sceneId: scene.id,
+    shaderUrl: createPreviewAssetUrl(fragmentSurface.shader),
+    sharedUniforms: scene.sharedUniforms
+  };
+}
+
 function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "closing" }) {
   return (
     <section
@@ -302,6 +347,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     resolvedThemeMode
   );
   const themeWarningMessage = resolveThemeWarningMessage(activeThemePackageResolution);
+  const activeWorkbenchSurface =
+    preferences.theme.effectsMode === "off"
+      ? null
+      : resolveActiveWorkbenchSurface(preferences.theme.selectedId, themePackages, resolvedThemeMode);
 
   function applyState(updater: (current: AppState) => AppState): void {
     const next = updater(stateRef.current);
@@ -495,7 +544,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
   });
 
-  const handleRefreshThemePackages = useEffectEvent(async (): Promise<void> => {
+  const handleRefreshThemePackages = useCallback(async (): Promise<void> => {
     setIsRefreshingThemePackages(true);
 
     try {
@@ -509,7 +558,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     } finally {
       setIsRefreshingThemePackages(false);
     }
-  });
+  }, [yulora]);
 
   function openSettingsDrawer(): void {
     const activeElement = document.activeElement;
@@ -1076,6 +1125,13 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             className="workspace-canvas"
             data-yulora-region="workspace-canvas"
           >
+            {activeWorkbenchSurface ? (
+              <ThemeSurfaceHost
+                surface="workbenchBackground"
+                descriptor={activeWorkbenchSurface}
+                effectsMode={preferences.theme.effectsMode}
+              />
+            ) : null}
             {state.currentDocument ? (
               <section className={`workspace-shell ${isOutlineOpen ? "is-outline-open" : ""}`}>
                 <div
