@@ -15,6 +15,7 @@ export const UPDATE_PREFERENCES_CHANNEL = "yulora:update-preferences";
 export const PREFERENCES_CHANGED_EVENT = "yulora:preferences-changed";
 
 export type ThemeMode = "system" | "light" | "dark";
+export type ThemeEffectsMode = "auto" | "full" | "off";
 
 export type AutosavePreferences = {
   /** Milliseconds of editor idleness before autosave fires. */
@@ -43,6 +44,7 @@ export type DocumentPreferences = {
 export type ThemePreferences = {
   mode: ThemeMode;
   selectedId: string | null;
+  effectsMode: ThemeEffectsMode;
 };
 
 export type Preferences = {
@@ -80,7 +82,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   theme: {
     mode: "system",
-    selectedId: null
+    selectedId: null,
+    effectsMode: "auto"
   }
 };
 
@@ -94,6 +97,7 @@ const FONT_SIZE_MIN = 8;
 const FONT_SIZE_MAX = 72;
 
 const THEME_MODES: readonly ThemeMode[] = ["system", "light", "dark"];
+const THEME_EFFECTS_MODES: readonly ThemeEffectsMode[] = ["auto", "full", "off"];
 
 function clampInteger(value: number, min: number, max: number): number {
   return Math.min(Math.max(Math.round(value), min), max);
@@ -151,6 +155,16 @@ function normalizeThemeMode(value: unknown): ThemeMode {
     : DEFAULT_PREFERENCES.theme.mode;
 }
 
+function normalizeThemeEffectsMode(value: unknown): ThemeEffectsMode {
+  if (typeof value !== "string") {
+    return DEFAULT_PREFERENCES.theme.effectsMode;
+  }
+
+  return THEME_EFFECTS_MODES.includes(value as ThemeEffectsMode)
+    ? (value as ThemeEffectsMode)
+    : DEFAULT_PREFERENCES.theme.effectsMode;
+}
+
 function normalizeThemeSelectedId(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -202,7 +216,8 @@ export function normalizePreferences(raw: unknown): Preferences {
     },
     theme: {
       mode: normalizeThemeMode(themeSource.mode),
-      selectedId: normalizeThemeSelectedId(themeSource.selectedId)
+      selectedId: normalizeThemeSelectedId(themeSource.selectedId),
+      effectsMode: normalizeThemeEffectsMode(themeSource.effectsMode)
     }
   };
 }

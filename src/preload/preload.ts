@@ -66,6 +66,7 @@ type AppMenuCommand =
   | "save-markdown-file-as";
 
 type ThemeMode = "system" | "light" | "dark";
+type ThemeEffectsMode = "auto" | "full" | "off";
 
 type Preferences = {
   version: 2;
@@ -73,7 +74,11 @@ type Preferences = {
   recentFiles: { maxEntries: number };
   ui: { fontSize: number | null };
   document: { fontFamily: string | null; cjkFontFamily: string | null; fontSize: number | null };
-  theme: { mode: ThemeMode; selectedId: string | null };
+  theme: {
+    mode: ThemeMode;
+    selectedId: string | null;
+    effectsMode: ThemeEffectsMode;
+  };
 };
 
 type PreferencesUpdate = {

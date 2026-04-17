@@ -144,8 +144,7 @@ describe("preload contract", () => {
       }
     };
     const updatePreferencesInput: PreferencesUpdate = {
-      autosave: { idleDelayMs: 1500 },
-      document: { fontFamily: "IBM Plex Serif", fontSize: 18 }
+      theme: { effectsMode: "off" }
     };
 
     void api.openMarkdownFile();

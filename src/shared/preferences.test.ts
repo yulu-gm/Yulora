@@ -121,6 +121,13 @@ describe("normalizePreferences", () => {
     );
   });
 
+  it("normalizes theme effects mode to auto/full/off", () => {
+    expect(normalizePreferences({ theme: { effectsMode: "auto" } }).theme.effectsMode).toBe("auto");
+    expect(normalizePreferences({ theme: { effectsMode: "full" } }).theme.effectsMode).toBe("full");
+    expect(normalizePreferences({ theme: { effectsMode: "off" } }).theme.effectsMode).toBe("off");
+    expect(normalizePreferences({ theme: { effectsMode: "storm" } }).theme.effectsMode).toBe("auto");
+  });
+
   it("drops unknown extra fields at every level", () => {
     const result = normalizePreferences({
       version: 99,
@@ -165,7 +172,7 @@ describe("mergePreferences", () => {
         cjkFontFamily: "Source Han Sans SC",
         fontSize: 18
       },
-      theme: { mode: "dark", selectedId: "graphite" }
+      theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto" }
     });
   });
 
