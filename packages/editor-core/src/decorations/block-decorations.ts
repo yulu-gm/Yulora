@@ -34,11 +34,21 @@ export function createBlockDecorations(
 ): BlockDecorationsResult {
   const { activeBlockState, hasEditorFocus, source, resolveImagePreviewUrl } = options;
   const activeBlockId = hasEditorFocus ? activeBlockState.activeBlock?.id ?? null : null;
+  const activeCodeFenceInContentEdit =
+    hasEditorFocus &&
+    activeBlockState.activeBlock?.type === "codeFence" &&
+    isCodeFenceContentSelection(activeBlockState.activeBlock, activeBlockState.selection.head, source);
   const ranges: Range<Decoration>[] = [];
   const signatures: string[] = [];
 
   for (const block of activeBlockState.blockMap.blocks) {
     if (block.id === activeBlockId) {
+      if (activeCodeFenceInContentEdit && block.type === "codeFence") {
+        signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
+        appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges);
+        continue;
+      }
+
       appendActiveDecorationsForBlock(block, source, ranges, resolveImagePreviewUrl);
       continue;
     }
@@ -209,46 +219,7 @@ export function createBlockDecorations(
     }
 
     if (block.type === "codeFence") {
-      for (const line of getInactiveCodeFenceLines(block.startOffset, block.endOffset, source)) {
-        if (line.kind === "fence") {
-          ranges.push(
-            Decoration.line({
-              attributes: {
-                class: "cm-inactive-code-block-fence"
-              }
-            }).range(line.lineStart)
-          );
-          if (line.lineEnd > line.lineStart) {
-            ranges.push(
-              Decoration.mark({
-                attributes: {
-                  class: "cm-inactive-code-block-fence-marker"
-                }
-              }).range(line.lineStart, line.lineEnd)
-            );
-          }
-          continue;
-        }
-
-        const lineClasses = ["cm-inactive-code-block"];
-
-        if (line.isFirstContentLine) {
-          lineClasses.push("cm-inactive-code-block-start");
-        }
-
-        if (line.isLastContentLine) {
-          lineClasses.push("cm-inactive-code-block-end");
-        }
-
-        ranges.push(
-          Decoration.line({
-            attributes: {
-              class: lineClasses.join(" ")
-            }
-          }).range(line.lineStart)
-        );
-      }
-
+      appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges);
       continue;
     }
 
@@ -275,6 +246,67 @@ export function createBlockDecorations(
     decorationSet: Decoration.set(ranges, true),
     signature: signatures.join("|")
   };
+}
+
+function appendActiveDecorationsForBlock(
+function appendCodeFenceDecorations(
+function appendCodeFenceDecorations(
+  startOffset: number,
+  endOffset: number,
+  source: string,
+  ranges: Range<Decoration>[]
+): void {
+  for (const line of getInactiveCodeFenceLines(startOffset, endOffset, source)) {
+    if (line.kind === "fence") {
+      ranges.push(
+        Decoration.line({
+          attributes: {
+            class: "cm-inactive-code-block-fence"
+          }
+        }).range(line.lineStart)
+      );
+      if (line.lineEnd > line.lineStart) {
+        ranges.push(
+          Decoration.mark({
+            attributes: {
+              class: "cm-inactive-code-block-fence-marker"
+            }
+          }).range(line.lineStart, line.lineEnd)
+        );
+      }
+      continue;
+    }
+
+    const lineClasses = ["cm-inactive-code-block"];
+
+    if (line.isFirstContentLine) {
+      lineClasses.push("cm-inactive-code-block-start");
+    }
+
+    if (line.isLastContentLine) {
+      lineClasses.push("cm-inactive-code-block-end");
+    }
+
+    ranges.push(
+      Decoration.line({
+        attributes: {
+          class: lineClasses.join(" ")
+        }
+      }).range(line.lineStart)
+    );
+  }
+}
+
+function isCodeFenceContentSelection(
+  block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "codeFence" }>,
+  selectionHead: number,
+  source: string
+): boolean {
+  const line = getInactiveCodeFenceLines(block.startOffset, block.endOffset, source).find(
+    (entry) => selectionHead >= entry.lineStart && selectionHead <= entry.lineEnd
+  );
+
+  return line?.kind === "content";
 }
 
 function appendActiveDecorationsForBlock(

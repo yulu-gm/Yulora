@@ -1,5 +1,8 @@
-import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("package scripts", () => {
@@ -265,6 +268,37 @@ describe("package scripts", () => {
     expect(syncScriptSource).toContain("fixtures");
     expect(syncScriptSource).toContain("themes");
     expect(existsSync(legacyRootPath)).toBe(false);
+  });
+
+  it("skips syncing dev themes when the fixture themes directory is missing", () => {
+    const tempRoot = mkdtempSync(path.join(os.tmpdir(), "yulora-sync-dev-themes-"));
+
+    try {
+      const scriptsDirectory = path.join(tempRoot, "scripts");
+      const appDataDirectory = path.join(tempRoot, "appdata");
+      const targetThemesDirectory = path.join(appDataDirectory, "Yulora-dev", "themes");
+      const scriptSourcePath = path.join(process.cwd(), "scripts", "sync-dev-themes.mjs");
+      const tempScriptPath = path.join(scriptsDirectory, "sync-dev-themes.mjs");
+
+      mkdirSync(scriptsDirectory, { recursive: true });
+      mkdirSync(appDataDirectory, { recursive: true });
+      cpSync(scriptSourcePath, tempScriptPath);
+
+      expect(() =>
+        execFileSync(process.execPath, [tempScriptPath], {
+          cwd: tempRoot,
+          env: {
+            ...process.env,
+            APPDATA: appDataDirectory
+          },
+          stdio: "pipe"
+        })
+      ).not.toThrow();
+
+      expect(existsSync(targetThemesDirectory)).toBe(true);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
   });
 
   it("centralizes the macOS packaging placeholder under tools/", () => {

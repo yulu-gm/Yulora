@@ -245,7 +245,8 @@ function createDerivedTextBlocks<TBlock extends ParagraphBlock | HeadingBlock>(
 
   const shouldSplit = splitOnAnyThematicBreak
     ? lines.some((line) => getExplicitThematicBreakMarker(line.text) !== null)
-    : lines.some((line) => getExplicitThematicBreakMarker(line.text) === "+");
+    : lines.some((line) => getExplicitThematicBreakMarker(line.text) === "+") ||
+      shouldPreferTrailingDashThematicBreak(lines);
 
   if (!shouldSplit) {
     return [createFallbackBlock()];
@@ -301,6 +302,14 @@ function createDerivedTextBlocks<TBlock extends ParagraphBlock | HeadingBlock>(
   flushParagraph();
 
   return blocks as Array<TBlock | ParagraphBlock | ThematicBreakBlock>;
+}
+
+function shouldPreferTrailingDashThematicBreak(lines: LineInfo[]): boolean {
+  if (lines.length <= 2) {
+    return false;
+  }
+
+  return getExplicitThematicBreakMarker(lines.at(-1)?.text ?? "") === "-";
 }
 
 function getExplicitThematicBreakMarker(sourceSlice: string): ThematicBreakBlock["marker"] | null {

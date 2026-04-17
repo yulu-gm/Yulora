@@ -458,6 +458,56 @@ describe("parseBlockMap", () => {
     ]);
   });
 
+  it("treats the closing frontmatter-style dash fence as a thematic break instead of a setext underline", () => {
+    const source = [
+      "---",
+      "name: yulora-task-intake",
+      "description: skill metadata",
+      "---",
+      "",
+      "# Heading"
+    ].join("\n");
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toMatchObject([
+      {
+        id: "thematicBreak:0-3",
+        type: "thematicBreak",
+        startOffset: 0,
+        endOffset: 3,
+        startLine: 1,
+        endLine: 1,
+        marker: "-"
+      },
+      {
+        id: "paragraph:4-56",
+        type: "paragraph",
+        startOffset: 4,
+        endOffset: 56,
+        startLine: 2,
+        endLine: 3
+      },
+      {
+        id: "thematicBreak:57-60",
+        type: "thematicBreak",
+        startOffset: 57,
+        endOffset: 60,
+        startLine: 4,
+        endLine: 4,
+        marker: "-"
+      },
+      {
+        id: "heading:62-71",
+        type: "heading",
+        startOffset: 62,
+        endOffset: 71,
+        startLine: 6,
+        endLine: 6,
+        depth: 1
+      }
+    ]);
+  });
+
   it("stitches heading inline AST with markerEnd and nested marks", () => {
     const source = "# **Bold *mix***";
     const result = parseMarkdownDocument(source);

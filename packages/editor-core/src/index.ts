@@ -1,5 +1,5 @@
 export type { ActiveBlockState } from "./active-block";
-export { runMarkdownBackspace, runMarkdownEnter } from "./commands";
+export { runMarkdownBackspace, runMarkdownEnter, runMarkdownTab } from "./commands";
 export {
   createYuloraMarkdownExtensions,
   refreshMarkdownDecorations,

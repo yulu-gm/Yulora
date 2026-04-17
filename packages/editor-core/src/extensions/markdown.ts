@@ -18,7 +18,7 @@ import {
   type ActiveBlockSelection,
   type ActiveBlockState
 } from "../active-block";
-import { runMarkdownBackspace, runMarkdownEnter } from "../commands";
+import { runMarkdownBackspace, runMarkdownEnter, runMarkdownTab } from "../commands";
 import { createMarkdownDocumentCache } from "../derived-state/markdown-document-cache";
 import { deriveInactiveBlockDecorationsState } from "../derived-state/inactive-block-decorations";
 
@@ -227,6 +227,10 @@ export function createYuloraMarkdownExtensions(
       {
         key: "Enter",
         run: (view) => runMarkdownEnter(view, runtime.activeBlockState)
+      },
+      {
+        key: "Tab",
+        run: (view) => runMarkdownTab(view, runtime.activeBlockState)
       },
       ...historyKeymap,
       ...defaultKeymap

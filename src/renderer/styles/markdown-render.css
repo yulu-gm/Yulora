@@ -229,9 +229,10 @@
   background: var(--yulora-code-block-bg);
   font:
     400 0.96rem/1.72 "Cascadia Code", "Consolas", "SFMono-Regular", "Courier New", monospace;
-  white-space: pre !important;
-  overflow-x: auto;
+  white-space: pre-wrap !important;
+  overflow-x: hidden;
   overflow-y: hidden;
+  overflow-wrap: anywhere;
   padding-left: 1rem;
   padding-right: 1rem;
 }

@@ -6,6 +6,7 @@ import {
   refreshMarkdownDecorations,
   runMarkdownBackspace,
   runMarkdownEnter,
+  runMarkdownTab,
   type ActiveBlockState
 } from "@yulora/editor-core";
 import { parseMarkdownDocument } from "@yulora/markdown-engine";
@@ -32,6 +33,7 @@ export type CodeEditorController = {
   setSelection: (anchor: number, head?: number) => void;
   pressEnter: () => void;
   pressBackspace: () => void;
+  pressTab: () => void;
   destroy: () => void;
 };
 
@@ -169,6 +171,9 @@ export function createCodeEditorController(
     },
     pressBackspace() {
       runMarkdownBackspace(view, activeBlockState);
+    },
+    pressTab() {
+      runMarkdownTab(view, activeBlockState);
     },
     destroy() {
       isDestroyed = true;

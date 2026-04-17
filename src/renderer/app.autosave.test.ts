@@ -51,6 +51,8 @@ const codeEditorMock = (codeEditorViewModule as MockCodeEditorModule).__mock;
 const baseStylesheetPath = join(process.cwd(), "src/renderer/styles/base.css");
 const appUiStylesheetPath = join(process.cwd(), "src/renderer/styles/app-ui.css");
 const primitivesStylesheetPath = join(process.cwd(), "src/renderer/styles/primitives.css");
+const markdownRenderStylesheetPath = join(process.cwd(), "src/renderer/styles/markdown-render.css");
+const primitivesStylesheetPath = join(process.cwd(), "src/renderer/styles/primitives.css");
 const settingsStylesheetPath = join(process.cwd(), "src/renderer/styles/settings.css");
 const lightTokenStylesheetPath = join(
   process.cwd(),
@@ -1498,6 +1500,16 @@ describe("App autosave", () => {
     expect(lightMarkdownStylesheet).toContain("--yulora-code-block-bg: #f3f6fa;");
     expect(lightMarkdownStylesheet).toContain("--yulora-code-block-text: #334155;");
     expect(lightMarkdownStylesheet).not.toContain("--yulora-code-block-bg: #17212b;");
+  });
+
+  it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
+    const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+
+    expect(markdownRenderStylesheet).toContain(".document-editor .cm-inactive-code-block");
+    expect(markdownRenderStylesheet).toContain("white-space: pre-wrap !important;");
+    expect(markdownRenderStylesheet).toContain("overflow-x: hidden;");
+    expect(markdownRenderStylesheet).not.toContain("white-space: pre !important;");
+    expect(markdownRenderStylesheet).not.toContain("overflow-x: auto;");
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {

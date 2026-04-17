@@ -19,6 +19,10 @@ async function main() {
   try {
     entries = await readdir(FIXTURE_THEMES_DIR, { withFileTypes: true });
   } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to read fixture themes from ${FIXTURE_THEMES_DIR}: ${message}`);
   }

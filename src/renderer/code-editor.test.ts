@@ -919,7 +919,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("restores fenced code block markdown when the code block becomes active again", async () => {
+  it("restores fenced code block markdown when the opening fence becomes active again", async () => {
     const host = document.createElement("div");
     const source = ["```ts", "const answer = 42;", "```", "", "Paragraph"].join("\n");
 
@@ -945,7 +945,7 @@ describe("createCodeEditorController", () => {
     editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     await flushMicrotasks();
 
-    view?.dispatch({ selection: { anchor: source.indexOf("const answer") } });
+    view?.dispatch({ selection: { anchor: 0 } });
 
     const openingFenceLine = getLineElementByText(host, "```ts");
     const codeLine = getLineElementByText(host, "const answer = 42;");
@@ -954,6 +954,40 @@ describe("createCodeEditorController", () => {
     expect(openingFenceLine?.classList.contains("cm-inactive-code-block-fence")).toBe(false);
     expect(codeLine).not.toBeNull();
     expect(codeLine?.classList.contains("cm-inactive-code-block")).toBe(false);
+
+    controller.destroy();
+  });
+
+  it("keeps fenced code block fences hidden while editing inside the code content", async () => {
+    const host = document.createElement("div");
+    const source = ["```ts", "const answer = 42;", "```", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      insertText: (text: string) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+    advancedController.setSelection(source.indexOf("answer"));
+    advancedController.insertText("updated ");
+
+    const openingFenceLine = getLineElementByText(host, "```ts");
+    const closingFenceLine = getLineElementByText(host, "```");
+    const codeLine = getLineElementByText(host, "const updated answer = 42;");
+
+    expect(controller.getContent()).toBe(["```ts", "const updated answer = 42;", "```", "", "Paragraph"].join("\n"));
+    expect(openingFenceLine?.classList.contains("cm-inactive-code-block-fence")).toBe(true);
+    expect(closingFenceLine?.classList.contains("cm-inactive-code-block-fence")).toBe(true);
+    expect(codeLine?.classList.contains("cm-inactive-code-block")).toBe(true);
 
     controller.destroy();
   });
@@ -993,6 +1027,38 @@ describe("createCodeEditorController", () => {
     expect(openingFenceLine?.classList.contains("cm-inactive-code-block-fence")).toBe(false);
     expect(codeLine?.classList.contains("cm-inactive-code-block")).toBe(false);
     expect(closingFenceLine?.classList.contains("cm-inactive-code-block-fence")).toBe(false);
+
+    controller.destroy();
+  });
+
+  it("reveals fenced code block markdown only when the selection moves onto the fence line itself", async () => {
+    const host = document.createElement("div");
+    const source = ["```ts", "const answer = 42;", "```", "", "Paragraph"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+    advancedController.setSelection(source.indexOf("answer"));
+
+    expect(getLineElementByText(host, "```ts")?.classList.contains("cm-inactive-code-block-fence")).toBe(true);
+
+    advancedController.setSelection(0);
+
+    expect(getLineElementByText(host, "```ts")?.classList.contains("cm-inactive-code-block-fence")).toBe(false);
+    expect(getLineElementByText(host, "const answer = 42;")?.classList.contains("cm-inactive-code-block")).toBe(
+      false
+    );
 
     controller.destroy();
   });
@@ -1141,6 +1207,39 @@ describe("createCodeEditorController", () => {
     expect(topRuleLine).not.toBeNull();
     expect(topRuleLine?.classList.contains("cm-inactive-thematic-break")).toBe(true);
     expect(ruleMarkers.length).toBe(2);
+
+    controller.destroy();
+  });
+
+  it("keeps a closing frontmatter-style dash fence rendered as a separator while editing metadata text", () => {
+    const host = document.createElement("div");
+    const source = [
+      "---",
+      "name: yulora-task-intake",
+      "description: skill metadata",
+      "---",
+      "",
+      "# Heading"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("description") } });
+
+    const ruleLines = Array.from(host.querySelectorAll(".cm-line")).filter((line) => line.textContent === "---");
+
+    expect(ruleLines).toHaveLength(2);
+    expect(ruleLines[0]?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(ruleLines[1]?.classList.contains("cm-inactive-thematic-break")).toBe(true);
+    expect(host.querySelectorAll(".cm-inactive-thematic-break-marker")).toHaveLength(2);
 
     controller.destroy();
   });
@@ -1343,7 +1442,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("reveals the whole fenced code block and places the caret at the end of the last code line when Backspace is pressed from the separator below it", async () => {
+  it("keeps the code block presentation while placing the caret at the end of the last code line when Backspace is pressed from the separator below it", async () => {
     const host = document.createElement("div");
     const source = ["```ts", "const answer = 42;", "```", "", "Paragraph"].join("\n");
 
@@ -1372,13 +1471,13 @@ describe("createCodeEditorController", () => {
 
     expect(controller.getContent()).toBe(source);
     expect(view?.state.selection.main.anchor).toBe(source.indexOf("const answer = 42;") + 18);
-    expect(host.querySelector(".cm-inactive-code-block")).toBeNull();
-    expect(host.querySelector(".cm-inactive-code-block-fence")).toBeNull();
+    expect(host.querySelector(".cm-inactive-code-block")).not.toBeNull();
+    expect(host.querySelector(".cm-inactive-code-block-fence")).not.toBeNull();
 
     controller.destroy();
   });
 
-  it("deletes code content instead of the closing fence when Backspace is pressed twice from below a fenced code block", async () => {
+  it("deletes code content directly while keeping the code block presentation when Backspace is pressed twice from below a fenced code block", async () => {
     const host = document.createElement("div");
     const source = ["```", "code block", "```", ""].join("\n");
 
@@ -1406,8 +1505,8 @@ describe("createCodeEditorController", () => {
     advancedController.pressBackspace();
 
     expect(controller.getContent()).toBe(["```", "code bloc", "```", ""].join("\n"));
-    expect(host.querySelector(".cm-inactive-code-block")).toBeNull();
-    expect(host.querySelector(".cm-inactive-code-block-fence")).toBeNull();
+    expect(host.querySelector(".cm-inactive-code-block")).not.toBeNull();
+    expect(host.querySelector(".cm-inactive-code-block-fence")).not.toBeNull();
     expect(getLineElementByText(host, "code bloc")).not.toBeNull();
 
     controller.destroy();
@@ -1459,6 +1558,52 @@ describe("createCodeEditorController", () => {
     advancedController.pressEnter();
 
     expect(controller.getContent()).toBe("- parent\n");
+
+    controller.destroy();
+  });
+
+  it("indents the current list item subtree into a child list when Tab is pressed", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "- child", "  continuation", "  - nested", "- sibling"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressTab: () => void;
+    };
+
+    advancedController.setSelection(source.indexOf("child"));
+    advancedController.pressTab();
+
+    expect(controller.getContent()).toBe(
+      ["- parent", "  - child", "    continuation", "    - nested", "- sibling"].join("\n")
+    );
+
+    controller.destroy();
+  });
+
+  it("does not indent the first list item when Tab is pressed", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "- child"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressTab: () => void;
+    };
+
+    advancedController.setSelection(source.indexOf("parent"));
+    advancedController.pressTab();
+
+    expect(controller.getContent()).toBe(source);
 
     controller.destroy();
   });
