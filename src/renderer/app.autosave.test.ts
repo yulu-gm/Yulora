@@ -2106,6 +2106,7 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const fallbackRule = getCssRule(appUiStylesheet, ".app-shell-fallback");
 
+    expect(fallbackRule).toContain("grid-row: 1 / -1;");
     expect(fallbackRule).toContain("display: grid;");
     expect(fallbackRule).toContain("place-items: center;");
     expect(fallbackRule).toContain("padding:");

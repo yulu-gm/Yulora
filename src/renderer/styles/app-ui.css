@@ -124,6 +124,7 @@
 }
 
 .app-shell-fallback {
+  grid-row: 1 / -1;
   min-height: 0;
   display: grid;
   place-items: center;
