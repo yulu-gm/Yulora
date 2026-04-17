@@ -96,7 +96,7 @@
   display: grid;
   justify-items: center;
   pointer-events: none;
-  z-index: 16;
+  z-index: 100;
 }
 
 .app-notification-banner[data-state="open"] {

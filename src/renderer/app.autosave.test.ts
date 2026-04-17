@@ -1187,6 +1187,30 @@ describe("App autosave", () => {
     expect(container.querySelector('[data-yulora-region="app-notification-banner"]')).toBeNull();
   });
 
+  it("ensures the top notification banner stays above the settings drawer stacking layer", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
+
+    const notificationZMatch = appUiStylesheet.match(
+      /\.app-notification-banner\s*\{\s*[\s\S]*?z-index:\s*(\d+);/
+    );
+    const settingsDialogZMatch = settingsStylesheet.match(
+      /\[data-yulora-dialog="settings-drawer"\]\s*\{\s*[\s\S]*?z-index:\s*(\d+);/
+    );
+    const settingsShellZMatch = settingsStylesheet.match(/\.settings-shell\s*\{\s*[\s\S]*?z-index:\s*(\d+);/);
+
+    expect(notificationZMatch?.[1]).toBeDefined();
+    expect(settingsDialogZMatch?.[1]).toBeDefined();
+    expect(settingsShellZMatch?.[1]).toBeDefined();
+
+    const notificationZIndex = Number(notificationZMatch?.[1] ?? 0);
+    const settingsDialogZIndex = Number(settingsDialogZMatch?.[1] ?? 0);
+    const settingsShellZIndex = Number(settingsShellZMatch?.[1] ?? 0);
+
+    expect(notificationZIndex).toBeGreaterThan(settingsDialogZIndex);
+    expect(notificationZIndex).toBeGreaterThan(settingsShellZIndex);
+  });
+
   it("hides the update download message after download completes", async () => {
     await renderAndOpenDocument();
 
