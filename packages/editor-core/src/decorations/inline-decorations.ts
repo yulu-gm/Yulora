@@ -44,6 +44,17 @@ export function createCjkTextDecorations(inline: InlineRoot | undefined): Inline
   return ranges;
 }
 
+export function createActiveInlineDecorations(inline: InlineRoot | undefined): InlineDecorationRange[] {
+  const ranges: InlineDecorationRange[] = [];
+
+  if (!inline) {
+    return ranges;
+  }
+
+  appendActiveInlineDecorations(inline, ranges);
+  return ranges;
+}
+
 function appendInlineDecorations(
   node: InlineASTNode,
   ranges: InlineDecorationRange[],
@@ -97,6 +108,50 @@ function appendInlineDecorations(
         appendInlineDecorations(child, ranges, options);
       }
       appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.closeMarker.endOffset);
+      return;
+  }
+}
+
+function appendActiveInlineDecorations(node: InlineASTNode, ranges: InlineDecorationRange[]) {
+  switch (node.type) {
+    case "root":
+      for (const child of node.children) {
+        appendActiveInlineDecorations(child, ranges);
+      }
+      return;
+    case "text":
+      appendCjkTextRanges(ranges, node.startOffset, node.value);
+      return;
+    case "codeSpan":
+      appendContentDecoration(
+        ranges,
+        node.openMarker.endOffset,
+        node.closeMarker.startOffset,
+        INACTIVE_INLINE_CONTENT_CLASSES.codeSpan
+      );
+      return;
+    case "strong":
+    case "emphasis":
+    case "strikethrough":
+      appendContentDecoration(
+        ranges,
+        node.openMarker.endOffset,
+        node.closeMarker.startOffset,
+        INACTIVE_INLINE_CONTENT_CLASSES[node.type]
+      );
+      for (const child of node.children) {
+        appendActiveInlineDecorations(child, ranges);
+      }
+      return;
+    case "link":
+      for (const child of node.children) {
+        appendActiveInlineDecorations(child, ranges);
+      }
+      return;
+    case "image":
+      for (const child of node.children) {
+        appendActiveInlineDecorations(child, ranges);
+      }
       return;
   }
 }

@@ -5,6 +5,7 @@ import type { ActiveBlockState } from "../active-block";
 import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";
 import {
   createCjkTextDecorations,
+  createActiveInlineDecorations,
   createInactiveInlineDecorations
 } from "./inline-decorations";
 import {
@@ -34,6 +35,10 @@ export function createBlockDecorations(
 ): BlockDecorationsResult {
   const { activeBlockState, hasEditorFocus, source, resolveImagePreviewUrl } = options;
   const activeBlockId = hasEditorFocus ? activeBlockState.activeBlock?.id ?? null : null;
+  const activeBlockquoteInContentEdit =
+    hasEditorFocus &&
+    activeBlockState.activeBlock?.type === "blockquote" &&
+    hasRenderableBlockquotePresentation(activeBlockState.activeBlock, source);
   const activeCodeFenceInContentEdit =
     hasEditorFocus &&
     activeBlockState.activeBlock?.type === "codeFence" &&
@@ -43,6 +48,12 @@ export function createBlockDecorations(
 
   for (const block of activeBlockState.blockMap.blocks) {
     if (block.id === activeBlockId) {
+      if (activeBlockquoteInContentEdit && block.type === "blockquote") {
+        signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
+        appendBlockquoteDecorations(block, source, ranges, resolveImagePreviewUrl);
+        continue;
+      }
+
       if (activeCodeFenceInContentEdit && block.type === "codeFence") {
         signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
         appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges);
@@ -148,72 +159,7 @@ export function createBlockDecorations(
     }
 
     if (block.type === "blockquote") {
-      if (block.lines) {
-        const lineCount = block.lines.length;
-
-        block.lines.forEach((line, index) => {
-          const lineClasses = ["cm-inactive-blockquote"];
-
-          if (index === 0) {
-            lineClasses.push("cm-inactive-blockquote-start");
-          }
-
-          if (index === lineCount - 1) {
-            lineClasses.push("cm-inactive-blockquote-end");
-          }
-
-          ranges.push(
-            Decoration.line({
-              attributes: {
-                class: lineClasses.join(" ")
-              }
-            }).range(line.startOffset)
-          );
-
-          if (line.markerEnd > line.startOffset) {
-            ranges.push(
-              Decoration.mark({
-                attributes: {
-                  class: "cm-inactive-blockquote-marker"
-                }
-              }).range(line.startOffset, line.markerEnd)
-            );
-          }
-
-          ranges.push(...createInactiveInlineDecorations(line.inline, { resolveImagePreviewUrl }));
-        });
-        continue;
-      }
-
-      for (const line of getInactiveBlockquoteLines(block.startOffset, block.endOffset, source)) {
-        const lineClasses = ["cm-inactive-blockquote"];
-
-        if (line.isFirstLine) {
-          lineClasses.push("cm-inactive-blockquote-start");
-        }
-
-        if (line.isLastLine) {
-          lineClasses.push("cm-inactive-blockquote-end");
-        }
-
-        ranges.push(
-          Decoration.line({
-            attributes: {
-              class: lineClasses.join(" ")
-            }
-          }).range(line.lineStart)
-        );
-
-        if (line.markerEnd > line.lineStart) {
-          ranges.push(
-            Decoration.mark({
-              attributes: {
-                class: "cm-inactive-blockquote-marker"
-              }
-            }).range(line.lineStart, line.markerEnd)
-          );
-        }
-      }
+      appendBlockquoteDecorations(block, source, ranges, resolveImagePreviewUrl);
 
       continue;
     }
@@ -295,6 +241,131 @@ function appendCodeFenceDecorations(
   }
 }
 
+function appendBlockquoteDecorations(
+  block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "blockquote" }>,
+  source: string,
+  ranges: Range<Decoration>[],
+  resolveImagePreviewUrl?: (href: string | null) => string | null
+): void {
+  if (block.lines) {
+    const renderableLines = block.lines.filter((line) =>
+      hasCommittedRichBlockquoteMarker(line.markerEnd, line.contentStartOffset)
+    );
+    const lineCount = renderableLines.length;
+
+    renderableLines.forEach((line, index) => {
+      if (lineCount === 0) {
+        return;
+      }
+
+      const lineClasses = ["cm-inactive-blockquote"];
+
+      if (index === 0) {
+        lineClasses.push("cm-inactive-blockquote-start");
+      }
+
+      if (index === lineCount - 1) {
+        lineClasses.push("cm-inactive-blockquote-end");
+      }
+
+      ranges.push(
+        Decoration.line({
+          attributes: {
+            class: lineClasses.join(" ")
+          }
+        }).range(line.startOffset)
+      );
+
+      if (line.markerEnd > line.startOffset) {
+        ranges.push(
+          Decoration.mark({
+            attributes: {
+              class: "cm-inactive-blockquote-marker"
+            }
+          }).range(line.startOffset, line.markerEnd)
+        );
+      }
+
+      ranges.push(...createInactiveInlineDecorations(line.inline, { resolveImagePreviewUrl }));
+    });
+    return;
+  }
+
+  const renderableLines = getInactiveBlockquoteLines(block.startOffset, block.endOffset, source).filter((line) =>
+    hasCommittedLeanBlockquoteMarker(line.lineStart, line.markerEnd, source)
+  );
+  const lineCount = renderableLines.length;
+
+  for (const [index, line] of renderableLines.entries()) {
+    if (lineCount === 0) {
+      continue;
+    }
+
+    const lineClasses = ["cm-inactive-blockquote"];
+
+    if (index === 0) {
+      lineClasses.push("cm-inactive-blockquote-start");
+    }
+
+    if (index === lineCount - 1) {
+      lineClasses.push("cm-inactive-blockquote-end");
+    }
+
+    ranges.push(
+      Decoration.line({
+        attributes: {
+          class: lineClasses.join(" ")
+        }
+      }).range(line.lineStart)
+    );
+
+    if (line.markerEnd > line.lineStart) {
+      ranges.push(
+        Decoration.mark({
+          attributes: {
+            class: "cm-inactive-blockquote-marker"
+          }
+        }).range(line.lineStart, line.markerEnd)
+      );
+    }
+  }
+}
+
+function hasRenderableBlockquotePresentation(
+  block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "blockquote" }>,
+  source: string
+): boolean {
+  if (block.lines) {
+    return block.lines.some((line) =>
+      hasCommittedRichBlockquoteMarker(line.markerEnd, line.contentStartOffset)
+    );
+  }
+
+  return getInactiveBlockquoteLines(block.startOffset, block.endOffset, source).some((line) =>
+    hasCommittedLeanBlockquoteMarker(line.lineStart, line.markerEnd, source)
+  );
+}
+
+function hasCommittedRichBlockquoteMarker(
+  markerEnd: number,
+  contentStartOffset: number
+): boolean {
+  return contentStartOffset > markerEnd;
+}
+
+function hasCommittedLeanBlockquoteMarker(
+  lineStart: number,
+  markerEnd: number,
+  source: string
+): boolean {
+  if (markerEnd <= lineStart || markerEnd > source.length) {
+    return false;
+  }
+
+  const markerPadding = source[markerEnd - 1];
+  return markerPadding === " " || markerPadding === "\t";
+}
+
 function isCodeFenceContentSelection(
   block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "codeFence" }>,
   selectionHead: number,
@@ -313,8 +384,30 @@ function appendActiveDecorationsForBlock(
   ranges: Range<Decoration>[],
   resolveImagePreviewUrl?: (href: string | null) => string | null
 ): void {
-  if (block.type === "heading" || block.type === "paragraph") {
+  if (block.type === "heading") {
+    ranges.push(
+      Decoration.line({
+        attributes: {
+          class: `cm-active-heading cm-active-heading-depth-${block.depth}`
+        }
+      }).range(block.startOffset)
+    );
     ranges.push(...createActiveInlineImageDecorations(block.inline, source, resolveImagePreviewUrl));
+    ranges.push(...createActiveInlineDecorations(block.inline));
+    ranges.push(...createCjkTextDecorations(block.inline));
+    return;
+  }
+
+  if (block.type === "paragraph") {
+    ranges.push(
+      Decoration.line({
+        attributes: {
+          class: "cm-active-paragraph cm-active-paragraph-leading"
+        }
+      }).range(block.startOffset)
+    );
+    ranges.push(...createActiveInlineImageDecorations(block.inline, source, resolveImagePreviewUrl));
+    ranges.push(...createActiveInlineDecorations(block.inline));
     ranges.push(...createCjkTextDecorations(block.inline));
     return;
   }
@@ -327,6 +420,7 @@ function appendActiveDecorationsForBlock(
   if (block.type === "list") {
     for (const item of block.items) {
       ranges.push(...createActiveInlineImageDecorations(item.inline, source, resolveImagePreviewUrl));
+      ranges.push(...createActiveInlineDecorations(item.inline));
       ranges.push(...createCjkTextDecorations(item.inline));
     }
     return;
@@ -335,6 +429,7 @@ function appendActiveDecorationsForBlock(
   if (block.type === "blockquote" && block.lines) {
     for (const line of block.lines) {
       ranges.push(...createActiveInlineImageDecorations(line.inline, source, resolveImagePreviewUrl));
+      ranges.push(...createActiveInlineDecorations(line.inline));
       ranges.push(...createCjkTextDecorations(line.inline));
     }
   }

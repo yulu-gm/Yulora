@@ -1,6 +1,9 @@
 import type { EditorView } from "@codemirror/view";
 
-import { parseBlockquoteLine } from "./line-parsers";
+import type { ActiveBlockState } from "../active-block";
+import { getBackspaceLineStart, parseBlockquoteLine } from "./line-parsers";
+
+type BlockquoteBlock = Extract<ActiveBlockState["activeBlock"], { type: "blockquote" }>;
 
 export function runBlockquoteEnter(view: EditorView): boolean {
   const selection = view.state.selection.main;
@@ -51,4 +54,71 @@ export function runBlockquoteEnter(view: EditorView): boolean {
   });
 
   return true;
+}
+
+export function runBlockquoteBackspace(view: EditorView, activeState: ActiveBlockState): boolean {
+  const selection = view.state.selection.main;
+  if (!selection.empty) {
+    return false;
+  }
+
+  const source = view.state.doc.toString();
+  const line = view.state.doc.lineAt(selection.head);
+  const lineStart = getBackspaceLineStart(source, selection.head, line.from);
+
+  if (selection.head !== lineStart) {
+    return false;
+  }
+
+  const activeBlockquote = getActiveBlockquote(activeState, lineStart);
+  if (!activeBlockquote) {
+    return false;
+  }
+
+  const parsed = parseBlockquoteLine(line.text);
+  if (!parsed) {
+    return false;
+  }
+
+  if (activeBlockquote.startOffset === lineStart) {
+    return false;
+  }
+
+  const previousLineEnd = getPreviousLineEnd(lineStart);
+  if (previousLineEnd === null) {
+    return false;
+  }
+
+  view.dispatch({
+    selection: {
+      anchor: previousLineEnd,
+      head: previousLineEnd
+    }
+  });
+
+  return true;
+}
+
+function getActiveBlockquote(
+  activeState: ActiveBlockState,
+  lineStart: number
+): BlockquoteBlock | null {
+  const activeBlock = activeState.activeBlock;
+  if (activeBlock?.type !== "blockquote") {
+    return null;
+  }
+
+  if (lineStart <= activeBlock.startOffset || lineStart > activeBlock.endOffset) {
+    return null;
+  }
+
+  return activeBlock;
+}
+
+function getPreviousLineEnd(lineStart: number): number | null {
+  if (lineStart <= 0) {
+    return null;
+  }
+
+  return lineStart - 1;
 }

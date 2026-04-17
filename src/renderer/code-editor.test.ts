@@ -222,7 +222,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("renders inactive inline decorations for paragraph content and restores the raw markdown when the block becomes active again", async () => {
+  it("renders inline decorations for paragraph content and preserves styles when the block becomes active again", async () => {
     const host = document.createElement("div");
     const sourceLine = "**bold** *italic* `code` ~~strike~~";
     const source = [sourceLine, "", "Paragraph"].join("\n");
@@ -259,10 +259,10 @@ describe("createCodeEditorController", () => {
 
     expect(inactiveLine?.textContent).toBe(sourceLine);
     expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-marker")).toBe(0);
-    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strong")).toBe(0);
-    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-emphasis")).toBe(0);
-    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-code")).toBe(0);
-    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strikethrough")).toBe(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strong")).toBeGreaterThan(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-emphasis")).toBeGreaterThan(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-code")).toBeGreaterThan(0);
+    expect(getInlineDecorationCount(inactiveLine, "cm-inactive-inline-strikethrough")).toBeGreaterThan(0);
 
     controller.destroy();
   });
@@ -682,7 +682,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("removes inactive paragraph decorations when that paragraph becomes active again", async () => {
+  it("keeps paragraph visual style consistent when it becomes active", async () => {
     const host = document.createElement("div");
     const source = ["Paragraph one", "", "Paragraph two"].join("\n");
 
@@ -714,6 +714,8 @@ describe("createCodeEditorController", () => {
 
     expect(firstParagraphLine).not.toBeNull();
     expect(firstParagraphLine?.classList.contains("cm-inactive-paragraph")).toBe(false);
+    expect(firstParagraphLine?.classList.contains("cm-active-paragraph")).toBe(true);
+    expect(firstParagraphLine?.classList.contains("cm-active-paragraph-leading")).toBe(true);
 
     controller.destroy();
   });
@@ -842,7 +844,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("removes inactive blockquote decorations when that blockquote becomes active again", async () => {
+  it("keeps blockquote presentation when that blockquote becomes active again", async () => {
     const host = document.createElement("div");
     const source = ["> Quote line", "> Still quoted", "", "Paragraph"].join("\n");
 
@@ -869,10 +871,14 @@ describe("createCodeEditorController", () => {
     view?.dispatch({ selection: { anchor: source.indexOf("Quote line") } });
 
     const firstQuoteLine = getLineElementByText(host, "> Quote line");
+    const secondQuoteLine = getLineElementByText(host, "> Still quoted");
 
     expect(firstQuoteLine).not.toBeNull();
-    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(false);
-    expect(host.querySelector(".cm-inactive-blockquote-marker")).toBeNull();
+    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
+    expect(firstQuoteLine?.classList.contains("cm-inactive-blockquote-start")).toBe(true);
+    expect(secondQuoteLine).not.toBeNull();
+    expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
+    expect(host.querySelectorAll(".cm-inactive-blockquote-marker")).toHaveLength(2);
 
     controller.destroy();
   });
@@ -1350,6 +1356,41 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("does not render a blockquote until a space is typed after the marker", async () => {
+    const host = document.createElement("div");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "",
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      insertText: (text: string) => void;
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    advancedController.setSelection(0);
+    advancedController.insertText(">");
+
+    expect(controller.getContent()).toBe(">");
+    expect(host.querySelector(".cm-inactive-blockquote")).toBeNull();
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).toBeNull();
+
+    advancedController.insertText(" ");
+
+    expect(controller.getContent()).toBe("> ");
+    expect(host.querySelector(".cm-inactive-blockquote")).not.toBeNull();
+    expect(host.querySelector(".cm-inactive-blockquote-marker")).not.toBeNull();
+
+    controller.destroy();
+  });
+
   it("exits an empty blockquote line on Enter", () => {
     const host = document.createElement("div");
     const source = ["> quote", "> "].join("\n");
@@ -1508,6 +1549,66 @@ describe("createCodeEditorController", () => {
     expect(host.querySelector(".cm-inactive-code-block")).not.toBeNull();
     expect(host.querySelector(".cm-inactive-code-block-fence")).not.toBeNull();
     expect(getLineElementByText(host, "code bloc")).not.toBeNull();
+
+    controller.destroy();
+  });
+
+  it("keeps blockquote presentation when Backspace is pressed at a later line start", async () => {
+    const host = document.createElement("div");
+    const source = ["Paragraph", "", "> quote one", "> quote two", "After blockquote"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const view = getEditorView(host);
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    advancedController.setSelection(source.indexOf("> quote two"));
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(source);
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf("> quote two") - 1);
+    expect(host.querySelector(".cm-inactive-blockquote")).not.toBeNull();
+    expect(host.querySelectorAll(".cm-inactive-blockquote-marker")).toHaveLength(2);
+
+    controller.destroy();
+  });
+
+  it("allows leaving a blockquote when Backspace is pressed from the first line start", () => {
+    const host = document.createElement("div");
+    const source = ["Paragraph", "", "> quote one", "> quote two", "After blockquote"].join("\n");
+    const quoteOpenOffset = source.indexOf("> quote one");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const view = getEditorView(host);
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const expected = `${source.slice(0, quoteOpenOffset - 1)}${source.slice(quoteOpenOffset)}`;
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(quoteOpenOffset);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(expected);
+    expect(view?.state.selection.main.anchor).toBe(quoteOpenOffset - 1);
 
     controller.destroy();
   });

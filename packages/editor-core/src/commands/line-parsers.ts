@@ -18,7 +18,7 @@ export type ParsedListLine =
 
 const LIST_LINE_PATTERN = /^(\s*)([*+-]|\d+[.)])(?:[ \t]+|$)(.*)$/;
 const TASK_CONTENT_PATTERN = /^\[( |x|X)\](?:[ \t]+|$)(.*)$/;
-const BLOCKQUOTE_LINE_PATTERN = /^(\s{0,3})>(?:[ \t]?)(.*)$/;
+const BLOCKQUOTE_LINE_PATTERN = /^(\s{0,3})>[ \t]+(.*)$/;
 const CODE_FENCE_LINE_PATTERN = /^(\s{0,3})(`{3,}|~{3,})([^\n]*)$/;
 
 export function parseListLine(text: string): ParsedListLine | null {

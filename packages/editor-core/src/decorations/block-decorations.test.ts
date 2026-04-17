@@ -54,6 +54,23 @@ const createInactiveInlineDecorations = (source: string) => {
   );
 };
 
+const createActiveParagraphInlineDecorations = (source: string) => {
+  const blockMap = parseMarkdownDocument(source);
+  const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+    anchor: 0,
+    head: 0
+  });
+
+  return collectDecorations(
+    source,
+    createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    }).decorationSet
+  );
+};
+
 const getCoveredClassesAtRange = (
   ranges: Array<{ from: number; to: number; className: string; text: string }>,
   from: number,
@@ -117,6 +134,15 @@ describe("createBlockDecorations", () => {
     ]);
     expectCoveredRangeClasses(ranges, 7, 9, ["cm-inactive-inline-emphasis", "cm-inactive-inline-marker"]);
     expectCoveredRangeClasses(ranges, 9, 10, ["cm-inactive-inline-marker"]);
+  });
+
+  it("keeps inline style classes in active content while preserving markdown source text", () => {
+    const source = "**bold**";
+    const ranges = createActiveParagraphInlineDecorations(source);
+
+    expectExactRangeClasses(ranges, 0, 0, ["cm-active-paragraph cm-active-paragraph-leading"]);
+    expectCoveredRangeClasses(ranges, 2, 6, ["cm-inactive-inline-strong"]);
+    expect(ranges.some((range) => range.className === "cm-inactive-inline-marker")).toBe(false);
   });
 
   it("keeps nested strikethrough and strong decorations layered for inactive content", () => {
@@ -361,8 +387,98 @@ describe("createBlockDecorations", () => {
         to: 84,
         className: "cm-inactive-thematic-break-marker",
         text: "---"
+      },
+      {
+        from: 86,
+        to: 86,
+        className: "cm-active-paragraph cm-active-paragraph-leading",
+        text: ""
       }
     ]);
+  });
+
+  it("applies active paragraph line classes to keep body typography consistent", () => {
+    const source = "Paragraph text";
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: 0,
+      head: 0
+    });
+
+    const ranges = collectDecorations(
+      source,
+      createBlockDecorations({
+        activeBlockState: activeState,
+        hasEditorFocus: true,
+        source
+      }).decorationSet
+    );
+
+    expect(ranges.find((range) => range.from === 0 && range.to === 0)?.className).toBe(
+      "cm-active-paragraph cm-active-paragraph-leading"
+    );
+  });
+
+  it("keeps blockquote presentation decorations while the active blockquote is focused", () => {
+    const source = ["> Quote line", "> Still quoted"].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("Quote"),
+      head: source.indexOf("Quote")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+
+    expect(result.signature).toContain(":content-edit");
+    expect(ranges).toEqual([
+      {
+        from: 0,
+        to: 0,
+        className: "cm-inactive-blockquote cm-inactive-blockquote-start",
+        text: ""
+      },
+      {
+        from: 0,
+        to: 1,
+        className: "cm-inactive-blockquote-marker",
+        text: ">"
+      },
+      {
+        from: 13,
+        to: 13,
+        className: "cm-inactive-blockquote cm-inactive-blockquote-end",
+        text: ""
+      },
+      {
+        from: 13,
+        to: 14,
+        className: "cm-inactive-blockquote-marker",
+        text: ">"
+      }
+    ]);
+  });
+
+  it("does not render a blockquote presentation for a bare marker while focused", () => {
+    const source = ">";
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: 1,
+      head: 1
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+
+    expect(result.signature).not.toContain(":content-edit");
+    expect(collectDecorations(source, result.decorationSet)).toEqual([]);
   });
 
   it("omits the active block only while the editor has focus", () => {
@@ -385,6 +501,12 @@ describe("createBlockDecorations", () => {
     });
 
     expect(collectDecorations(source, focusedResult.decorationSet)).toEqual([
+      {
+        from: 0,
+        to: 0,
+        className: "cm-active-heading cm-active-heading-depth-1",
+        text: ""
+      },
       {
         from: 9,
         to: 9,

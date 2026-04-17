@@ -39,6 +39,12 @@ describe("line-parsers", () => {
       indent: "  ",
       content: "quote"
     });
+    expect(parseBlockquoteLine(">")).toBeNull();
+    expect(parseBlockquoteLine(">quote")).toBeNull();
+    expect(parseBlockquoteLine("> ")).toEqual({
+      indent: "",
+      content: ""
+    });
     expect(parseCodeFenceLine(" ```ts")).toEqual({
       indent: " ",
       fence: "```"
