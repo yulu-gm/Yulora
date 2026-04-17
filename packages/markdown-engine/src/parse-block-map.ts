@@ -6,12 +6,14 @@ import type {
   BlockquoteBlock,
   CodeFenceBlock,
   HeadingBlock,
+  HtmlImageBlock,
   ListBlock,
   ListItemBlock,
   MarkdownBlock,
   ParagraphBlock,
   ThematicBreakBlock
 } from "./block-map";
+import { parseHtmlImageData } from "./html-image";
 
 export function parseBlockMap(source: string): BlockMap {
   return {
@@ -49,6 +51,16 @@ export function parseTopLevelBlocks(source: string): MarkdownBlock[] {
 
       if (token.type === "codeFenced") {
         blocks.push(createCodeFenceBlock(token, source));
+        continue;
+      }
+
+      if (token.type === "htmlFlow") {
+        const htmlImageBlock = createHtmlImageBlock(token, source);
+
+        if (htmlImageBlock) {
+          blocks.push(htmlImageBlock);
+        }
+
         continue;
       }
 
@@ -132,6 +144,19 @@ function createThematicBreakBlock(
   return {
     ...base,
     marker: markerOverride ?? getThematicBreakMarker(source.slice(base.startOffset, base.endOffset))
+  };
+}
+
+function createHtmlImageBlock(token: Token, source: string): HtmlImageBlock | null {
+  const htmlImageData = parseHtmlImageData(source.slice(token.start.offset, token.end.offset));
+
+  if (!htmlImageData) {
+    return null;
+  }
+
+  return {
+    ...createBaseBlock("htmlImage", token),
+    ...htmlImageData
   };
 }
 

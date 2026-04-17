@@ -1,12 +1,26 @@
 import path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, type MenuItemConstructorOptions } from "electron";
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  Menu,
+  protocol,
+  type MenuItemConstructorOptions
+} from "electron";
 import { autoUpdater } from "electron-updater";
 
 import { createAppUpdater } from "./app-updater";
 import { createApplicationMenuTemplate } from "./application-menu";
 import { createCliProcessRunner } from "./cli-process-runner";
+import { importClipboardImage } from "./clipboard-image-import";
 import { resolveMarkdownLaunchPathFromArgv } from "./launch-open-path";
 import { openMarkdownFileFromPath, showOpenMarkdownDialog } from "./open-markdown-file";
+import {
+  registerPreviewAssetProtocol,
+  registerPreviewAssetScheme
+} from "./preview-asset-protocol";
 import { saveMarkdownFileToPath, showSaveMarkdownDialog } from "./save-markdown-file";
 import { createEditorTestSessions } from "./editor-test-sessions";
 import { createPreferencesService } from "./preferences-service";
@@ -38,6 +52,10 @@ import {
   type PreferencesUpdate
 } from "../shared/preferences";
 import {
+  IMPORT_CLIPBOARD_IMAGE_CHANNEL,
+  type ImportClipboardImageInput
+} from "../shared/clipboard-image-import";
+import {
   SAVE_MARKDOWN_FILE_AS_CHANNEL,
   SAVE_MARKDOWN_FILE_CHANNEL,
   type SaveMarkdownFileAsInput,
@@ -53,6 +71,8 @@ const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
 const LIST_THEMES_CHANNEL = "yulora:list-themes";
 const REFRESH_THEMES_CHANNEL = "yulora:refresh-themes";
 const AUTO_UPDATE_STARTUP_DELAY_MS = 5000;
+registerPreviewAssetScheme({ protocol });
+registerPreviewAssetScheme({ protocol });
 configureMainProcessRuntime(app, process.env);
 const hasSingleInstanceLock = shouldRequestSingleInstanceLock(process.env)
   ? app.requestSingleInstanceLock()
@@ -132,6 +152,7 @@ function broadcastToWindows(channel: string, payload: unknown): void {
 
 app.whenReady().then(async () => {
   const runtimeMode = resolveAppRuntimeMode(process.env);
+  registerPreviewAssetProtocol({ protocol });
   const preferencesService = createPreferencesService({
     userDataDir: app.getPath("userData"),
     onCorruptRecovery: (backupPath) => {
@@ -236,6 +257,9 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(SAVE_MARKDOWN_FILE_AS_CHANNEL, async (_event, input: SaveMarkdownFileAsInput) =>
     showSaveMarkdownDialog(input)
+  );
+  ipcMain.handle(IMPORT_CLIPBOARD_IMAGE_CHANNEL, async (_event, input: ImportClipboardImageInput) =>
+    importClipboardImage(input, { clipboard })
   );
   ipcMain.handle(OPEN_EDITOR_TEST_WINDOW_CHANNEL, async () => {
     editorTestSessions.ensureSession();

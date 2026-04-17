@@ -306,11 +306,30 @@
 步骤：
 1. 复制一张图片。
 2. 粘贴到编辑器中。
+3. 把光标留在刚插入的图片 Markdown 所在段落中。
+4. 再把光标移动到其他普通段落。
 
 预期：
 - 图片文件写入本地
 - 插入 Markdown 引用文本
 - 路径正确
+- 激活图片所在段落时，图片上方仍能看到原始 Markdown 源码，图片预览同时保留
+- 光标移到其他段落后，图片语法会折叠为稳定预览
+
+补充回归：
+1. 在已保存文档中输入单行 HTML 图片，例如 `<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />`。
+2. 再输入包裹式 HTML 图片，例如：
+   `<p align="center">`
+   `<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" width="160">`
+   `</p>`
+3. 分别把光标留在图片源码内，以及移到其他普通段落。
+
+补充预期：
+- 单行 `<img ...>` 与包裹式 `<p><img></p>` 都会渲染为图片预览
+- `style="zoom:25%;"` 与 `width="160"` 会体现在预览尺寸上
+- 激活态依然保留 HTML 源码在上方，图片预览在下方
+- 预览不再显示额外的大卡片背景，版式更接近正文流中的 Typora 图片
+- 点击任意图片预览时，光标会直接跳回对应图片源码的起始位置
 
 ### TC-031 拖入图片
 

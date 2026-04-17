@@ -1,11 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
-
 // Preload runs inside Electron's sandboxed environment, so local module imports
 // can prevent the bridge from loading at all. Keep the contract self-contained here.
 const OPEN_MARKDOWN_FILE_CHANNEL = "yulora:open-markdown-file";
 const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "yulora:open-markdown-file-from-path";
 const SAVE_MARKDOWN_FILE_CHANNEL = "yulora:save-markdown-file";
 const SAVE_MARKDOWN_FILE_AS_CHANNEL = "yulora:save-markdown-file-as";
+const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "yulora:import-clipboard-image";
 const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
 const START_SCENARIO_RUN_CHANNEL = "yulora:start-scenario-run";
 const INTERRUPT_SCENARIO_RUN_CHANNEL = "yulora:interrupt-scenario-run";
@@ -132,7 +132,27 @@ type AppNotification = {
   kind: "loading" | "info" | "success" | "warning" | "error";
   message: string;
 };
+type ImportClipboardImageInput = {
+  documentPath: string;
+};
 
+type ImportClipboardImageResult =
+  | {
+      status: "success";
+      markdown: string;
+      relativePath: string;
+    }
+  | {
+      status: "error";
+      error: {
+        code:
+          | "document-path-required"
+          | "no-image"
+          | "image-too-large"
+          | "write-failed";
+        message: string;
+      };
+    };
 type UpdatePreferencesResult =
   | { status: "success"; preferences: Preferences }
   | {
@@ -148,6 +168,10 @@ export type {
   AppUpdateState as PreloadAppUpdateState,
   ThemeDescriptor as PreloadThemeDescriptor,
   UpdatePreferencesResult as PreloadUpdatePreferencesResult
+};
+export type {
+  ImportClipboardImageInput as PreloadImportClipboardImageInput,
+  ImportClipboardImageResult as PreloadImportClipboardImageResult
 };
 
 type ScenarioRunStatus = "idle" | "running" | "passed" | "failed" | "timed-out" | "interrupted";
@@ -223,6 +247,8 @@ const api = {
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_CHANNEL, input),
   saveMarkdownFileAs: (input: { currentPath: string | null; content: string }) =>
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_AS_CHANNEL, input),
+  importClipboardImage: (input: ImportClipboardImageInput): Promise<ImportClipboardImageResult> =>
+    ipcRenderer.invoke(IMPORT_CLIPBOARD_IMAGE_CHANNEL, input),
   openEditorTestWindow: () => ipcRenderer.invoke(OPEN_EDITOR_TEST_WINDOW_CHANNEL),
   startScenarioRun: (input: { scenarioId: string }) =>
     ipcRenderer.invoke(START_SCENARIO_RUN_CHANNEL, input),

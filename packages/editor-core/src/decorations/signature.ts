@@ -60,6 +60,12 @@ export function createBlockDecorationSignature(block: MarkdownBlock): string {
     return `${block.type}:${block.id}:${block.info ?? ""}`;
   }
 
+  if (block.type === "htmlImage") {
+    return `${block.type}:${block.id}:${JSON.stringify(block.src)}:${JSON.stringify(block.alt)}:${JSON.stringify(
+      block.width
+    )}:${JSON.stringify(block.height)}:${JSON.stringify(block.zoom)}:${JSON.stringify(block.align)}`;
+  }
+
   return `${block.type}:${block.id}:${block.marker}`;
 }
 

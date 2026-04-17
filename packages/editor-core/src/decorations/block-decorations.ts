@@ -1,8 +1,14 @@
 import { Decoration, type DecorationSet } from "@codemirror/view";
+import { type Range } from "@codemirror/state";
 
 import type { ActiveBlockState } from "../active-block";
 import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";
 import { createInactiveInlineDecorations } from "./inline-decorations";
+import {
+  createActiveHtmlImagePreviewDecoration,
+  createActiveInlineImageDecorations,
+  createInactiveHtmlImagePreviewDecoration
+} from "./image-widgets";
 import {
   createBlockDecorationSignature,
   getInactiveHeadingMarkerEnd
@@ -12,6 +18,7 @@ export type CreateBlockDecorationsOptions = {
   activeBlockState: ActiveBlockState;
   hasEditorFocus: boolean;
   source: string;
+  resolveImagePreviewUrl?: (href: string | null) => string | null;
 };
 
 export type BlockDecorationsResult = {
@@ -22,17 +29,23 @@ export type BlockDecorationsResult = {
 export function createBlockDecorations(
   options: CreateBlockDecorationsOptions
 ): BlockDecorationsResult {
-  const { activeBlockState, hasEditorFocus, source } = options;
+  const { activeBlockState, hasEditorFocus, source, resolveImagePreviewUrl } = options;
   const activeBlockId = hasEditorFocus ? activeBlockState.activeBlock?.id ?? null : null;
-  const ranges = [];
+  const ranges: Range<Decoration>[] = [];
   const signatures: string[] = [];
 
   for (const block of activeBlockState.blockMap.blocks) {
     if (block.id === activeBlockId) {
+      appendActiveImageDecorationsForBlock(block, source, ranges, resolveImagePreviewUrl);
       continue;
     }
 
     signatures.push(createBlockDecorationSignature(block));
+
+    if (block.type === "htmlImage") {
+      ranges.push(createInactiveHtmlImagePreviewDecoration(block, resolveImagePreviewUrl));
+      continue;
+    }
 
     if (block.type === "heading") {
       const markerEnd = getInactiveHeadingMarkerEnd(block.startOffset, block.depth, source);
@@ -50,7 +63,7 @@ export function createBlockDecorations(
           }
         }).range(block.startOffset, markerEnd)
       );
-      ranges.push(...createInactiveInlineDecorations(block.inline));
+      ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl }));
       continue;
     }
 
@@ -62,7 +75,7 @@ export function createBlockDecorations(
           }
         }).range(block.startOffset)
       );
-      ranges.push(...createInactiveInlineDecorations(block.inline));
+      ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl }));
       continue;
     }
 
@@ -115,7 +128,7 @@ export function createBlockDecorations(
           );
         }
 
-        ranges.push(...createInactiveInlineDecorations(item.inline));
+        ranges.push(...createInactiveInlineDecorations(item.inline, { resolveImagePreviewUrl }));
       }
 
       continue;
@@ -154,7 +167,7 @@ export function createBlockDecorations(
             );
           }
 
-          ranges.push(...createInactiveInlineDecorations(line.inline));
+          ranges.push(...createInactiveInlineDecorations(line.inline, { resolveImagePreviewUrl }));
         });
         continue;
       }
@@ -259,4 +272,34 @@ export function createBlockDecorations(
     decorationSet: Decoration.set(ranges, true),
     signature: signatures.join("|")
   };
+}
+
+function appendActiveImageDecorationsForBlock(
+  block: NonNullable<ActiveBlockState["activeBlock"]>,
+  source: string,
+  ranges: Range<Decoration>[],
+  resolveImagePreviewUrl?: (href: string | null) => string | null
+): void {
+  if (block.type === "heading" || block.type === "paragraph") {
+    ranges.push(...createActiveInlineImageDecorations(block.inline, source, resolveImagePreviewUrl));
+    return;
+  }
+
+  if (block.type === "htmlImage") {
+    ranges.push(createActiveHtmlImagePreviewDecoration(block, source, resolveImagePreviewUrl));
+    return;
+  }
+
+  if (block.type === "list") {
+    for (const item of block.items) {
+      ranges.push(...createActiveInlineImageDecorations(item.inline, source, resolveImagePreviewUrl));
+    }
+    return;
+  }
+
+  if (block.type === "blockquote" && block.lines) {
+    for (const line of block.lines) {
+      ranges.push(...createActiveInlineImageDecorations(line.inline, source, resolveImagePreviewUrl));
+    }
+  }
 }

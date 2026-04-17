@@ -3,23 +3,29 @@ import { EditorView } from "@codemirror/view";
 
 import {
   createYuloraMarkdownExtensions,
+  refreshMarkdownDecorations,
   runMarkdownBackspace,
   runMarkdownEnter,
   type ActiveBlockState
 } from "@yulora/editor-core";
 import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
+import { createPreviewAssetUrl } from "../shared/preview-asset-url";
+
 export type CreateCodeEditorControllerOptions = {
   parent: Element;
   initialContent: string;
+  documentPath?: string | null;
   onChange: (content: string) => void;
   onBlur?: () => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
+  importClipboardImage?: (input: { documentPath: string | null }) => Promise<string | null>;
 };
 
 export type CodeEditorController = {
   getContent: () => string;
   replaceDocument: (nextContent: string) => void;
+  setDocumentPath: (nextDocumentPath: string | null) => void;
   focus: () => void;
   navigateToOffset: (offset: number) => void;
   insertText: (text: string) => void;
@@ -32,6 +38,8 @@ export type CodeEditorController = {
 export function createCodeEditorController(
   options: CreateCodeEditorControllerOptions
 ): CodeEditorController {
+  let currentDocumentPath = options.documentPath ?? null;
+  let isDestroyed = false;
   let activeBlockState: ActiveBlockState = {
     blockMap: parseMarkdownDocument(""),
     activeBlock: null,
@@ -51,6 +59,7 @@ export function createCodeEditorController(
           activeBlockState = nextState;
           options.onActiveBlockChange?.(nextState);
         },
+        resolveImagePreviewUrl: (href) => resolveImagePreviewUrl(currentDocumentPath, href),
         onBlur: options.onBlur
       })
     });
@@ -61,11 +70,57 @@ export function createCodeEditorController(
     parent: options.parent
   });
 
+  const handlePaste = (event: ClipboardEvent) => {
+    if (!options.importClipboardImage) {
+      return;
+    }
+
+    const clipboardItems = Array.from(event.clipboardData?.items ?? []);
+
+    if (!clipboardItems.some((item) => item.type.startsWith("image/"))) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const selection = view.state.selection.main;
+
+    void options
+      .importClipboardImage({
+        documentPath: currentDocumentPath
+      })
+      .then((markdown) => {
+        if (!markdown || isDestroyed) {
+          return;
+        }
+
+        const nextAnchor = selection.from + markdown.length;
+
+        view.dispatch({
+          changes: {
+            from: selection.from,
+            to: selection.to,
+            insert: markdown
+          },
+          selection: {
+            anchor: nextAnchor,
+            head: nextAnchor
+          }
+        });
+      });
+  };
+
+  view.dom.addEventListener("paste", handlePaste);
+
   return {
     getContent: () => view.state.doc.toString(),
     replaceDocument(nextContent: string) {
       const nextState = createState(nextContent);
       view.setState(nextState);
+    },
+    setDocumentPath(nextDocumentPath: string | null) {
+      currentDocumentPath = nextDocumentPath;
+      refreshMarkdownDecorations(view);
     },
     focus() {
       view.focus();
@@ -116,7 +171,79 @@ export function createCodeEditorController(
       runMarkdownBackspace(view, activeBlockState);
     },
     destroy() {
+      isDestroyed = true;
+      view.dom.removeEventListener("paste", handlePaste);
       view.destroy();
     }
   };
+}
+
+function resolveImagePreviewUrl(documentPath: string | null, href: string | null): string | null {
+  if (!href) {
+    return null;
+  }
+
+  if (/^(https?:|data:)/i.test(href)) {
+    return href;
+  }
+
+  if (/^file:/i.test(href)) {
+    const localFilePath = tryResolveFilePathFromFileUrl(href);
+    return localFilePath ? createPreviewAssetUrl(localFilePath) : href;
+  }
+
+  const localFilePath = resolveLocalImageFilePath(documentPath, href);
+  return localFilePath ? createPreviewAssetUrl(localFilePath) : null;
+}
+
+function toFileUrl(filePath: string): string {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  const absolutePath = /^[a-zA-Z]:\//.test(normalizedPath)
+    ? `/${normalizedPath}`
+    : normalizedPath;
+
+  return encodeURI(`file://${absolutePath}`);
+}
+
+function resolveLocalImageFilePath(documentPath: string | null, href: string): string | null {
+  const normalizedHref = href.replace(/\\/g, "/");
+
+  if (/^[a-zA-Z]:\//.test(normalizedHref) || normalizedHref.startsWith("/")) {
+    return normalizedHref;
+  }
+
+  if (!documentPath) {
+    return null;
+  }
+
+  try {
+    const absoluteUrl = new URL(href, toFileUrl(documentPath)).toString();
+    return tryResolveFilePathFromFileUrl(absoluteUrl);
+  } catch {
+    return null;
+  }
+}
+
+function tryResolveFilePathFromFileUrl(fileUrl: string): string | null {
+  try {
+    const url = new URL(fileUrl);
+
+    if (url.protocol !== "file:") {
+      return null;
+    }
+
+    const decodedPath = decodeURIComponent(url.pathname);
+
+    if (/^\/[a-zA-Z]:\//.test(decodedPath)) {
+      return decodedPath.slice(1);
+    }
+
+    if (url.hostname) {
+      return `//${url.hostname}${decodedPath}`;
+    }
+
+    return decodedPath;
+  } catch {
+    return null;
+  }
 }

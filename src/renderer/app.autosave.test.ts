@@ -167,6 +167,14 @@ describe("App autosave", () => {
   let saveMarkdownFileAs: ReturnType<
     typeof vi.fn<(input: SaveMarkdownFileAsInput) => Promise<SaveMarkdownFileResult>>
   >;
+  let importClipboardImage: ReturnType<
+    typeof vi.fn<
+      (input: { documentPath: string }) => Promise<
+        | { status: "success"; markdown: string; relativePath: string }
+        | { status: "error"; error: { code: string; message: string } }
+      >
+    >
+  >;
   let listThemes: ReturnType<typeof vi.fn<() => Promise<ThemeDescriptor[]>>>;
   let refreshThemes: ReturnType<typeof vi.fn<() => Promise<ThemeDescriptor[]>>>;
 
@@ -246,6 +254,13 @@ describe("App autosave", () => {
       }));
 
     saveMarkdownFileAs = vi.fn<(input: SaveMarkdownFileAsInput) => Promise<SaveMarkdownFileResult>>();
+    importClipboardImage = vi.fn().mockResolvedValue({
+      status: "error",
+      error: {
+        code: "no-image",
+        message: "Clipboard does not contain a supported image."
+      }
+    });
     listThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(communityThemes);
     refreshThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(communityThemes);
 
@@ -259,6 +274,7 @@ describe("App autosave", () => {
       }),
       saveMarkdownFile,
       saveMarkdownFileAs,
+      importClipboardImage,
       openEditorTestWindow: vi.fn().mockResolvedValue(undefined),
       startScenarioRun: vi.fn().mockResolvedValue({ runId: "unused-run" }),
       interruptScenarioRun: vi.fn().mockResolvedValue(undefined),

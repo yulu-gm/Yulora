@@ -3,6 +3,7 @@ export type {
   BlockquoteBlock,
   CodeFenceBlock,
   HeadingBlock,
+  HtmlImageBlock,
   ListItemBlock,
   ListBlock,
   MarkdownBlock,

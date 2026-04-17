@@ -15,6 +15,7 @@ export type DeriveInactiveBlockDecorationsStateOptions = {
   hasEditorFocus: boolean;
   markdownDocumentCache?: MarkdownDocumentCache;
   blockMapCache?: BlockMapCache;
+  resolveImagePreviewUrl?: (href: string | null) => string | null;
 };
 
 export type InactiveBlockDecorationsDerivedState = {
@@ -44,7 +45,8 @@ export function deriveInactiveBlockDecorationsState(
   const { decorationSet, signature: blockSignature } = createBlockDecorations({
     activeBlockState,
     hasEditorFocus: options.hasEditorFocus,
-    source: options.source
+    source: options.source,
+    resolveImagePreviewUrl: options.resolveImagePreviewUrl
   });
 
   return {
