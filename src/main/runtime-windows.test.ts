@@ -110,6 +110,39 @@ describe("createRuntimeWindowManager", () => {
     expect(harness.loadRenderer).toHaveBeenCalledWith(harness.window, "editor");
   });
 
+  it("configures macOS editor windows for the controlled title bar host", () => {
+    const harness = createWindowHarness("editor", {
+      platform: "darwin"
+    });
+
+    harness.manager.openPrimaryWindow();
+
+    expect(harness.createWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titleBarStyle: "hiddenInset"
+      })
+    );
+  });
+
+  it("keeps Windows editor windows on native chrome until controlled actions exist", () => {
+    const harness = createWindowHarness("editor", {
+      platform: "win32"
+    });
+
+    harness.manager.openPrimaryWindow();
+
+    expect(harness.createWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Yulora",
+        width: 1200,
+        height: 800
+      })
+    );
+    expect(harness.createWindow.mock.calls[0]?.[0]).not.toHaveProperty("frame");
+    expect(harness.createWindow.mock.calls[0]?.[0]).not.toHaveProperty("titleBarStyle");
+    expect(harness.createWindow.mock.calls[0]?.[0]).not.toHaveProperty("titleBarOverlay");
+  });
+
   it("reopens the primary window only when every window has been closed", () => {
     const harness = createWindowHarness("test-workbench");
 
@@ -177,6 +210,7 @@ function createWindowHarness(
   runtimeMode: RuntimeMode,
   options?: {
     windowIconPath?: string;
+    platform?: NodeJS.Platform;
     showStrategy?: "ready-to-show" | "immediate";
   }
 ) {
@@ -215,6 +249,7 @@ function createWindowHarness(
 
   const manager = createRuntimeWindowManager<TestWindow>({
     runtimeMode,
+    platform: options?.platform,
     preloadPath: "D:/app/dist-electron/preload/preload.js",
     windowIconPath: options?.windowIconPath,
     showStrategy: options?.showStrategy,

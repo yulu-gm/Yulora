@@ -1294,6 +1294,80 @@ describe("App autosave", () => {
     expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
   });
 
+  it("renders a controlled titlebar host with built-in items", async () => {
+    await renderApp();
+
+    const titlebar = container.querySelector('[data-yulora-role="titlebar"]');
+
+    expect(titlebar).not.toBeNull();
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="app-icon"]')).not.toBeNull();
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="document-title"]')?.textContent).toContain(
+      "Local-first Markdown writing"
+    );
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="dirty-indicator"]')).not.toBeNull();
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="theme-toggle"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="window-actions"]')).toBeNull();
+  });
+
+  it("uses the macOS default titlebar layout without renderer window actions", async () => {
+    window.yulora = {
+      ...window.yulora,
+      platform: "darwin"
+    } as Window["yulora"];
+
+    await renderApp();
+
+    const titlebar = container.querySelector('[data-yulora-role="titlebar"]');
+
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="window-actions"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-yulora-titlebar-item="app-icon"]')).toBeNull();
+  });
+
+  it("keeps passive titlebar content draggable while limiting no-drag to controls", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+
+    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-yulora-drag-region="true"]');
+    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-yulora-drag-region="false"]');
+    expect(appUiStylesheet).toContain(".app-titlebar button");
+    expect(appUiStylesheet).not.toContain(".app-titlebar-item,\n.app-titlebar-item > *");
+  });
+
+  it("mounts a titlebar shader surface host for the active manifest package", async () => {
+    await renderEditorApp({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "rain-glass",
+          effectsMode: "auto"
+        }
+      },
+      listThemePackagesResult: [
+        makeManifestThemePackage({
+          id: "rain-glass",
+          name: "Rain Glass",
+          scene: {
+            id: "rain-scene",
+            sharedUniforms: { rainAmount: 0.7 }
+          },
+          surfaces: {
+            titlebarBackdrop: {
+              kind: "fragment",
+              scene: "rain-scene",
+              shader: "/tmp/yulora/themes/rain-glass/shaders/titlebar-backdrop.glsl"
+            }
+          }
+        })
+      ]
+    });
+
+    const surfaceHost = container.querySelector('[data-yulora-theme-surface="titlebarBackdrop"]');
+
+    expect(surfaceHost).not.toBeNull();
+    expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+  });
+
   it("does not refetch the workbench shader during ordinary app rerenders", async () => {
     listThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue([
       makeManifestThemePackage({

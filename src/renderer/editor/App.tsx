@@ -1,8 +1,19 @@
-import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties
+} from "react";
 
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
 import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
+import type { ThemeSurfaceSlot } from "../../shared/theme-package";
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
@@ -34,6 +45,11 @@ import {
   ThemeSurfaceHost,
   type ThemeSurfaceHostDescriptor
 } from "./ThemeSurfaceHost";
+import { TitlebarHost } from "./TitlebarHost";
+import {
+  normalizeTitlebarLayout,
+  resolveDefaultTitlebarLayout
+} from "./titlebar-layout";
 
 const SettingsView = lazy(async () => {
   const module = await import("./settings-view");
@@ -197,10 +213,11 @@ function resolveThemeWarningMessage(
   return null;
 }
 
-function resolveActiveWorkbenchSurface(
+function resolveActiveThemeSurface(
   selectedId: string | null,
   themePackages: ThemePackageEntry[],
-  mode: ResolvedThemeMode
+  mode: ResolvedThemeMode,
+  surface: ThemeSurfaceSlot
 ): ThemeSurfaceHostDescriptor | null {
   if (!selectedId) {
     return null;
@@ -216,7 +233,7 @@ function resolveActiveWorkbenchSurface(
     return null;
   }
 
-  const fragmentSurface = activeThemePackage.manifest.surfaces.workbenchBackground;
+  const fragmentSurface = activeThemePackage.manifest.surfaces[surface];
   const scene = activeThemePackage.manifest.scene;
 
   if (!fragmentSurface || fragmentSurface.kind !== "fragment" || !scene) {
@@ -351,10 +368,11 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     () =>
       preferences.theme.effectsMode === "off"
         ? null
-        : resolveActiveWorkbenchSurface(
+        : resolveActiveThemeSurface(
             preferences.theme.selectedId,
             themePackages,
-            resolvedThemeMode
+            resolvedThemeMode,
+            "workbenchBackground"
           ),
     [
       preferences.theme.effectsMode,
@@ -362,6 +380,27 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       resolvedThemeMode,
       themePackages
     ]
+  );
+  const activeTitlebarSurface = useMemo(
+    () =>
+      preferences.theme.effectsMode === "off"
+        ? null
+        : resolveActiveThemeSurface(
+            preferences.theme.selectedId,
+            themePackages,
+            resolvedThemeMode,
+            "titlebarBackdrop"
+          ),
+    [
+      preferences.theme.effectsMode,
+      preferences.theme.selectedId,
+      resolvedThemeMode,
+      themePackages
+    ]
+  );
+  const titlebarLayout = useMemo(
+    () => normalizeTitlebarLayout(resolveDefaultTitlebarLayout(yulora.platform)),
+    [yulora.platform]
   );
 
   function applyState(updater: (current: AppState) => AppState): void {
@@ -1048,7 +1087,22 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   );
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      style={
+        {
+          "--yulora-titlebar-height": `${titlebarLayout.height}px`
+        } as CSSProperties
+      }
+    >
+      <TitlebarHost
+        platform={yulora.platform}
+        layout={titlebarLayout}
+        title={headerTitle}
+        isDirty={state.isDirty}
+        effectsMode={preferences.theme.effectsMode}
+        titlebarSurface={activeTitlebarSurface}
+      />
       <div className="app-layout">
         <aside
           className="app-rail"

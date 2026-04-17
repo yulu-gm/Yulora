@@ -21,6 +21,9 @@ type CreateWindowInput = {
   minHeight: number;
   title: string;
   icon?: string;
+  frame?: boolean;
+  titleBarOverlay?: boolean;
+  titleBarStyle?: "default" | "hidden" | "hiddenInset";
   webPreferences: {
     preload: string;
     contextIsolation: true;
@@ -42,6 +45,7 @@ export function resolveWindowRuntimeMode(argv: string[]): RuntimeMode {
 
 export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
   runtimeMode: RuntimeMode;
+  platform?: NodeJS.Platform;
   preloadPath: string;
   windowIconPath?: string;
   showStrategy?: "ready-to-show" | "immediate";
@@ -51,6 +55,7 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
 }) {
   const {
     runtimeMode,
+    platform = process.platform,
     preloadPath,
     windowIconPath,
     showStrategy = "ready-to-show",
@@ -58,6 +63,16 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
     getAllWindows,
     loadRenderer
   } = input;
+
+  function resolveEditorWindowChrome(): Partial<CreateWindowInput> {
+    if (platform === "darwin") {
+      return {
+        titleBarStyle: "hiddenInset"
+      };
+    }
+
+    return {};
+  }
 
   function openWindow(
     nextRuntimeMode: RuntimeMode,
@@ -87,6 +102,7 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
             minWidth: 900,
             minHeight: 600
           }),
+      ...(nextRuntimeMode === "editor" ? resolveEditorWindowChrome() : {}),
       ...(windowIconPath
         ? {
             icon: windowIconPath

@@ -1,12 +1,124 @@
 .app-shell {
+  --yulora-titlebar-height: 44px;
   height: 100dvh;
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  display: grid;
+  grid-template-rows: var(--yulora-titlebar-height) minmax(0, 1fr);
+}
+
+.app-titlebar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: center;
+  min-height: var(--yulora-titlebar-height);
+  padding: 0 var(--yulora-shell-gutter);
+  border-bottom: 1px solid var(--yulora-border-faint);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, transparent),
+      color-mix(in srgb, var(--yulora-surface-base-bg) 92%, transparent)
+    );
+  overflow: hidden;
+}
+
+.app-titlebar > .theme-surface-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.96;
+}
+
+.app-titlebar > .theme-surface-host .theme-surface-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.app-titlebar-slot {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--yulora-space-2);
+}
+
+.app-titlebar-slot[data-yulora-titlebar-slot="center"] {
+  justify-content: center;
+}
+
+.app-titlebar-slot[data-yulora-titlebar-slot="trailing"] {
+  justify-content: flex-end;
+}
+
+.app-titlebar-slot[data-yulora-drag-region="true"] {
+  -webkit-app-region: drag;
+}
+
+.app-titlebar-slot[data-yulora-drag-region="false"] {
+  -webkit-app-region: no-drag;
+}
+
+.app-titlebar button {
+  -webkit-app-region: no-drag;
+}
+
+.app-titlebar-app-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--yulora-text-strong) 10%, transparent);
+  color: var(--yulora-text-strong);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.app-titlebar-document-title {
+  display: inline-block;
+  max-width: min(56vw, 560px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--yulora-text-strong);
+  font-size: 0.84rem;
+  font-weight: 620;
+  letter-spacing: 0.01em;
+}
+
+.app-titlebar-dirty-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yulora-text-muted) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--yulora-surface-base-bg) 72%, transparent);
+}
+
+.app-titlebar-dirty-indicator[data-state="dirty"] {
+  background: color-mix(in srgb, var(--yulora-accent-strong, #4f7cff) 82%, white 18%);
+}
+
+.app-titlebar-theme-toggle {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--yulora-border-subtle) 92%, transparent);
+  border-radius: var(--yulora-radius-pill);
+  background: color-mix(in srgb, var(--yulora-surface-raised-bg) 88%, transparent);
+  color: var(--yulora-text-subtle);
+  font: inherit;
+  font-size: 0.76rem;
+  line-height: 1;
 }
 
 .app-layout {
-  height: 100dvh;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: var(--yulora-shell-rail-width) minmax(0, 1fr);
 }
@@ -15,7 +127,7 @@
   align-self: start;
   position: sticky;
   top: 0;
-  height: 100dvh;
+  height: 100%;
   padding: var(--yulora-space-6) var(--yulora-space-3) var(--yulora-space-5);
   display: flex;
   flex-direction: column;
@@ -76,7 +188,7 @@
 
 .app-workspace {
   min-width: 0;
-  height: 100dvh;
+  height: 100%;
   padding:
     var(--yulora-space-4)
     var(--yulora-shell-gutter)
@@ -90,7 +202,7 @@
 
 .app-notification-banner {
   position: fixed;
-  top: 14px;
+  top: calc(var(--yulora-titlebar-height) + 14px);
   left: calc(var(--yulora-shell-rail-width) + var(--yulora-shell-gutter));
   right: var(--yulora-shell-gutter);
   display: grid;
@@ -698,6 +810,10 @@
     --yulora-shell-gutter: 16px;
   }
 
+  .app-titlebar[data-compact-when-narrow="true"] [data-yulora-titlebar-item="dirty-indicator"] {
+    display: none;
+  }
+
   .app-rail-brand .app-subtitle {
     display: none;
   }
@@ -722,6 +838,10 @@
 
   .app-layout {
     grid-template-columns: var(--yulora-shell-rail-width) minmax(0, 1fr);
+  }
+
+  .app-titlebar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
   }
 
   .app-workspace {
