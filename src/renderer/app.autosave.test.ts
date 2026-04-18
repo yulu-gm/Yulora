@@ -711,6 +711,7 @@ describe("App autosave", () => {
     expect(container.textContent).toContain("Untitled.md");
     expect(container.querySelector('[data-yulora-region="empty-state"]')).toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
+    expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
   });
 
   it("routes the first save for a new untitled document through Save As", async () => {
@@ -1559,7 +1560,7 @@ describe("App autosave", () => {
     expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
   });
 
-  it("shows the shortcut hint overlay only while the editor is focused and Control is held", async () => {
+  it("shows the shortcut hint overlay only after Control is held for 1 second while the editor is focused", async () => {
     await renderAndOpenDocument();
 
     expect(
@@ -1586,10 +1587,26 @@ describe("App autosave", () => {
     const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
     const overlayShell = container.querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]');
 
+    expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
+    expect(overlay).toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(999);
+      await Promise.resolve();
+    });
+
+    expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+      await Promise.resolve();
+    });
+
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("visible");
-    expect(overlay?.textContent).toContain("Ctrl+B");
-    expect(overlay?.textContent).not.toContain("Save");
-    expect(overlay?.textContent).not.toContain("Open");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).toContain("Ctrl+B");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Save");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Open");
 
     await act(async () => {
       window.dispatchEvent(
@@ -1603,6 +1620,53 @@ describe("App autosave", () => {
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
   });
 
+  it("does not show the shortcut hint overlay if Control is released before 1 second elapses", async () => {
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      codeEditorMock.focus();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Control",
+          code: "ControlLeft",
+          ctrlKey: true,
+          bubbles: true
+        })
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(700);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", {
+          key: "Control",
+          code: "ControlLeft",
+          bubbles: true
+        })
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+    });
+
+    expect(
+      container
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
+    ).toBe("hidden");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+  });
+
   it("does not show the shortcut hint overlay when Control is held without editor focus", async () => {
     await renderAndOpenDocument();
 
@@ -1614,6 +1678,11 @@ describe("App autosave", () => {
           bubbles: true
         })
       );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
     });
 
     const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
@@ -1649,6 +1718,11 @@ describe("App autosave", () => {
           bubbles: true
         })
       );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
     });
 
     expect(
@@ -1689,6 +1763,11 @@ describe("App autosave", () => {
           bubbles: true
         })
       );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
     });
 
     const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
@@ -1739,6 +1818,11 @@ describe("App autosave", () => {
       );
     });
 
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+
     expect(
       container
         .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
@@ -1765,6 +1849,11 @@ describe("App autosave", () => {
       );
     });
 
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+
     expect(
       container
         .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
@@ -1773,7 +1862,7 @@ describe("App autosave", () => {
     expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
   });
 
-  it("does not show the shortcut hint overlay when the editor canvas has no safe left gutter", async () => {
+  it("shows the shortcut hint overlay even when the content column starts near the left edge", async () => {
     codeEditorMock.setLayout({
       hostLeft: 0,
       hostWidth: 720,
@@ -1803,62 +1892,17 @@ describe("App autosave", () => {
       );
     });
 
-    expect(
-      container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
-        ?.getAttribute("data-shortcut-hint-state")
-    ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
-  });
-
-  it("keeps the shortcut hint overlay hidden when the measured overlay width would intrude into the content column", async () => {
-    codeEditorMock.setLayout({
-      hostLeft: 0,
-      hostWidth: 720,
-      contentLeft: 220,
-      contentWidth: 420
-    });
-
-    await renderAndOpenDocument();
-
-    const measureOverlay = container.querySelector<HTMLElement>(
-      '[data-yulora-region="shortcut-hint-overlay-measure"]'
-    );
-    expect(measureOverlay).not.toBeNull();
-
-    if (!measureOverlay) {
-      throw new Error("shortcut hint measure overlay not found");
-    }
-
-    measureOverlay.getBoundingClientRect = () => createDomRect(24, 220);
-
     await act(async () => {
-      codeEditorMock.focus();
+      vi.advanceTimersByTime(1000);
       await Promise.resolve();
-    });
-
-    await act(async () => {
-      codeEditorMock.triggerResize();
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      window.dispatchEvent(
-        new KeyboardEvent("keydown", {
-          key: "Control",
-          code: "ControlLeft",
-          ctrlKey: true,
-          bubbles: true
-        })
-      );
     });
 
     expect(
       container
         .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
-    ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    ).toBe("visible");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).not.toBeNull();
   });
 
   it("keeps the shortcut hint overlay visible until every pressed primary modifier is released", async () => {
@@ -1886,6 +1930,11 @@ describe("App autosave", () => {
           bubbles: true
         })
       );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
     });
 
     expect(
@@ -1947,6 +1996,11 @@ describe("App autosave", () => {
     });
 
     await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
       window.dispatchEvent(new Event("blur"));
       await Promise.resolve();
     });
@@ -1973,11 +2027,37 @@ describe("App autosave", () => {
       appUiStylesheet.match(/@keyframes shortcut-hint-overlay-enter \{[\s\S]*?\n\}/m)?.[0] ?? "";
     const overlayExitKeyframes =
       appUiStylesheet.match(/@keyframes shortcut-hint-overlay-exit \{[\s\S]*?\n\}/m)?.[0] ?? "";
+    const overlayItemEnterRule =
+      appUiStylesheet.match(
+        /\.shortcut-hint-overlay\[data-state="open"\] \.shortcut-hint-overlay-item \{[\s\S]*?\n\}/m
+      )?.[0] ?? "";
+    const overlayItemExitRule =
+      appUiStylesheet.match(
+        /\.shortcut-hint-overlay\[data-state="closing"\] \.shortcut-hint-overlay-item \{[\s\S]*?\n\}/m
+      )?.[0] ?? "";
+    const overlayClosingRule =
+      appUiStylesheet.match(/\.shortcut-hint-overlay\[data-state="closing"\] \{[\s\S]*?\n\}/m)?.[0] ?? "";
+    const overlayShellHiddenRule =
+      appUiStylesheet.match(
+        /\.shortcut-hint-overlay-shell\[data-shortcut-hint-state="hidden"\] \{[\s\S]*?\n\}/m
+      )?.[0] ?? "";
+    const overlayItemEnterKeyframes =
+      appUiStylesheet.match(/@keyframes shortcut-hint-overlay-item-enter \{[\s\S]*?\n\}/m)?.[0] ?? "";
+    const overlayItemExitKeyframes =
+      appUiStylesheet.match(/@keyframes shortcut-hint-overlay-item-exit \{[\s\S]*?\n\}/m)?.[0] ?? "";
 
     expect(overlayEnterKeyframes).toContain("opacity:");
     expect(overlayExitKeyframes).toContain("opacity:");
     expect(overlayEnterKeyframes).not.toContain("translateX");
     expect(overlayExitKeyframes).not.toContain("translateX");
+    expect(overlayItemEnterRule).toContain("var(--shortcut-index, 0)");
+    expect(overlayItemExitRule).toContain("var(--shortcut-index, 0)");
+    expect(overlayClosingRule).not.toContain("animation:");
+    expect(overlayShellHiddenRule).not.toContain("opacity:");
+    expect(overlayItemEnterKeyframes).toContain("translateX");
+    expect(overlayItemExitKeyframes).toContain("translateX");
+    expect(overlayItemEnterKeyframes).toContain("scaleY");
+    expect(overlayItemExitKeyframes).toContain("scaleY");
   });
 
   it("renders settings as a drawer panel with close affordance while keeping existing controls", async () => {
@@ -2277,7 +2357,6 @@ describe("App autosave", () => {
     });
 
     expect(openMarkdownFile).toHaveBeenCalledTimes(1);
-    setShortcutHintMeasureLayout();
   }
 
   function emitAppUpdateState(state: AppUpdateState): void {
@@ -2288,15 +2367,6 @@ describe("App autosave", () => {
     appNotificationListener?.(notification);
   }
 
-  function setShortcutHintMeasureLayout(left = 24, width = 200): void {
-    const measureOverlay = container.querySelector<HTMLElement>(
-      '[data-yulora-region="shortcut-hint-overlay-measure"]'
-    );
-
-    if (measureOverlay) {
-      measureOverlay.getBoundingClientRect = () => createDomRect(left, width);
-    }
-  }
 });
 
 function createDeferred<T>() {

@@ -6,6 +6,7 @@ import type {
   InlineImage,
   InlineLink,
   InlineNode,
+  InlineRoot,
   InlineStrikethrough,
   InlineStrong
 } from "@yulora/markdown-engine";
@@ -260,13 +261,54 @@ function findEnclosingContainer(
   selection: SemanticContext["selection"],
   type: "strong" | "emphasis"
 ): InlineContainerNode | null {
-  if (!activeBlock || (activeBlock.type !== "heading" && activeBlock.type !== "paragraph")) {
+  if (!activeBlock) {
     return null;
   }
-  const inline = activeBlock.inline;
-  if (!inline) return null;
 
-  return walkChildren(inline.children, selection, type);
+  const inlineRoots = collectInlineRoots(activeBlock, selection);
+
+  for (const inline of inlineRoots) {
+    const enclosing = walkChildren(inline.children, selection, type);
+    if (enclosing) {
+      return enclosing;
+    }
+  }
+
+  return null;
+}
+
+function collectInlineRoots(
+  activeBlock: NonNullable<SemanticContext["activeState"]["activeBlock"]>,
+  selection: SemanticContext["selection"]
+): InlineRoot[] {
+  if (activeBlock.type === "heading" || activeBlock.type === "paragraph") {
+    return activeBlock.inline ? [activeBlock.inline] : [];
+  }
+
+  if (activeBlock.type === "list") {
+    return activeBlock.items
+      .filter(
+        (item) =>
+          item.inline &&
+          typeof item.contentStartOffset === "number" &&
+          typeof item.contentEndOffset === "number" &&
+          selection.from >= item.contentStartOffset &&
+          selection.to <= item.contentEndOffset
+      )
+      .map((item) => item.inline!);
+  }
+
+  if (activeBlock.type === "blockquote") {
+    return (activeBlock.lines ?? [])
+      .filter(
+        (line) =>
+          selection.from >= line.contentStartOffset &&
+          selection.to <= line.contentEndOffset
+      )
+      .map((line) => line.inline);
+  }
+
+  return [];
 }
 
 function walkChildren(

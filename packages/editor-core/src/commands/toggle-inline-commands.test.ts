@@ -52,6 +52,16 @@ describe("toggleStrong", () => {
 
     harness.destroy();
   });
+
+  it("unwraps strong content inside a list item", () => {
+    const harness = createHarness({ doc: "- **bold**", anchor: 4, head: 8 });
+
+    expect(harness.run(toggleStrong)).toBe(true);
+    expect(harness.text()).toBe("- bold");
+    expect(harness.selection()).toEqual({ anchor: 2, head: 6 });
+
+    harness.destroy();
+  });
 });
 
 describe("toggleEmphasis", () => {
@@ -61,6 +71,16 @@ describe("toggleEmphasis", () => {
     expect(harness.run(toggleEmphasis)).toBe(true);
     expect(harness.text()).toBe("alpha *word* beta");
     expect(harness.selection()).toEqual({ anchor: 7, head: 11 });
+
+    harness.destroy();
+  });
+
+  it("unwraps emphasis content inside a blockquote", () => {
+    const harness = createHarness({ doc: "> *word*", anchor: 3, head: 7 });
+
+    expect(harness.run(toggleEmphasis)).toBe(true);
+    expect(harness.text()).toBe("> word");
+    expect(harness.selection()).toEqual({ anchor: 2, head: 6 });
 
     harness.destroy();
   });

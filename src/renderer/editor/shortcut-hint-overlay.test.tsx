@@ -9,6 +9,11 @@ import { TEXT_EDITING_SHORTCUTS } from "@yulora/editor-core";
 
 import { ShortcutHintOverlay } from "./shortcut-hint-overlay";
 
+const ITEM_STAGGER_DURATION_MS = 18;
+const ITEM_ANIMATION_DURATION_MS = 105;
+const TOTAL_CLOSE_DURATION_MS =
+  ITEM_ANIMATION_DURATION_MS + ITEM_STAGGER_DURATION_MS * (TEXT_EDITING_SHORTCUTS.length - 1);
+
 describe("ShortcutHintOverlay", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -41,6 +46,29 @@ describe("ShortcutHintOverlay", () => {
     expect(container.textContent).toContain("Bold");
     expect(container.textContent).toContain("Ctrl+Shift+9");
     expect(container.textContent).toContain("Blockquote");
+  });
+
+  it("assigns per-item stagger indices for directional sequencing", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        createElement(ShortcutHintOverlay, {
+          visible: true,
+          platform: "win32",
+          shortcuts: TEXT_EDITING_SHORTCUTS
+        })
+      );
+    });
+
+    const items = Array.from(container.querySelectorAll<HTMLElement>(".shortcut-hint-overlay-item"));
+
+    expect(items.length).toBe(TEXT_EDITING_SHORTCUTS.length);
+    expect(items[0]?.style.getPropertyValue("--shortcut-index")).toBe("0");
+    expect(items.at(-1)?.style.getPropertyValue("--shortcut-index")).toBe(
+      String(TEXT_EDITING_SHORTCUTS.length - 1)
+    );
   });
 
   it("stays hidden when not visible on first render", async () => {
@@ -92,7 +120,7 @@ describe("ShortcutHintOverlay", () => {
     expect(overlay?.getAttribute("data-state")).toBe("closing");
 
     await act(async () => {
-      vi.advanceTimersByTime(179);
+      vi.advanceTimersByTime(TOTAL_CLOSE_DURATION_MS - 1);
     });
 
     expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).not.toBeNull();
@@ -145,7 +173,7 @@ describe("ShortcutHintOverlay", () => {
     expect(container.textContent).toContain("Ctrl+B");
 
     await act(async () => {
-      vi.advanceTimersByTime(180);
+      vi.advanceTimersByTime(TOTAL_CLOSE_DURATION_MS);
     });
 
     const overlayAfterOriginalHideTimeout = container.querySelector(

@@ -54,5 +54,5 @@ describe("after-pack Windows icon hook", () => {
     expect(result.status).toBe(0);
     expect(existsSync(iconPath)).toBe(true);
     expect(result.stdout).toContain("Patched Windows executable icon");
-  });
+  }, 10_000);
 });

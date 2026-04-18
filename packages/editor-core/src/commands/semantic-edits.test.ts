@@ -61,6 +61,16 @@ describe("computeStrongToggle", () => {
     expect(result!.changes).toEqual({ from: contentFrom - 2, to: contentTo + 2, insert: "bold" });
     expect(result!.selection).toEqual({ anchor: contentFrom - 2, head: contentTo - 2 });
   });
+
+  it("unwraps a strong node inside a list item when the selection covers its full content", () => {
+    const doc = "- **bold**";
+    const contentFrom = doc.indexOf("bold");
+    const contentTo = contentFrom + 4;
+    const result = computeStrongToggle(buildContext(doc, contentFrom, contentTo));
+
+    expect(result!.changes).toEqual({ from: contentFrom - 2, to: contentTo + 2, insert: "bold" });
+    expect(result!.selection).toEqual({ anchor: contentFrom - 2, head: contentTo - 2 });
+  });
 });
 
 describe("computeEmphasisToggle", () => {
@@ -84,6 +94,16 @@ describe("computeEmphasisToggle", () => {
 
   it("unwraps an emphasis selection when the selection covers the content exactly", () => {
     const doc = "alpha *word* beta";
+    const contentFrom = doc.indexOf("word");
+    const contentTo = contentFrom + 4;
+    const result = computeEmphasisToggle(buildContext(doc, contentFrom, contentTo));
+
+    expect(result!.changes).toEqual({ from: contentFrom - 1, to: contentTo + 1, insert: "word" });
+    expect(result!.selection).toEqual({ anchor: contentFrom - 1, head: contentTo - 1 });
+  });
+
+  it("unwraps an emphasis selection inside a blockquote when the selection covers the content exactly", () => {
+    const doc = "> *word*";
     const contentFrom = doc.indexOf("word");
     const contentTo = contentFrom + 4;
     const result = computeEmphasisToggle(buildContext(doc, contentFrom, contentTo));
