@@ -291,6 +291,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
   const fontFamilyLoadStateRef = useRef<"idle" | "loading" | "loaded">("idle");
+  const pressedShortcutModifiersRef = useRef<Set<"Control" | "Meta">>(new Set());
   const currentDocumentContent = state.currentDocument
     ? (editorContentRef.current || state.currentDocument.content)
     : "";
@@ -891,21 +892,28 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [isDocumentOpen, state.editorLoadRevision]);
 
   useEffect(() => {
+    const syncShortcutModifierState = () => {
+      setIsShortcutModifierHeld(pressedShortcutModifiersRef.current.size > 0);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Control" || event.key === "Meta" || event.ctrlKey || event.metaKey) {
-        setIsShortcutModifierHeld(true);
+      if (event.key === "Control" || event.key === "Meta") {
+        pressedShortcutModifiersRef.current.add(event.key);
+        syncShortcutModifierState();
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key === "Control" || event.key === "Meta") {
-        setIsShortcutModifierHeld(false);
+        pressedShortcutModifiersRef.current.delete(event.key);
+        syncShortcutModifierState();
       }
     };
 
     const handleWindowBlur = () => {
+      pressedShortcutModifiersRef.current.clear();
       setIsEditorFocused(false);
-      setIsShortcutModifierHeld(false);
+      syncShortcutModifierState();
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -924,6 +932,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       return;
     }
 
+    pressedShortcutModifiersRef.current.clear();
     setIsEditorFocused(false);
     setIsShortcutModifierHeld(false);
   }, [isDocumentOpen]);
@@ -1150,13 +1159,12 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             {state.currentDocument ? (
               <section className={`workspace-shell ${isOutlineOpen ? "is-outline-open" : ""}`}>
                 <div
+                  data-yulora-region="shortcut-hint-overlay-shell"
                   className="document-canvas"
                   ref={editorContainerRef}
+                  data-shortcut-hint-state={isShortcutHintVisible ? "visible" : "hidden"}
                 >
-                  <div
-                    data-yulora-region="shortcut-hint-overlay"
-                    data-state={isShortcutHintVisible ? "visible" : "hidden"}
-                  >
+                  <div data-shortcut-hint-shell="true">
                     <ShortcutHintOverlay
                       visible={isShortcutHintVisible}
                       platform={yulora.platform}

@@ -1458,8 +1458,8 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay"]')
-        ?.getAttribute("data-state")
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
 
     await act(async () => {
@@ -1478,8 +1478,9 @@ describe("App autosave", () => {
     });
 
     const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlayShell = container.querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]');
 
-    expect(overlay?.getAttribute("data-state")).toBe("visible");
+    expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("visible");
     expect(overlay?.textContent).toContain("Ctrl+B");
     expect(overlay?.textContent).not.toContain("Save");
     expect(overlay?.textContent).not.toContain("Open");
@@ -1493,7 +1494,7 @@ describe("App autosave", () => {
       );
     });
 
-    expect(overlay?.getAttribute("data-state")).toBe("hidden");
+    expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
   });
 
   it("does not show the shortcut hint overlay when Control is held without editor focus", async () => {
@@ -1510,8 +1511,9 @@ describe("App autosave", () => {
     });
 
     const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlayShell = container.querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]');
 
-    expect(overlay?.getAttribute("data-state")).toBe("hidden");
+    expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
     expect(overlay?.textContent ?? "").not.toContain("Ctrl+B");
 
     await act(async () => {
@@ -1522,6 +1524,90 @@ describe("App autosave", () => {
         })
       );
     });
+  });
+
+  it("does not show the shortcut hint overlay when AltGraph is pressed", async () => {
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      codeEditorMock.focus();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "AltGraph",
+          ctrlKey: true,
+          altKey: true,
+          bubbles: true
+        })
+      );
+    });
+
+    expect(
+      container
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
+    ).toBe("hidden");
+    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", {
+          key: "AltGraph",
+          bubbles: true
+        })
+      );
+    });
+  });
+
+  it("shows the shortcut hint overlay while the editor is focused and Meta is held on macOS", async () => {
+    window.yulora = {
+      ...window.yulora,
+      platform: "darwin"
+    } as Window["yulora"];
+
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      codeEditorMock.focus();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Meta",
+          metaKey: true,
+          bubbles: true
+        })
+      );
+    });
+
+    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+
+    expect(
+      container
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
+    ).toBe("visible");
+    expect(overlay?.textContent).toContain("Cmd+B");
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", {
+          key: "Meta",
+          bubbles: true
+        })
+      );
+    });
+
+    expect(
+      container
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
+    ).toBe("hidden");
   });
 
   it("hides the shortcut hint overlay on window blur", async () => {
@@ -1549,8 +1635,8 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay"]')
-        ?.getAttribute("data-state")
+        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
   });
 
