@@ -1159,7 +1159,8 @@ describe("App autosave", () => {
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: null },
         ui: {
-          fontSize: 17
+          fontSize: 17,
+          fontFamily: "Segoe UI"
         },
         document: {
           fontFamily: "IBM Plex Serif",
@@ -1174,6 +1175,9 @@ describe("App autosave", () => {
     expect(document.documentElement.dataset.yuloraTheme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-size")).toBe("17px");
+    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+      "Segoe UI"
+    );
     expect(document.documentElement.style.getPropertyValue("--yulora-document-font-family")).toBe(
       "IBM Plex Serif"
     );
@@ -1201,7 +1205,8 @@ describe("App autosave", () => {
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto", parameters: {} },
         ui: {
-          fontSize: 18
+          fontSize: 18,
+          fontFamily: "Aptos"
         },
         document: {
           fontFamily: "Source Serif 4",
@@ -1215,6 +1220,9 @@ describe("App autosave", () => {
     expect(document.documentElement.dataset.yuloraTheme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-size")).toBe("18px");
+    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+      "Aptos"
+    );
     expect(document.documentElement.style.getPropertyValue("--yulora-document-font-family")).toBe(
       "Source Serif 4"
     );
@@ -2905,14 +2913,18 @@ describe("App autosave", () => {
     const documentFontInput = container.querySelector<HTMLInputElement>("#settings-document-font-family");
     const recentFilesInput = container.querySelector<HTMLInputElement>("#settings-recent-max");
 
+    const uiFontSelect = container.querySelector<HTMLSelectElement>("#settings-ui-font-preset");
+
     expect(drawerPanel?.getAttribute("role")).toBe("dialog");
     expect(drawerPanel?.getAttribute("aria-modal")).toBe("true");
     expect(drawerPanel?.textContent).toContain("偏好设置");
     expect(closeButton).not.toBeNull();
     expect(themeSelect).not.toBeNull();
+    expect(uiFontSelect).not.toBeNull();
     expect(documentFontSelect).not.toBeNull();
     expect(documentCjkFontSelect).not.toBeNull();
     expect(themeSelect?.className).toContain("settings-select");
+    expect(uiFontSelect?.className).toContain("settings-select");
     expect(documentFontSelect?.className).toContain("settings-select");
     expect(documentCjkFontSelect?.className).toContain("settings-select");
     expect(documentFontInput).toBeNull();
@@ -2966,6 +2978,47 @@ describe("App autosave", () => {
     expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
       focus: { idleDelayMs: 3500 }
     });
+  });
+
+  it("persists the ui font preset from settings and applies it to the document root", async () => {
+    let currentPreferences: Preferences = DEFAULT_PREFERENCES;
+    const driver = await renderEditorApp({
+      updatePreferencesImplementation: async (patch) => {
+        currentPreferences = {
+          ...currentPreferences,
+          ...patch,
+          ui: {
+            ...currentPreferences.ui,
+            ...(patch.ui ?? {})
+          }
+        };
+
+        return {
+          status: "success",
+          preferences: currentPreferences
+        };
+      }
+    });
+    await driver.openSettings();
+
+    const uiFontSelect = container.querySelector<HTMLSelectElement>("#settings-ui-font-preset");
+
+    expect(uiFontSelect).not.toBeNull();
+
+    await act(async () => {
+      if (uiFontSelect) {
+        uiFontSelect.value = "Segoe UI";
+        uiFontSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      await Promise.resolve();
+    });
+
+    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
+      ui: { fontFamily: "Segoe UI" }
+    });
+    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+      "Segoe UI"
+    );
   });
 
   it("shows the manual focus entry immediately after switching to manual mode in settings", async () => {
@@ -3270,6 +3323,12 @@ describe("App autosave", () => {
     expect(baseStylesheet).toContain("scrollbar-color:");
     expect(baseStylesheet).toContain("::-webkit-scrollbar");
     expect(baseStylesheet).toContain("::-webkit-scrollbar-thumb");
+  });
+
+  it("uses Times New Roman as the default ui font family", () => {
+    const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
+
+    expect(baseStylesheet).toContain('font-family: var(--yulora-ui-font-family, "Times New Roman")');
   });
 
   it("locks shell scrolling to the editor surface", () => {

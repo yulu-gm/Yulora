@@ -131,7 +131,7 @@
 }
 
 .document-editor .cm-inactive-list {
-  color: var(--yulora-text-muted);
+  color: var(--yulora-list-text, var(--yulora-text-muted));
 }
 
 .document-editor .cm-inactive-list-unordered,

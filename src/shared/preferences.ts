@@ -29,6 +29,8 @@ export type RecentFilesPreferences = {
 };
 
 export type UiPreferences = {
+  /** CSS font-family override for application chrome, or `null` to use the platform default. */
+  fontFamily: string | null;
   /** Font size in pixels, or `null` to use the theme default. */
   fontSize: number | null;
 };
@@ -95,6 +97,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
     maxEntries: 10
   },
   ui: {
+    fontFamily: null,
     fontSize: null
   },
   document: {
@@ -297,6 +300,7 @@ export function normalizePreferences(raw: unknown): Preferences {
       maxEntries: normalizeMaxEntries(recentFilesSource.maxEntries)
     },
     ui: {
+      fontFamily: normalizeFontFamily(uiSource.fontFamily),
       fontSize: normalizeFontSize(uiSource.fontSize)
     },
     document: {

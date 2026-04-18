@@ -72,6 +72,7 @@ type ThemePackageEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"
 const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
 const DARK_MODE_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 const THEME_ATTRIBUTE = "data-yulora-theme";
+const UI_FONT_FAMILY_CSS_VAR = "--yulora-ui-font-family";
 const UI_FONT_SIZE_CSS_VAR = "--yulora-ui-font-size";
 const DOCUMENT_FONT_FAMILY_CSS_VAR = "--yulora-document-font-family";
 const DOCUMENT_CJK_FONT_FAMILY_CSS_VAR = "--yulora-document-cjk-font-family";
@@ -190,6 +191,12 @@ function applyPreferencesToDocument(
   root.setAttribute(THEME_ATTRIBUTE, resolvedThemeMode);
   root.style.colorScheme = resolvedThemeMode;
 
+  if (preferences.ui.fontFamily) {
+    root.style.setProperty(UI_FONT_FAMILY_CSS_VAR, preferences.ui.fontFamily);
+  } else {
+    root.style.removeProperty(UI_FONT_FAMILY_CSS_VAR);
+  }
+
   if (preferences.ui.fontSize !== null) {
     root.style.setProperty(UI_FONT_SIZE_CSS_VAR, `${preferences.ui.fontSize}px`);
   } else {
@@ -242,6 +249,7 @@ function toThemeParameterCssVariable(parameterId: string): string {
 function clearDocumentPreferences(root: HTMLElement): void {
   root.removeAttribute(THEME_ATTRIBUTE);
   root.style.removeProperty("color-scheme");
+  root.style.removeProperty(UI_FONT_FAMILY_CSS_VAR);
   root.style.removeProperty(UI_FONT_SIZE_CSS_VAR);
   root.style.removeProperty(DOCUMENT_FONT_FAMILY_CSS_VAR);
   root.style.removeProperty(DOCUMENT_CJK_FONT_FAMILY_CSS_VAR);

@@ -94,7 +94,7 @@ type Preferences = {
   autosave: { idleDelayMs: number };
   focus: { triggerMode: "manual" | "auto"; idleDelayMs: number };
   recentFiles: { maxEntries: number };
-  ui: { fontSize: number | null };
+  ui: { fontFamily: string | null; fontSize: number | null };
   document: { fontFamily: string | null; cjkFontFamily: string | null; fontSize: number | null };
   theme: {
     mode: ThemeMode;

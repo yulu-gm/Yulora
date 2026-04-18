@@ -31,6 +31,7 @@ type SettingsViewProps = {
 };
 
 type DraftState = {
+  uiFontFamily: string;
   uiFontSize: string;
   documentFontFamily: string;
   documentCjkFontFamily: string;
@@ -94,6 +95,7 @@ function resolveThemePackageSelectionValue(
 
 function buildDraft(preferences: Preferences): DraftState {
   return {
+    uiFontFamily: preferences.ui.fontFamily ?? "",
     uiFontSize: preferences.ui.fontSize === null ? "" : String(preferences.ui.fontSize),
     documentFontFamily: preferences.document.fontFamily ?? "",
     documentCjkFontFamily: preferences.document.cjkFontFamily ?? "",
@@ -184,6 +186,10 @@ export function SettingsView({
   const communityThemePackages = useMemo(
     () => themePackages.filter((themePackage) => themePackage.source === "community"),
     [themePackages]
+  );
+  const uiFontOptions = useMemo(
+    () => buildFontOptions(fontFamilies, draft.uiFontFamily.trim()),
+    [fontFamilies, draft.uiFontFamily]
   );
   const documentFontOptions = useMemo(
     () => buildFontOptions(fontFamilies, draft.documentFontFamily.trim()),
@@ -306,6 +312,25 @@ export function SettingsView({
     }
 
     void applyPatch({ ui: { fontSize: parsed } });
+  }
+
+  function handleUiFontPresetChange(value: string): void {
+    const nextValue = value.length === 0 ? null : value;
+
+    if (nextValue === preferences.ui.fontFamily) {
+      return;
+    }
+
+    setDraft((current) => ({
+      ...current,
+      uiFontFamily: value
+    }));
+
+    void applyPatch({
+      ui: {
+        fontFamily: nextValue
+      }
+    });
   }
 
   function handleDocumentFontSizeCommit(): void {
@@ -440,6 +465,7 @@ export function SettingsView({
         effectsMode: DEFAULT_PREFERENCES.theme.effectsMode
       },
       ui: {
+        fontFamily: DEFAULT_PREFERENCES.ui.fontFamily,
         fontSize: DEFAULT_PREFERENCES.ui.fontSize
       },
       document: {
@@ -789,6 +815,30 @@ export function SettingsView({
             <h2>排版</h2>
             <p>应用 UI 字号影响面板和按钮，文档字号与字体影响编辑器正文和 Markdown 渲染。</p>
           </header>
+          <div className="settings-row">
+            <label
+              className="settings-label"
+              htmlFor="settings-ui-font-preset"
+            >
+              <span>应用 UI 字体预设</span>
+              <span className="settings-hint">作用于按钮、标题、侧栏和设置面板等应用界面文字。</span>
+            </label>
+            <select
+              id="settings-ui-font-preset"
+              className="settings-input settings-select"
+              value={draft.uiFontFamily}
+              onChange={(event) => handleUiFontPresetChange(event.target.value)}
+            >
+              {uiFontOptions.map((option) => (
+                <option
+                  key={option.value.length === 0 ? "__default__" : option.value}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="settings-row">
             <label
               className="settings-label"

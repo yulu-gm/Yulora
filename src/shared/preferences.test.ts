@@ -92,6 +92,15 @@ describe("normalizePreferences", () => {
     expect(normalizePreferences({ ui: { fontSize: "big" } }).ui.fontSize).toBeNull();
   });
 
+  it("trims and nullifies the ui font family", () => {
+    expect(normalizePreferences({ ui: { fontFamily: "  Segoe UI  " } }).ui.fontFamily).toBe(
+      "Segoe UI"
+    );
+    expect(normalizePreferences({ ui: { fontFamily: "" } }).ui.fontFamily).toBeNull();
+    expect(normalizePreferences({ ui: { fontFamily: "   " } }).ui.fontFamily).toBeNull();
+    expect(normalizePreferences({ ui: { fontFamily: 42 } }).ui.fontFamily).toBeNull();
+  });
+
   it("normalizes focus trigger mode and idle delay", () => {
     const result = normalizePreferences({
       focus: {
@@ -158,7 +167,7 @@ describe("normalizePreferences", () => {
     const result = normalizePreferences({
       version: 99,
       autosave: { idleDelayMs: 2000, extra: true },
-      ui: { fontSize: 18, extra: true },
+      ui: { fontSize: 18, fontFamily: "Segoe UI", extra: true },
       document: { fontFamily: "Mono", cjkFontFamily: "Source Han Sans SC", fontSize: null, unknown: "x" },
       surprise: { nested: 1 }
     });
@@ -168,7 +177,7 @@ describe("normalizePreferences", () => {
       autosave: { idleDelayMs: 2000 },
       focus: DEFAULT_PREFERENCES.focus,
       recentFiles: DEFAULT_PREFERENCES.recentFiles,
-      ui: { fontSize: 18 },
+      ui: { fontSize: 18, fontFamily: "Segoe UI" },
       document: { fontFamily: "Mono", cjkFontFamily: "Source Han Sans SC", fontSize: null },
       theme: DEFAULT_PREFERENCES.theme
     });

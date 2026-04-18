@@ -83,7 +83,7 @@ describe("loadPreferencesFromDisk", () => {
       autosave: { idleDelayMs: 2500 },
       focus: DEFAULT_PREFERENCES.focus,
       recentFiles: { maxEntries: 20 },
-      ui: { fontSize: 18 },
+      ui: { fontFamily: null, fontSize: 18 },
       document: { fontFamily: "Fira Code", cjkFontFamily: "Source Han Sans SC", fontSize: 16 },
       theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto", parameters: {} }
     });
