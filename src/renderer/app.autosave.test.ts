@@ -47,6 +47,7 @@ type RenderEditorAppOptions = {
   refreshThemesResult?: ThemeDescriptor[];
   listThemesResult?: ThemeDescriptor[];
   getPreferencesResult?: Preferences;
+  withoutThemeFamilyBridge?: boolean;
 };
 
 function makeManifestThemePackage(
@@ -492,26 +493,45 @@ describe("App autosave", () => {
       refreshThemePackagesResult = [],
       listThemesResult = communityThemes,
       refreshThemesResult = communityThemes,
-      getPreferencesResult = DEFAULT_PREFERENCES
+      getPreferencesResult = DEFAULT_PREFERENCES,
+      withoutThemeFamilyBridge = false
     } = options;
 
     listThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue(
       listThemePackagesResult
     );
-    listThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(listThemesResult);
-    refreshThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(refreshThemesResult);
     refreshThemePackages = vi
       .fn<() => Promise<ThemePackageDescriptor[]>>()
       .mockResolvedValue(refreshThemePackagesResult);
 
-    window.yulora = {
-      ...window.yulora,
-      getPreferences: vi.fn().mockResolvedValue(getPreferencesResult),
-      listThemePackages,
-      listThemes,
-      refreshThemes,
-      refreshThemePackages
-    } as Window["yulora"];
+    if (withoutThemeFamilyBridge) {
+      const {
+        listThemes: _legacyListThemes,
+        refreshThemes: _legacyRefreshThemes,
+        ...yuloraWithoutThemeFamilies
+      } = window.yulora as Window["yulora"] & {
+        listThemes?: unknown;
+        refreshThemes?: unknown;
+      };
+      window.yulora = {
+        ...(yuloraWithoutThemeFamilies as Window["yulora"]),
+        getPreferences: vi.fn().mockResolvedValue(getPreferencesResult),
+        listThemePackages,
+        refreshThemePackages
+      };
+    } else {
+      listThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(listThemesResult);
+      refreshThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(refreshThemesResult);
+
+      window.yulora = {
+        ...window.yulora,
+        getPreferences: vi.fn().mockResolvedValue(getPreferencesResult),
+        listThemePackages,
+        listThemes,
+        refreshThemes,
+        refreshThemePackages
+      } as Window["yulora"];
+    }
 
     await renderApp();
 
@@ -2521,6 +2541,31 @@ describe("App autosave", () => {
         }
       }
     });
+  });
+
+  it("falls back to builtin default theme when selected package is missing and theme-family catalog is not present", async () => {
+    const packageThemes: ThemePackageDescriptor[] = [makeManifestThemePackage({ id: "rain-glass", name: "Rain Glass" })];
+
+    await renderEditorApp({
+      withoutThemeFamilyBridge: true,
+      listThemePackagesResult: packageThemes,
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "missing-rain-glass",
+          effectsMode: "auto",
+          parameters: {}
+        }
+      }
+    });
+
+    expect(
+      document.head
+        .querySelector('link[data-yulora-theme-part="tokens"]')
+        ?.getAttribute("href")
+    ).toContain("default/dark/tokens.css");
   });
 
   async function renderAndOpenDocument(): Promise<void> {

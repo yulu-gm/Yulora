@@ -50,10 +50,14 @@ describe("preload bridge", () => {
   it("wires theme package discovery and refresh IPC channels", async () => {
     const api = await loadApi();
 
+    expect(api).not.toHaveProperty("listThemes");
+    expect(api).not.toHaveProperty("refreshThemes");
     void api.listThemePackages();
     void api.refreshThemePackages();
 
     expect(invoke.mock.calls).toContainEqual(["yulora:list-theme-packages"]);
     expect(invoke.mock.calls).toContainEqual(["yulora:refresh-theme-packages"]);
+    expect(invoke.mock.calls).not.toContainEqual(["yulora:list-themes"]);
+    expect(invoke.mock.calls).not.toContainEqual(["yulora:refresh-themes"]);
   });
 });
