@@ -4,11 +4,10 @@
   "version": "1.0.0",
   "author": "Yulora",
   "supports": {
-    "light": true,
+    "light": false,
     "dark": true
   },
   "tokens": {
-    "light": "./tokens/light.css",
     "dark": "./tokens/dark.css"
   },
   "styles": {

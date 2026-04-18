@@ -396,7 +396,6 @@
   overflow: hidden;
   display: grid;
   position: relative;
-  isolation: isolate;
 }
 
 .workspace-canvas > :not(.theme-surface-host) {

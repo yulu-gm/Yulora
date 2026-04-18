@@ -25,16 +25,34 @@
   --yu-segment-active-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, var(--yulora-surface-raised-bg));
 }
 
-.app-rail {
+[data-yulora-layout="rail"].app-rail {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-glass-strong-bg) 58%, transparent),
-      color-mix(in srgb, var(--yulora-glass-bg) 34%, transparent)
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 34%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 20%, transparent)
     );
-  border-right-color: color-mix(in srgb, var(--yulora-glass-border) 72%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 82%, transparent);
-  backdrop-filter: blur(22px) saturate(1.08);
+  border-right-color: color-mix(in srgb, var(--yulora-glass-border) 62%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 82%, transparent),
+    0 12px 24px color-mix(in srgb, var(--yulora-scrim) 16%, transparent);
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+}
+
+[data-yulora-region="empty-state"] .empty-inner {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 20%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 12%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--yulora-glass-border) 54%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 74%, transparent),
+    0 12px 28px color-mix(in srgb, var(--yulora-scrim) 18%, transparent);
+  backdrop-filter: blur(24px) saturate(1.08) brightness(1.05);
+  -webkit-backdrop-filter: blur(24px) saturate(1.08) brightness(1.05);
 }
 
 .workspace-header {
