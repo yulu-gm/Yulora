@@ -806,3 +806,9 @@
     padding: var(--yulora-space-8) var(--yulora-space-4);
   }
 }
+
+@media (max-width: 520px) {
+  .shortcut-hint-overlay {
+    display: none;
+  }
+}
