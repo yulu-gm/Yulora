@@ -13,7 +13,11 @@ import {
 import type { ActiveBlockState } from "@yulora/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
 import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
-import type { ThemeSurfaceSlot } from "../../shared/theme-package";
+import type {
+  ThemePackageManifest,
+  ThemeParameterDescriptor,
+  ThemeSurfaceSlot
+} from "../../shared/theme-package";
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
@@ -236,11 +240,78 @@ function resolveThemeWarningMessage(
   return null;
 }
 
+function resolveSurfaceChannels(
+  channels: ThemeSurfaceHostDescriptor["channels"] | undefined
+): ThemeSurfaceHostDescriptor["channels"] | undefined {
+  const channel0 = channels?.["0"];
+
+  if (!channel0 || channel0.type !== "image") {
+    return undefined;
+  }
+
+  return {
+    "0": {
+      type: "image",
+      src: createPreviewAssetUrl(channel0.src)
+    }
+  };
+}
+
+function resolveParameterDefaultValue(parameter: ThemeParameterDescriptor): number {
+  if (parameter.type === "toggle") {
+    return parameter.default ? 1 : 0;
+  }
+
+  return parameter.default;
+}
+
+/**
+ * Compose the effective shader uniform map for a theme by layering:
+ *   1. `scene.sharedUniforms` declared in the manifest,
+ *   2. defaults from each parameter (keyed by `uniform`),
+ *   3. user overrides from `preferences.theme.parameters[themeId]` (keyed by
+ *      parameter id, mapped to the parameter's `uniform`).
+ */
+function composeEffectiveUniforms(
+  manifest: ThemePackageManifest,
+  parameterOverrides: Record<string, number> | undefined
+): Record<string, number> {
+  const uniforms: Record<string, number> = {
+    ...(manifest.scene?.sharedUniforms ?? {})
+  };
+
+  const parameters = manifest.parameters ?? [];
+  for (const parameter of parameters) {
+    uniforms[parameter.uniform] = resolveParameterDefaultValue(parameter);
+  }
+
+  if (parameterOverrides) {
+    for (const parameter of parameters) {
+      const overrideValue = parameterOverrides[parameter.id];
+      if (typeof overrideValue !== "number" || !Number.isFinite(overrideValue)) {
+        continue;
+      }
+
+      if (parameter.type === "toggle") {
+        uniforms[parameter.uniform] = overrideValue > 0.5 ? 1 : 0;
+      } else {
+        uniforms[parameter.uniform] = Math.min(
+          Math.max(overrideValue, parameter.min),
+          parameter.max
+        );
+      }
+    }
+  }
+
+  return uniforms;
+}
+
 function resolveActiveThemeSurface(
   selectedId: string | null,
   themePackages: ThemePackageEntry[],
   mode: ResolvedThemeMode,
-  surface: ThemeSurfaceSlot
+  surface: ThemeSurfaceSlot,
+  parameterOverrides: Record<string, number> | undefined
 ): ThemeSurfaceHostDescriptor | null {
   if (!selectedId) {
     return null;
@@ -271,7 +342,8 @@ function resolveActiveThemeSurface(
     kind: "fragment",
     sceneId: scene.id,
     shaderUrl: createPreviewAssetUrl(fragmentSurface.shader),
-    sharedUniforms: scene.sharedUniforms
+    channels: resolveSurfaceChannels(fragmentSurface.channels),
+    sharedUniforms: composeEffectiveUniforms(activeThemePackage.manifest, parameterOverrides)
   };
 }
 
@@ -395,6 +467,13 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     resolvedThemeMode
   );
   const themeWarningMessage = resolveThemeWarningMessage(activeThemePackageResolution);
+  const activeThemeParameterOverrides = useMemo<Record<string, number> | undefined>(() => {
+    if (!preferences.theme.selectedId) {
+      return undefined;
+    }
+
+    return preferences.theme.parameters?.[preferences.theme.selectedId];
+  }, [preferences.theme.parameters, preferences.theme.selectedId]);
   const activeWorkbenchSurface = useMemo(
     () =>
       preferences.theme.effectsMode === "off"
@@ -403,13 +482,15 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             preferences.theme.selectedId,
             themePackages,
             resolvedThemeMode,
-            "workbenchBackground"
+            "workbenchBackground",
+            activeThemeParameterOverrides
           ),
     [
       preferences.theme.effectsMode,
       preferences.theme.selectedId,
       resolvedThemeMode,
-      themePackages
+      themePackages,
+      activeThemeParameterOverrides
     ]
   );
   const activeTitlebarSurface = useMemo(
@@ -420,14 +501,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             preferences.theme.selectedId,
             themePackages,
             resolvedThemeMode,
-            "titlebarBackdrop"
+            "titlebarBackdrop",
+            activeThemeParameterOverrides
           ),
     [
       preferences.theme.effectsMode,
       preferences.theme.selectedId,
       resolvedThemeMode,
       themePackages,
-      controlledTitlebarEnabled
+      controlledTitlebarEnabled,
+      activeThemeParameterOverrides
     ]
   );
   const themeDynamicMode = useMemo<ThemeDynamicAggregateMode>(
@@ -474,13 +557,19 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
   useEffect(() => {
     setWorkbenchSurfaceRuntimeMode(null);
-  }, [activeWorkbenchSurface?.sceneId, activeWorkbenchSurface?.shaderUrl, preferences.theme.effectsMode]);
+  }, [
+    activeWorkbenchSurface?.sceneId,
+    activeWorkbenchSurface?.shaderUrl,
+    activeWorkbenchSurface?.channels?.["0"]?.src,
+    preferences.theme.effectsMode
+  ]);
 
   useEffect(() => {
     setTitlebarSurfaceRuntimeMode(null);
   }, [
     activeTitlebarSurface?.sceneId,
     activeTitlebarSurface?.shaderUrl,
+    activeTitlebarSurface?.channels?.["0"]?.src,
     controlledTitlebarEnabled,
     preferences.theme.effectsMode
   ]);
@@ -1211,6 +1300,14 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         />
       ) : null}
       <div className="app-layout">
+        {activeWorkbenchSurface ? (
+          <ThemeSurfaceHost
+            surface="workbenchBackground"
+            descriptor={activeWorkbenchSurface}
+            effectsMode={preferences.theme.effectsMode}
+            onRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
+          />
+        ) : null}
         <aside
           className="app-rail"
           data-yulora-layout="rail"
@@ -1298,14 +1395,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             className="workspace-canvas"
             data-yulora-region="workspace-canvas"
           >
-            {activeWorkbenchSurface ? (
-              <ThemeSurfaceHost
-                surface="workbenchBackground"
-                descriptor={activeWorkbenchSurface}
-                effectsMode={preferences.theme.effectsMode}
-                onRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
-              />
-            ) : null}
             {state.currentDocument ? (
               <section className={`workspace-shell ${isOutlineOpen ? "is-outline-open" : ""}`}>
                 <div

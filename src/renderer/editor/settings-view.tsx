@@ -6,6 +6,7 @@ import {
   type PreferencesUpdate,
   type ThemeMode
 } from "../../shared/preferences";
+import type { ThemeParameterDescriptor } from "../../shared/theme-package";
 import { resolveLegacyThemeFamilyId } from "../theme-package-catalog";
 
 type UpdatePreferencesResult =
@@ -53,6 +54,29 @@ const THEME_EFFECT_LABELS = {
   full: "始终开启",
   off: "关闭"
 } as const;
+
+function resolveParameterDefaultValue(parameter: ThemeParameterDescriptor): number {
+  if (parameter.type === "toggle") {
+    return parameter.default ? 1 : 0;
+  }
+
+  return parameter.default;
+}
+
+function resolveParameterCurrentValue(
+  parameter: ThemeParameterDescriptor,
+  overrides: Record<string, number> | undefined
+): number {
+  const override = overrides?.[parameter.id];
+  if (typeof override === "number" && Number.isFinite(override)) {
+    if (parameter.type === "toggle") {
+      return override > 0.5 ? 1 : 0;
+    }
+    return Math.min(Math.max(override, parameter.min), parameter.max);
+  }
+
+  return resolveParameterDefaultValue(parameter);
+}
 
 function resolveThemePackageSelectionValue(
   packages: ThemePackageEntry[],
@@ -155,6 +179,18 @@ export function SettingsView({
   const selectedThemeMissing =
     preferences.theme.selectedId !== null && resolvedThemeSelectionValue === null;
 
+  const activeThemePackage = useMemo(
+    () =>
+      resolvedThemeSelectionValue
+        ? themePackages.find((entry) => entry.id === resolvedThemeSelectionValue) ?? null
+        : null,
+    [resolvedThemeSelectionValue, themePackages]
+  );
+  const activeThemeParameters: ThemeParameterDescriptor[] = activeThemePackage?.manifest.parameters ?? [];
+  const activeThemeParameterOverrides = activeThemePackage
+    ? preferences.theme.parameters?.[activeThemePackage.id]
+    : undefined;
+
   async function applyPatch(patch: PreferencesUpdate): Promise<void> {
     const result = await onUpdate(patch);
 
@@ -182,6 +218,44 @@ export function SettingsView({
 
   function handleThemeEffectsModeChange(value: "auto" | "full" | "off"): void {
     void applyPatch({ theme: { effectsMode: value } });
+  }
+
+  function handleThemeParameterChange(
+    themeId: string,
+    parameter: ThemeParameterDescriptor,
+    rawValue: number | boolean
+  ): void {
+    const numericValue =
+      parameter.type === "toggle"
+        ? (typeof rawValue === "boolean" ? rawValue : rawValue > 0.5)
+          ? 1
+          : 0
+        : typeof rawValue === "number"
+          ? Math.min(Math.max(rawValue, parameter.min), parameter.max)
+          : resolveParameterDefaultValue(parameter);
+
+    void applyPatch({
+      theme: {
+        parameters: {
+          [themeId]: { [parameter.id]: numericValue }
+        }
+      }
+    });
+  }
+
+  function handleResetThemeParameters(themeId: string): void {
+    const resetEntries: Record<string, number> = {};
+    for (const parameter of activeThemeParameters) {
+      resetEntries[parameter.id] = resolveParameterDefaultValue(parameter);
+    }
+
+    void applyPatch({
+      theme: {
+        parameters: {
+          [themeId]: resetEntries
+        }
+      }
+    });
   }
 
   function handleThemePackageChange(value: string): void {
@@ -457,6 +531,108 @@ export function SettingsView({
             </select>
           </div>
         </section>
+
+        {activeThemePackage && activeThemeParameters.length > 0 ? (
+          <section
+            className="settings-group"
+            data-yulora-panel="theme-parameters"
+            data-yulora-theme-id={activeThemePackage.id}
+          >
+            <header className="settings-group-header">
+              <h2>{activeThemePackage.manifest.name}：参数</h2>
+              <p>
+                主题自定义参数实时作用于该主题的 shader。修改会自动保存，仅对当前主题生效。
+              </p>
+            </header>
+            {activeThemeParameters.map((parameter) => {
+              const value = resolveParameterCurrentValue(parameter, activeThemeParameterOverrides);
+
+              if (parameter.type === "toggle") {
+                const checked = value > 0.5;
+                const inputId = `settings-theme-parameter-${activeThemePackage.id}-${parameter.id}`;
+
+                return (
+                  <div className="settings-row" key={parameter.id}>
+                    <label className="settings-label" htmlFor={inputId}>
+                      <span>{parameter.label}</span>
+                      {parameter.description ? (
+                        <span className="settings-hint">{parameter.description}</span>
+                      ) : null}
+                    </label>
+                    <label className="settings-toggle">
+                      <input
+                        id={inputId}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) =>
+                          handleThemeParameterChange(
+                            activeThemePackage.id,
+                            parameter,
+                            event.target.checked
+                          )
+                        }
+                      />
+                      <span className="settings-toggle-label">
+                        {checked ? "已开启" : "已关闭"}
+                      </span>
+                    </label>
+                  </div>
+                );
+              }
+
+              const inputId = `settings-theme-parameter-${activeThemePackage.id}-${parameter.id}`;
+              const displayValue = Number.isInteger(parameter.step)
+                ? value.toFixed(0)
+                : value.toFixed(2);
+
+              return (
+                <div className="settings-row" key={parameter.id}>
+                  <label className="settings-label" htmlFor={inputId}>
+                    <span>{parameter.label}</span>
+                    {parameter.description ? (
+                      <span className="settings-hint">{parameter.description}</span>
+                    ) : null}
+                  </label>
+                  <div className="settings-slider-row">
+                    <input
+                      id={inputId}
+                      type="range"
+                      className="settings-slider"
+                      min={parameter.min}
+                      max={parameter.max}
+                      step={parameter.step}
+                      value={value}
+                      onChange={(event) => {
+                        const nextValue = Number(event.target.value);
+                        if (Number.isFinite(nextValue)) {
+                          handleThemeParameterChange(
+                            activeThemePackage.id,
+                            parameter,
+                            nextValue
+                          );
+                        }
+                      }}
+                    />
+                    <span className="settings-slider-value">{displayValue}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="settings-row">
+              <div className="settings-label">
+                <span>重置参数</span>
+                <span className="settings-hint">将该主题的全部自定义参数恢复为默认值。</span>
+              </div>
+              <button
+                type="button"
+                className="settings-reset"
+                onClick={() => handleResetThemeParameters(activeThemePackage.id)}
+              >
+                恢复默认参数
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         <section className="settings-group">
           <header className="settings-group-header">

@@ -4,6 +4,7 @@ import type { ThemeEffectsMode, ThemeSurfaceSlot } from "../../shared/theme-pack
 import { createThemeSceneState } from "../shader/theme-scene-state";
 import {
   createThemeSurfaceRuntime,
+  type ThemeSurfaceRuntimeChannels,
   type ThemeSurfaceRuntimeMode
 } from "../shader/theme-surface-runtime";
 
@@ -11,6 +12,7 @@ export type ThemeSurfaceHostDescriptor = {
   kind: "fragment";
   sceneId: string;
   shaderUrl: string;
+  channels?: ThemeSurfaceRuntimeChannels;
   sharedUniforms: Record<string, number>;
 };
 
@@ -33,6 +35,26 @@ function parseSharedUniforms(serializedUniforms: string): Record<string, number>
   );
 }
 
+function serializeChannels(channels: ThemeSurfaceRuntimeChannels | undefined): string {
+  if (!channels) {
+    return "null";
+  }
+
+  return JSON.stringify(
+    Object.entries(channels).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+  );
+}
+
+function parseChannels(serializedChannels: string): ThemeSurfaceRuntimeChannels | undefined {
+  if (serializedChannels === "null") {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    JSON.parse(serializedChannels) as Array<[string, { type: "image"; src: string }]>
+  ) as ThemeSurfaceRuntimeChannels;
+}
+
 export function ThemeSurfaceHost({
   surface,
   descriptor,
@@ -49,6 +71,14 @@ export function ThemeSurfaceHost({
   const sharedUniforms = useMemo(
     () => parseSharedUniforms(sharedUniformsSignature),
     [sharedUniformsSignature]
+  );
+  const channelsSignature = useMemo(
+    () => serializeChannels(descriptor.channels),
+    [descriptor.channels]
+  );
+  const channels = useMemo(
+    () => parseChannels(channelsSignature),
+    [channelsSignature]
   );
 
   useEffect(() => {
@@ -81,6 +111,7 @@ export function ThemeSurfaceHost({
           canvas: canvasRef.current,
           surface,
           shaderSource,
+          channels,
           effectsMode,
           sceneState
         });
@@ -111,6 +142,7 @@ export function ThemeSurfaceHost({
   }, [
     descriptor.sceneId,
     descriptor.shaderUrl,
+    channels,
     sharedUniforms,
     effectsMode,
     surface,

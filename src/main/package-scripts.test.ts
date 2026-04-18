@@ -357,27 +357,57 @@ describe("package scripts", () => {
     expect(existsSync(legacyRootPath)).toBe(false);
   });
 
+  it("centralizes the macOS dev app entry under tools/", () => {
+    const shellPath = path.join(process.cwd(), "tools", "dev-app.sh");
+    const shellSource = readFileSync(shellPath, "utf8");
+    const legacyHyphenPath = path.join(process.cwd(), "dev-app.sh");
+    const legacyUnderscorePath = path.join(process.cwd(), "dev_app.sh");
+
+    expect(shellSource).toContain("#!/usr/bin/env bash");
+    expect(shellSource).toContain('cd "$(dirname "$0")/.."');
+    expect(shellSource).toContain("node scripts/sync-dev-themes.mjs");
+    expect(shellSource).toContain("npm run dev");
+    expect(existsSync(legacyHyphenPath)).toBe(false);
+    expect(existsSync(legacyUnderscorePath)).toBe(false);
+  });
+
   it("skips syncing dev themes when the fixture themes directory is missing", () => {
     const tempRoot = mkdtempSync(path.join(os.tmpdir(), "yulora-sync-dev-themes-"));
 
     try {
       const scriptsDirectory = path.join(tempRoot, "scripts");
-      const appDataDirectory = path.join(tempRoot, "appdata");
+      const appDataDirectory =
+        process.platform === "win32"
+          ? path.join(tempRoot, "appdata")
+          : process.platform === "darwin"
+            ? path.join(tempRoot, "home", "Library", "Application Support")
+            : path.join(tempRoot, "xdg-config");
       const targetThemesDirectory = path.join(appDataDirectory, "Yulora-dev", "themes");
       const scriptSourcePath = path.join(process.cwd(), "scripts", "sync-dev-themes.mjs");
       const tempScriptPath = path.join(scriptsDirectory, "sync-dev-themes.mjs");
+      const env = { ...process.env };
 
       mkdirSync(scriptsDirectory, { recursive: true });
       mkdirSync(appDataDirectory, { recursive: true });
       cpSync(scriptSourcePath, tempScriptPath);
 
+      if (process.platform === "win32") {
+        env.APPDATA = appDataDirectory;
+      } else {
+        env.HOME = path.join(tempRoot, "home");
+        delete env.APPDATA;
+
+        if (process.platform === "linux") {
+          env.XDG_CONFIG_HOME = appDataDirectory;
+        } else {
+          delete env.XDG_CONFIG_HOME;
+        }
+      }
+
       expect(() =>
         execFileSync(process.execPath, [tempScriptPath], {
           cwd: tempRoot,
-          env: {
-            ...process.env,
-            APPDATA: appDataDirectory
-          },
+          env,
           stdio: "pipe"
         })
       ).not.toThrow();

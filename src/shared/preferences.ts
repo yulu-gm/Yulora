@@ -41,10 +41,18 @@ export type DocumentPreferences = {
   fontSize: number | null;
 };
 
+/**
+ * Per-theme parameter overrides. Keyed by theme package id, then by parameter
+ * id. Values are always numbers (toggles are serialized as 0 or 1) so the main
+ * process never has to know about the theme's parameter schema.
+ */
+export type ThemeParameterOverrides = Record<string, Record<string, number>>;
+
 export type ThemePreferences = {
   mode: ThemeMode;
   selectedId: string | null;
   effectsMode: ThemeEffectsMode;
+  parameters: ThemeParameterOverrides;
 };
 
 export type Preferences = {
@@ -83,7 +91,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: {
     mode: "system",
     selectedId: null,
-    effectsMode: "auto"
+    effectsMode: "auto",
+    parameters: {}
   }
 };
 
@@ -165,6 +174,47 @@ function normalizeThemeEffectsMode(value: unknown): ThemeEffectsMode {
     : DEFAULT_PREFERENCES.theme.effectsMode;
 }
 
+function normalizeThemeParameterOverrides(value: unknown): ThemeParameterOverrides {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const result: ThemeParameterOverrides = {};
+
+  for (const themeId in value) {
+    const trimmedThemeId = themeId.trim();
+    if (trimmedThemeId.length === 0) {
+      continue;
+    }
+
+    const parameterSource = value[themeId];
+    if (!isRecord(parameterSource)) {
+      continue;
+    }
+
+    const parameterEntries: Record<string, number> = {};
+    for (const parameterId in parameterSource) {
+      const parameterValue = parameterSource[parameterId];
+      const trimmedParameterId = parameterId.trim();
+      if (
+        trimmedParameterId.length === 0 ||
+        typeof parameterValue !== "number" ||
+        !Number.isFinite(parameterValue)
+      ) {
+        continue;
+      }
+
+      parameterEntries[trimmedParameterId] = parameterValue;
+    }
+
+    if (Object.keys(parameterEntries).length > 0) {
+      result[trimmedThemeId] = parameterEntries;
+    }
+  }
+
+  return result;
+}
+
 function normalizeThemeSelectedId(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -217,15 +267,39 @@ export function normalizePreferences(raw: unknown): Preferences {
     theme: {
       mode: normalizeThemeMode(themeSource.mode),
       selectedId: normalizeThemeSelectedId(themeSource.selectedId),
-      effectsMode: normalizeThemeEffectsMode(themeSource.effectsMode)
+      effectsMode: normalizeThemeEffectsMode(themeSource.effectsMode),
+      parameters: normalizeThemeParameterOverrides(themeSource.parameters)
     }
   };
+}
+
+function mergeThemeParameterOverrides(
+  current: ThemeParameterOverrides,
+  patch: ThemeParameterOverrides | undefined
+): ThemeParameterOverrides {
+  if (!patch) {
+    return current;
+  }
+
+  const merged: ThemeParameterOverrides = { ...current };
+
+  for (const themeId in patch) {
+    const patchEntries = patch[themeId];
+    if (patchEntries === undefined) {
+      continue;
+    }
+
+    merged[themeId] = { ...(current[themeId] ?? {}), ...patchEntries };
+  }
+
+  return merged;
 }
 
 /**
  * Apply a partial patch on top of an existing {@link Preferences} value and
  * re-normalize the result. Callers pass only the fields they want to change;
- * everything else is preserved.
+ * everything else is preserved. Theme parameter overrides merge per-theme so
+ * adjusting one theme's slider doesn't wipe out overrides for other themes.
  */
 export function mergePreferences(
   current: Preferences,
@@ -235,13 +309,19 @@ export function mergePreferences(
     return normalizePreferences(current);
   }
 
+  const themePatch = patch.theme;
+  const mergedThemeParameters = mergeThemeParameterOverrides(
+    current.theme.parameters,
+    themePatch?.parameters
+  );
+
   return normalizePreferences({
     version: PREFERENCES_SCHEMA_VERSION,
     autosave: { ...current.autosave, ...patch.autosave },
     recentFiles: { ...current.recentFiles, ...patch.recentFiles },
     ui: { ...current.ui, ...patch.ui },
     document: { ...current.document, ...patch.document },
-    theme: { ...current.theme, ...patch.theme }
+    theme: { ...current.theme, ...themePatch, parameters: mergedThemeParameters }
   });
 }
 

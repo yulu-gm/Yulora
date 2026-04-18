@@ -107,6 +107,81 @@ describe("normalizeThemePackageManifest", () => {
     });
   });
 
+  it("normalizes image channel 0 path to an absolute path inside package root", () => {
+    const manifest = normalizeThemePackageManifest(
+      {
+        id: "rain-glass",
+        name: "Rain Glass",
+        version: "1.0.0",
+        supports: { light: true, dark: true },
+        styles: {},
+        layout: { titlebar: "./layout/titlebar.json" },
+        scene: { id: "rain-scene", sharedUniforms: {} },
+        surfaces: {
+          workbenchBackground: {
+            kind: "fragment",
+            scene: "rain-scene",
+            shader: "./shaders/workbench-background.glsl",
+            channels: {
+              "0": {
+                type: "image",
+                src: "./images/backdrop.png"
+              }
+            }
+          }
+        }
+      },
+      "/tmp/rain-glass"
+    );
+
+    expect(manifest).toMatchObject({
+      surfaces: {
+        workbenchBackground: {
+          channels: {
+            "0": {
+              type: "image",
+              src: "/tmp/rain-glass/images/backdrop.png"
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it("drops unsupported channels and unsupported channel slots", () => {
+    const manifest = normalizeThemePackageManifest(
+      {
+        id: "rain-glass",
+        name: "Rain Glass",
+        version: "1.0.0",
+        supports: { light: true, dark: true },
+        styles: {},
+        layout: { titlebar: "./layout/titlebar.json" },
+        scene: { id: "rain-scene", sharedUniforms: {} },
+        surfaces: {
+          workbenchBackground: {
+            kind: "fragment",
+            scene: "rain-scene",
+            shader: "./shaders/workbench-background.glsl",
+            channels: {
+              "0": {
+                type: "video",
+                src: "./images/movie.mp4"
+              },
+              "1": {
+                type: "image",
+                src: "./images/other.png"
+              }
+            } as unknown as Record<string, unknown>
+          }
+        }
+      },
+      "/tmp/rain-glass"
+    );
+
+    expect(manifest?.surfaces?.workbenchBackground?.channels).toBeUndefined();
+  });
+
   it("returns null when id or name is whitespace-only", () => {
     const manifestByBlankId = normalizeThemePackageManifest(
       {

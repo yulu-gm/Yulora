@@ -130,7 +130,8 @@ function createLegacyManifest(
     styles,
     layout: { titlebar: null },
     scene: null,
-    surfaces: {}
+    surfaces: {},
+    parameters: []
   };
 }
 

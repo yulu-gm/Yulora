@@ -11,16 +11,133 @@
   --yu-ctrl-solid-border-hover: var(--yulora-border-muted);
   --yu-ctrl-text: var(--yulora-text-secondary);
   --yu-ctrl-text-hover: var(--yulora-text-strong);
-  --yu-ctrl-glass-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 52%, transparent);
-  --yu-ctrl-glass-bg-hover: color-mix(in srgb, var(--yulora-glass-strong-bg) 78%, transparent);
+  --yu-ctrl-glass-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 44%, var(--yulora-surface-raised-bg));
+  --yu-ctrl-glass-bg-hover: color-mix(in srgb, var(--yulora-glass-strong-bg) 66%, var(--yulora-surface-raised-bg));
   --yu-ctrl-glass-border: var(--yulora-glass-border);
   --yu-ctrl-glass-border-hover: color-mix(in srgb, var(--yulora-glass-border) 72%, var(--yulora-border-muted));
-  --yu-input-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 48%, transparent);
-  --yu-input-bg-focus: color-mix(in srgb, var(--yulora-glass-strong-bg) 74%, transparent);
+  --yu-input-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 42%, var(--yulora-surface-raised-bg));
+  --yu-input-bg-focus: color-mix(in srgb, var(--yulora-glass-strong-bg) 64%, var(--yulora-surface-raised-bg));
   --yu-input-border: var(--yulora-border-muted);
   --yu-input-border-focus: var(--yulora-focus-ring);
   --yu-input-ring: color-mix(in srgb, var(--yulora-focus-ring) 16%, transparent);
-  --yu-segment-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 40%, transparent);
+  --yu-segment-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 36%, var(--yulora-surface-raised-bg));
   --yu-segment-border: var(--yulora-border-muted);
-  --yu-segment-active-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 70%, transparent);
+  --yu-segment-active-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, var(--yulora-surface-raised-bg));
+}
+
+.app-rail {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 58%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 34%, transparent)
+    );
+  border-right-color: color-mix(in srgb, var(--yulora-glass-border) 72%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 82%, transparent);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.workspace-header {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 44%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 28%, transparent)
+    );
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 76%, transparent),
+    0 12px 24px color-mix(in srgb, var(--yulora-scrim) 16%, transparent);
+  backdrop-filter: blur(18px) saturate(1.04);
+}
+
+.app-status-bar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-bg) 34%, transparent),
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 22%, transparent)
+    );
+  backdrop-filter: blur(16px) saturate(1.03);
+}
+
+/* Outline drawer — frosted glass with gentle sheen. */
+.outline-panel,
+[data-yulora-region="outline-panel"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 52%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 32%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--yulora-glass-border) 70%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 70%, transparent),
+    -12px 0 30px color-mix(in srgb, var(--yulora-scrim) 20%, transparent);
+  backdrop-filter: blur(20px) saturate(1.06);
+  -webkit-backdrop-filter: blur(20px) saturate(1.06);
+}
+
+/* Settings drawer — heavier blur so content behind reads as soft watercolour. */
+.settings-shell,
+[data-yulora-panel="settings-drawer"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 58%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 38%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--yulora-glass-border) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 78%, transparent),
+    0 24px 60px color-mix(in srgb, var(--yulora-scrim) 28%, transparent);
+  backdrop-filter: blur(28px) saturate(1.1);
+  -webkit-backdrop-filter: blur(28px) saturate(1.1);
+}
+
+/* Scrim behind the settings drawer — subtle dim without full black overlay. */
+[data-yulora-dialog="settings-drawer"] {
+  background: color-mix(in srgb, var(--yulora-scrim) 28%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Individual settings-group cards — layered glass on the drawer glass. */
+.settings-group {
+  background: color-mix(in srgb, var(--yulora-glass-bg) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yulora-glass-border) 48%, transparent);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 60%, transparent);
+  backdrop-filter: blur(10px) saturate(1.03);
+  -webkit-backdrop-filter: blur(10px) saturate(1.03);
+}
+
+/* Notification banner — frosted pill that floats over the workbench. */
+.app-notification-banner,
+[data-yulora-region="app-notification-banner"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 62%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 42%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--yulora-glass-border) 70%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 72%, transparent),
+    0 12px 28px color-mix(in srgb, var(--yulora-scrim) 18%, transparent);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+/* Titlebar when controlled by the theme — match the workbench rail weight. */
+.app-titlebar,
+[data-yulora-titlebar] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yulora-glass-strong-bg) 46%, transparent),
+      color-mix(in srgb, var(--yulora-glass-bg) 26%, transparent)
+    );
+  backdrop-filter: blur(18px) saturate(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.05);
 }

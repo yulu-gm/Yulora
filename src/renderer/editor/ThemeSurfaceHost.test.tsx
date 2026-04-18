@@ -93,4 +93,41 @@ describe("ThemeSurfaceHost", () => {
 
     expect(runtimeModeChanges).toEqual(["fallback", "fallback"]);
   });
+
+  it("passes image channel descriptors through to runtime mount", async () => {
+    await act(async () => {
+      root.render(
+        createElement(ThemeSurfaceHost, {
+          surface: "workbenchBackground",
+          descriptor: {
+            kind: "fragment",
+            sceneId: "rain-scene",
+            shaderUrl: "file:///themes/rain-glass/shaders/workbench.glsl",
+            channels: {
+              "0": {
+                type: "image",
+                src: "file:///themes/rain-glass/textures/noise.png"
+              }
+            },
+            sharedUniforms: {
+              rainAmount: 0.8
+            }
+          },
+          effectsMode: "auto"
+        })
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(themeSurfaceRuntimeMock.mount).toHaveBeenCalledTimes(1);
+    expect(themeSurfaceRuntimeMock.mount.mock.calls[0]?.[0]).toMatchObject({
+      channels: {
+        "0": {
+          type: "image",
+          src: "file:///themes/rain-glass/textures/noise.png"
+        }
+      }
+    });
+  });
 });

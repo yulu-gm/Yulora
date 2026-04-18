@@ -69,6 +69,27 @@ type AppMenuCommand =
 
 type ThemeMode = "system" | "light" | "dark";
 type ThemeEffectsMode = "auto" | "full" | "off";
+type ThemeParameterOverrides = Record<string, Record<string, number>>;
+type ThemeParameterDescriptor =
+  | {
+      id: string;
+      label: string;
+      type: "slider";
+      min: number;
+      max: number;
+      step: number;
+      default: number;
+      uniform: string;
+      description?: string;
+    }
+  | {
+      id: string;
+      label: string;
+      type: "toggle";
+      default: boolean;
+      uniform: string;
+      description?: string;
+    };
 
 type Preferences = {
   version: 2;
@@ -80,6 +101,7 @@ type Preferences = {
     mode: ThemeMode;
     selectedId: string | null;
     effectsMode: ThemeEffectsMode;
+    parameters: ThemeParameterOverrides;
   };
 };
 
@@ -151,6 +173,7 @@ type ThemePackageDescriptor = {
         { kind: "fragment"; scene: string; shader: string }
       >
     >;
+    parameters: ThemeParameterDescriptor[];
   };
 };
 

@@ -8,16 +8,27 @@ export type ThemeSurfacePresenter = {
   destroy: () => void;
 };
 
+type ThemeSurfaceImageChannelDescriptor = {
+  type: "image";
+  src: string;
+};
+
+export type ThemeSurfaceRuntimeChannels = Partial<Record<"0", ThemeSurfaceImageChannelDescriptor>>;
+type ThemeSurfaceRuntimeChannelImages = Partial<Record<"0", HTMLImageElement>>;
+
 export type ThemeSurfacePresenterFactory = (input: {
   canvas: HTMLCanvasElement;
   shaderSource: string;
   uniformKeys: readonly string[];
+  channels?: ThemeSurfaceRuntimeChannels;
+  channelImages?: ThemeSurfaceRuntimeChannelImages;
 }) => ThemeSurfacePresenter;
 
 export type MountThemeSurfaceInput = {
   canvas: HTMLCanvasElement | null;
   surface: ThemeSurfaceSlot;
   shaderSource: string | null;
+  channels?: ThemeSurfaceRuntimeChannels;
   effectsMode: ThemeEffectsMode;
   sceneState: ThemeSceneState;
 };
@@ -32,6 +43,7 @@ type ThemeSurfaceRuntimeDependencies = {
   requestAnimationFrame?: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame?: (handle: number) => void;
   ResizeObserver?: typeof ResizeObserver;
+  matchMedia?: (query: string) => MediaQueryList;
 };
 
 const VERTEX_SHADER_SOURCE = `
@@ -42,12 +54,29 @@ void main() {
 }
 `;
 
-function resolveRenderMode(effectsMode: ThemeEffectsMode): ThemeSurfaceRuntimeMode {
+function prefersReducedMotion(
+  matchMediaImpl: ((query: string) => MediaQueryList) | undefined
+): boolean {
+  if (!matchMediaImpl) {
+    return false;
+  }
+
+  return matchMediaImpl("(prefers-reduced-motion: reduce)").matches;
+}
+
+function resolveRenderMode(
+  effectsMode: ThemeEffectsMode,
+  matchMediaImpl: ((query: string) => MediaQueryList) | undefined
+): ThemeSurfaceRuntimeMode {
   if (effectsMode === "off") {
     return "fallback";
   }
 
-  return effectsMode === "full" ? "full" : "reduced";
+  if (effectsMode === "full") {
+    return "full";
+  }
+
+  return prefersReducedMotion(matchMediaImpl) ? "reduced" : "full";
 }
 
 function getViewport(canvas: HTMLCanvasElement): ThemeSceneViewport {
@@ -89,18 +118,43 @@ function sanitizeUniformKey(key: string, index: number): string {
   return `u_${prefixed}`;
 }
 
-function buildFragmentShaderSource(shaderSource: string, uniformKeys: readonly string[]): string {
+function stripShaderComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//gu, " ")
+    .replace(/\/\/.*$/gmu, " ");
+}
+
+function hasUniformDeclaration(source: string, name: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(
+    `\\buniform\\s+(?:(?:lowp|mediump|highp)\\s+)?\\w+\\s+${escaped}\\s*;`,
+    "u"
+  ).test(source);
+}
+
+export function buildFragmentShaderSource(
+  shaderSource: string,
+  uniformKeys: readonly string[],
+  hasChannel0 = false
+): string {
   const trimmed = shaderSource.trim();
 
   if (trimmed.length === 0) {
     throw new Error("Shader source is empty.");
   }
+  const declarationScanSource = stripShaderComments(trimmed);
 
   const header = [
     /\bprecision\s+(?:lowp|mediump|highp)\s+float\s*;/u.test(trimmed) ? null : "precision mediump float;",
-    "uniform vec2 u_resolution;",
-    "uniform float u_time;",
-    ...uniformKeys.map((key, index) => `uniform float ${sanitizeUniformKey(key, index)};`)
+    hasUniformDeclaration(declarationScanSource, "u_resolution") ? null : "uniform vec2 u_resolution;",
+    hasUniformDeclaration(declarationScanSource, "u_time") ? null : "uniform float u_time;",
+    hasChannel0 && !hasUniformDeclaration(declarationScanSource, "iResolution") ? "uniform vec3 iResolution;" : null,
+    hasChannel0 && !hasUniformDeclaration(declarationScanSource, "iTime") ? "uniform float iTime;" : null,
+    hasChannel0 && !hasUniformDeclaration(declarationScanSource, "iChannel0") ? "uniform sampler2D iChannel0;" : null,
+    ...uniformKeys.map((key, index) => {
+      const uniformName = sanitizeUniformKey(key, index);
+      return hasUniformDeclaration(declarationScanSource, uniformName) ? null : `uniform float ${uniformName};`;
+    })
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
@@ -110,6 +164,75 @@ function buildFragmentShaderSource(shaderSource: string, uniformKeys: readonly s
   }
 
   return `${header}\n${trimmed}`;
+}
+
+async function loadImageChannel(src: string): Promise<HTMLImageElement> {
+  if (typeof globalThis.Image !== "function") {
+    throw new Error("Image loading is unavailable.");
+  }
+
+  return await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new globalThis.Image();
+    image.decoding = "async";
+
+    let settled = false;
+    const rejectLoad = () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      reject(new Error(`Failed to load image channel: ${src}`));
+    };
+
+    const resolveLoad = () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      rejectLoad();
+    };
+
+    image.onload = () => {
+      if (typeof image.decode !== "function") {
+        resolveLoad();
+        return;
+      }
+
+      image.decode().then(
+        () => {
+          resolveLoad();
+        },
+        () => {
+          rejectLoad();
+        }
+      );
+    };
+
+    try {
+      image.src = src;
+    } catch {
+      rejectLoad();
+    }
+  });
+}
+
+async function resolveChannelImages(
+  channels: ThemeSurfaceRuntimeChannels | undefined
+): Promise<ThemeSurfaceRuntimeChannelImages | undefined> {
+  const channel0 = channels?.["0"];
+
+  if (!channel0 || channel0.type !== "image") {
+    return undefined;
+  }
+
+  const image = await loadImageChannel(channel0.src);
+  return { "0": image };
 }
 
 function getWebGlContext(canvas: HTMLCanvasElement): WebGLRenderingContext {
@@ -180,22 +303,29 @@ function createDefaultPresenter(input: {
   canvas: HTMLCanvasElement;
   shaderSource: string;
   uniformKeys: readonly string[];
+  channels?: ThemeSurfaceRuntimeChannels;
+  channelImages?: ThemeSurfaceRuntimeChannelImages;
 }): ThemeSurfacePresenter {
   const gl = getWebGlContext(input.canvas);
+  const channel0Image = input.channelImages?.["0"];
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
   const fragmentShader = compileShader(
     gl,
     gl.FRAGMENT_SHADER,
-    buildFragmentShaderSource(input.shaderSource, input.uniformKeys)
+    buildFragmentShaderSource(input.shaderSource, input.uniformKeys, Boolean(channel0Image))
   );
   const program = createProgram(gl, vertexShader, fragmentShader);
   const positionAttribute = gl.getAttribLocation(program, "a_position");
   const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
   const timeUniform = gl.getUniformLocation(program, "u_time");
+  const iResolutionUniform = gl.getUniformLocation(program, "iResolution");
+  const iTimeUniform = gl.getUniformLocation(program, "iTime");
+  const iChannel0Uniform = channel0Image ? gl.getUniformLocation(program, "iChannel0") : null;
   const sharedUniformLocations = new Map<string, WebGLUniformLocation | null>(
     input.uniformKeys.map((key, index) => [key, gl.getUniformLocation(program, sanitizeUniformKey(key, index))])
   );
   const quadBuffer = gl.createBuffer();
+  let channel0Texture: WebGLTexture | null = null;
 
   if (!quadBuffer) {
     gl.deleteProgram(program);
@@ -223,6 +353,34 @@ function createDefaultPresenter(input: {
   gl.vertexAttribPointer(positionAttribute, 2, gl.FLOAT, false, 0, 0);
   gl.clearColor(0, 0, 0, 0);
 
+  if (channel0Image) {
+    channel0Texture = gl.createTexture();
+    if (!channel0Texture) {
+      gl.deleteBuffer(quadBuffer);
+      gl.deleteProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      throw new Error("Failed to allocate channel texture.");
+    }
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, channel0Texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, channel0Image);
+    } catch (error) {
+      gl.deleteTexture(channel0Texture);
+      gl.deleteBuffer(quadBuffer);
+      gl.deleteProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      throw error;
+    }
+  }
+
   gl.deleteShader(vertexShader);
   gl.deleteShader(fragmentShader);
 
@@ -243,6 +401,22 @@ function createDefaultPresenter(input: {
         gl.uniform1f(timeUniform, frame.time);
       }
 
+      if (iResolutionUniform) {
+        gl.uniform3f(iResolutionUniform, input.canvas.width, input.canvas.height, 1);
+      }
+
+      if (iTimeUniform) {
+        gl.uniform1f(iTimeUniform, frame.time);
+      }
+
+      if (channel0Texture) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, channel0Texture);
+        if (iChannel0Uniform) {
+          gl.uniform1i(iChannel0Uniform, 0);
+        }
+      }
+
       for (const [key, location] of sharedUniformLocations) {
         if (!location) {
           continue;
@@ -255,6 +429,9 @@ function createDefaultPresenter(input: {
     },
     destroy() {
       gl.deleteBuffer(quadBuffer);
+      if (channel0Texture) {
+        gl.deleteTexture(channel0Texture);
+      }
       gl.deleteProgram(program);
     }
   };
@@ -271,9 +448,10 @@ export function createThemeSurfaceRuntime(
   const cancelAnimationFrameImpl =
     dependencies.cancelAnimationFrame ?? globalThis.cancelAnimationFrame?.bind(globalThis);
   const ResizeObserverImpl = dependencies.ResizeObserver ?? globalThis.ResizeObserver;
+  const matchMediaImpl = dependencies.matchMedia ?? globalThis.matchMedia?.bind(globalThis);
 
   async function mount(input: MountThemeSurfaceInput): Promise<MountedThemeSurface> {
-    const mode = resolveRenderMode(input.effectsMode);
+    const mode = resolveRenderMode(input.effectsMode, matchMediaImpl);
 
     if (mode === "fallback" || !(input.canvas instanceof HTMLCanvasElement)) {
       return createFallbackMount();
@@ -288,12 +466,16 @@ export function createThemeSurfaceRuntime(
     }
 
     let presenter: ThemeSurfacePresenter;
+    let channelImages: ThemeSurfaceRuntimeChannelImages | undefined;
 
     try {
+      channelImages = await resolveChannelImages(input.channels);
       presenter = createPresenter({
         canvas,
         shaderSource,
-        uniformKeys: input.sceneState.sharedUniformKeys
+        uniformKeys: input.sceneState.sharedUniformKeys,
+        channels: input.channels,
+        channelImages
       });
     } catch {
       return createFallbackMount();

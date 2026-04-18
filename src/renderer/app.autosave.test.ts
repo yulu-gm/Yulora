@@ -55,6 +55,7 @@ function makeManifestThemePackage(
     name: string;
     scene: ThemePackageDescriptor["manifest"]["scene"];
     surfaces: ThemePackageDescriptor["manifest"]["surfaces"];
+    parameters: ThemePackageDescriptor["manifest"]["parameters"];
   }> = {}
 ): ThemePackageDescriptor {
   const id = overrides.id ?? "manifest-theme";
@@ -86,7 +87,8 @@ function makeManifestThemePackage(
         titlebar: null
       },
       scene: overrides.scene ?? null,
-      surfaces: overrides.surfaces ?? {}
+      surfaces: overrides.surfaces ?? {},
+      parameters: overrides.parameters ?? []
     }
   };
 }
@@ -1108,7 +1110,7 @@ describe("App autosave", () => {
     await act(async () => {
       preferencesChangedListener?.({
         ...DEFAULT_PREFERENCES,
-        theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto" },
+        theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto", parameters: {} },
         ui: {
           fontSize: 18
         },
@@ -1168,7 +1170,7 @@ describe("App autosave", () => {
       ...window.yulora,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
-        theme: { mode: "dark", selectedId: "rain-glass", effectsMode: "auto" }
+        theme: { mode: "dark", selectedId: "rain-glass", effectsMode: "auto", parameters: {} }
       }),
       listThemePackages: vi.fn().mockResolvedValue(packageThemes)
     } as Window["yulora"];
@@ -1303,6 +1305,85 @@ describe("App autosave", () => {
 
     expect(surfaceHost).not.toBeNull();
     expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+    expect(surfaceHost?.parentElement?.classList.contains("app-layout")).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      createPreviewAssetUrl("/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"),
+      expect.any(Object)
+    );
+  });
+
+  it('converts manifest channel "0" image src to preview asset URLs before runtime loads it', async () => {
+    const loadedImageSrcs: string[] = [];
+
+    class MockImage {
+      onload: null | (() => void) = null;
+      onerror: null | (() => void) = null;
+      decoding = "";
+      #src = "";
+
+      set src(value: string) {
+        this.#src = value;
+        loadedImageSrcs.push(value);
+        Promise.resolve().then(() => {
+          this.onload?.();
+        });
+      }
+
+      get src() {
+        return this.#src;
+      }
+
+      decode(): Promise<void> {
+        return Promise.resolve();
+      }
+    }
+
+    vi.stubGlobal("Image", MockImage as unknown as typeof Image);
+
+    await renderEditorApp({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "rain-glass",
+          effectsMode: "auto"
+        }
+      },
+      listThemePackagesResult: [
+        makeManifestThemePackage({
+          id: "rain-glass",
+          name: "Rain Glass",
+          scene: {
+            id: "rain-scene",
+            sharedUniforms: { rainAmount: 0.7 }
+          },
+          surfaces: {
+            workbenchBackground: {
+              kind: "fragment",
+              scene: "rain-scene",
+              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl",
+              channels: {
+                "0": {
+                  type: "image",
+                  src: "/tmp/yulora/themes/rain-glass/textures/noise.png"
+                }
+              }
+            }
+          }
+        })
+      ]
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(loadedImageSrcs).toContain(
+      createPreviewAssetUrl("/tmp/yulora/themes/rain-glass/textures/noise.png")
+    );
   });
 
   it("marks the document-level dynamic mode as fallback and shows a warning when a shader surface falls back", async () => {
@@ -1616,7 +1697,7 @@ describe("App autosave", () => {
     await act(async () => {
       preferencesChangedListener?.({
         ...DEFAULT_PREFERENCES,
-        theme: { mode: "light", selectedId: "midnight", effectsMode: "auto" }
+        theme: { mode: "light", selectedId: "midnight", effectsMode: "auto", parameters: {} }
       });
       await Promise.resolve();
     });
@@ -2015,15 +2096,8 @@ describe("App autosave", () => {
   });
 
   it("renders settings as a drawer panel with close affordance while keeping existing controls", async () => {
-    await renderApp();
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
+    const driver = await renderEditorApp();
+    await driver.openSettings();
 
     const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');
     const closeButton = container.querySelector<HTMLButtonElement>('[aria-label="关闭设置"]');
@@ -2048,15 +2122,8 @@ describe("App autosave", () => {
   });
 
   it("updates document font presets through dropdowns only", async () => {
-    await renderApp();
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
+    const driver = await renderEditorApp();
+    await driver.openSettings();
 
     const documentFontSelect = container.querySelector<HTMLSelectElement>("#settings-document-font-preset");
     const documentCjkFontSelect = container.querySelector<HTMLSelectElement>("#settings-document-cjk-font-preset");
@@ -2090,18 +2157,10 @@ describe("App autosave", () => {
   });
 
   it("loads font families only after the settings drawer opens", async () => {
-    await renderApp();
+    const driver = await renderEditorApp();
 
     expect(listFontFamilies).not.toHaveBeenCalled();
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    await driver.openSettings();
 
     expect(listFontFamilies).toHaveBeenCalledTimes(1);
 
@@ -2116,16 +2175,29 @@ describe("App autosave", () => {
     ).toContain("霞鹜文楷");
   });
 
-  it("marks settings as a floating drawer overlay surface", async () => {
-    await renderApp();
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
+  it("keeps the settings drawer renderable for legacy preferences without theme parameter overrides", async () => {
+    const driver = await renderEditorApp({
+      listThemePackagesResult: [makeManifestThemePackage({ id: "graphite" })],
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          mode: "dark",
+          selectedId: "graphite",
+          effectsMode: "auto"
+        }
+      } as unknown as Preferences
     });
+
+    await driver.openSettings();
+
+    expect(container.querySelector('[data-yulora-panel="settings-drawer"]')?.textContent).toContain(
+      "偏好设置"
+    );
+  });
+
+  it("marks settings as a floating drawer overlay surface", async () => {
+    const driver = await renderEditorApp();
+    await driver.openSettings();
 
     const overlay = container.querySelector<HTMLElement>('[data-yulora-dialog="settings-drawer"]');
     const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');

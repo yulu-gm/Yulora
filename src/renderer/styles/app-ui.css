@@ -119,8 +119,14 @@
 .app-layout {
   height: 100%;
   min-height: 0;
+  position: relative;
   display: grid;
   grid-template-columns: var(--yulora-shell-rail-width) minmax(0, 1fr);
+}
+
+.app-layout > :not(.theme-surface-host) {
+  position: relative;
+  z-index: 1;
 }
 
 .app-shell-fallback {
@@ -197,6 +203,7 @@
 .app-workspace {
   min-width: 0;
   height: 100%;
+  position: relative;
   padding:
     var(--yulora-space-4)
     var(--yulora-shell-gutter)

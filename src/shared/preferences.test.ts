@@ -172,7 +172,7 @@ describe("mergePreferences", () => {
         cjkFontFamily: "Source Han Sans SC",
         fontSize: 18
       },
-      theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto" }
+      theme: { mode: "dark", selectedId: "graphite", effectsMode: "auto", parameters: {} }
     });
   });
 

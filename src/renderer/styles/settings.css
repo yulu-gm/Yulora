@@ -377,3 +377,50 @@
     opacity: 0;
   }
 }
+
+.settings-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--yulora-focus-ring, #5da7ff);
+  cursor: pointer;
+}
+
+.settings-slider-value {
+  min-width: 3.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--yulora-text-secondary);
+  font-size: 0.9em;
+}
+
+.settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-toggle input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: var(--yulora-focus-ring, #5da7ff);
+  cursor: pointer;
+}
+
+.settings-toggle-label {
+  color: var(--yulora-text-secondary);
+  font-size: 0.9em;
+}
+
+[data-yulora-panel="theme-parameters"] .settings-group-header h2 {
+  font-size: 1rem;
+}

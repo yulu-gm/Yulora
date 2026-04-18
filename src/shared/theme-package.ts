@@ -6,7 +6,36 @@ export type ThemeSurfaceDescriptor = {
   kind: "fragment";
   scene: string;
   shader: string;
+  channels?: ThemeSurfaceChannels;
 };
+
+type ThemeSurfaceImageDescriptor = { type: "image"; src: string };
+type ThemeSurfaceChannels = Partial<Record<"0", ThemeSurfaceImageDescriptor>>;
+
+export type ThemeParameterSliderDescriptor = {
+  id: string;
+  label: string;
+  type: "slider";
+  min: number;
+  max: number;
+  step: number;
+  default: number;
+  uniform: string;
+  description?: string;
+};
+
+export type ThemeParameterToggleDescriptor = {
+  id: string;
+  label: string;
+  type: "toggle";
+  default: boolean;
+  uniform: string;
+  description?: string;
+};
+
+export type ThemeParameterDescriptor =
+  | ThemeParameterSliderDescriptor
+  | ThemeParameterToggleDescriptor;
 
 export type ThemePackageManifest = {
   id: string;
@@ -19,11 +48,13 @@ export type ThemePackageManifest = {
   layout: { titlebar: string | null };
   scene: { id: string; sharedUniforms: Record<string, number> } | null;
   surfaces: Partial<Record<ThemeSurfaceSlot, ThemeSurfaceDescriptor>>;
+  parameters: ThemeParameterDescriptor[];
 };
 
 const THEME_MODES = ["light", "dark"] as const;
 const THEME_STYLE_PARTS = ["ui", "editor", "markdown", "titlebar"] as const;
 const THEME_SURFACE_SLOTS = ["workbenchBackground", "titlebarBackdrop", "welcomeHero"] as const;
+const THEME_SURFACE_CHANNELS = ["0"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -225,10 +256,58 @@ function normalizeSurfaceDescriptor(
     return null;
   }
 
-  return {
+  const channels = normalizeSurfaceChannels(raw.channels, packageRoot);
+
+  const descriptor: ThemeSurfaceDescriptor = {
     kind: "fragment",
     scene,
     shader
+  };
+
+  if (Object.keys(channels).length > 0) {
+    descriptor.channels = channels;
+  }
+
+  return descriptor;
+}
+
+function normalizeSurfaceChannels(
+  raw: unknown,
+  packageRoot: string
+): ThemeSurfaceChannels {
+  const source = isRecord(raw) ? raw : {};
+  const channels: ThemeSurfaceChannels = {};
+
+  for (const channel of THEME_SURFACE_CHANNELS) {
+    const normalized = normalizeSurfaceChannel(source[channel], packageRoot);
+    if (normalized !== null) {
+      channels[channel] = normalized;
+    }
+  }
+
+  return channels;
+}
+
+function normalizeSurfaceChannel(
+  raw: unknown,
+  packageRoot: string
+): ThemeSurfaceImageDescriptor | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+
+  if (raw.type !== "image") {
+    return null;
+  }
+
+  const src = normalizePackagePath(raw.src, packageRoot);
+  if (src === null) {
+    return null;
+  }
+
+  return {
+    type: "image",
+    src
   };
 }
 
@@ -284,6 +363,89 @@ function normalizeThemeScene(raw: unknown): ThemePackageManifest["scene"] {
   };
 }
 
+function normalizeThemeParameter(raw: unknown): ThemeParameterDescriptor | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+
+  const id = typeof raw.id === "string" ? raw.id.trim() : "";
+  if (id.length === 0 || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) {
+    return null;
+  }
+
+  const label = typeof raw.label === "string" ? raw.label.trim() : "";
+  if (label.length === 0) {
+    return null;
+  }
+
+  const uniform = typeof raw.uniform === "string" ? raw.uniform.trim() : "";
+  if (uniform.length === 0 || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(uniform)) {
+    return null;
+  }
+
+  const description = typeof raw.description === "string" ? raw.description.trim() : undefined;
+
+  if (raw.type === "toggle") {
+    return {
+      id,
+      label,
+      type: "toggle",
+      default: raw.default === true,
+      uniform,
+      ...(description ? { description } : {})
+    };
+  }
+
+  if (raw.type === "slider") {
+    const min = typeof raw.min === "number" && Number.isFinite(raw.min) ? raw.min : 0;
+    const max = typeof raw.max === "number" && Number.isFinite(raw.max) ? raw.max : 1;
+    if (max <= min) {
+      return null;
+    }
+
+    const step = typeof raw.step === "number" && raw.step > 0 && Number.isFinite(raw.step) ? raw.step : 0.01;
+    const defaultValue =
+      typeof raw.default === "number" && Number.isFinite(raw.default)
+        ? Math.min(Math.max(raw.default, min), max)
+        : min;
+
+    return {
+      id,
+      label,
+      type: "slider",
+      min,
+      max,
+      step,
+      default: defaultValue,
+      uniform,
+      ...(description ? { description } : {})
+    };
+  }
+
+  return null;
+}
+
+function normalizeThemeParameters(raw: unknown): ThemeParameterDescriptor[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const seenIds = new Set<string>();
+  const parameters: ThemeParameterDescriptor[] = [];
+
+  for (const entry of raw) {
+    const parameter = normalizeThemeParameter(entry);
+    if (parameter === null || seenIds.has(parameter.id)) {
+      continue;
+    }
+
+    seenIds.add(parameter.id);
+    parameters.push(parameter);
+  }
+
+  return parameters;
+}
+
 export function normalizeThemePackageManifest(
   raw: unknown,
   packageRoot: string
@@ -312,6 +474,7 @@ export function normalizeThemePackageManifest(
       titlebar: normalizePackagePath(isRecord(source.layout) ? source.layout.titlebar : null, packageRoot)
     },
     scene: normalizeThemeScene(source.scene),
-    surfaces: normalizeSurfaces(source.surfaces, packageRoot)
+    surfaces: normalizeSurfaces(source.surfaces, packageRoot),
+    parameters: normalizeThemeParameters(source.parameters)
   };
 }
