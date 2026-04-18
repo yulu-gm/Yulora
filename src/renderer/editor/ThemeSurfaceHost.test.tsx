@@ -12,6 +12,7 @@ const themeSurfaceRuntimeMock = vi.hoisted(() => ({
       shaderSource
     }: {
       shaderSource: string;
+      sceneState?: unknown;
     }) => ({
       mode: shaderSource.includes("broken") ? ("fallback" as const) : ("full" as const),
       unmount: vi.fn()
@@ -68,6 +69,7 @@ describe("ThemeSurfaceHost", () => {
         shaderUrl: "file:///themes/rain-glass/shaders/broken-workbench.glsl",
         sharedUniforms: {}
       },
+      themeMode: "dark",
       effectsMode: "auto",
       onRuntimeModeChange: (mode) => {
         runtimeModeChanges.push(mode);
@@ -113,6 +115,7 @@ describe("ThemeSurfaceHost", () => {
               rainAmount: 0.8
             }
           },
+          themeMode: "dark",
           effectsMode: "auto"
         })
       );
@@ -128,6 +131,46 @@ describe("ThemeSurfaceHost", () => {
           src: "file:///themes/rain-glass/textures/noise.png"
         }
       }
+    });
+  });
+
+  it("bridges the resolved theme mode into the scene uniforms sent to runtime", async () => {
+    await act(async () => {
+      root.render(
+        createElement(ThemeSurfaceHost, {
+          surface: "workbenchBackground",
+          descriptor: {
+            kind: "fragment",
+            sceneId: "pearl-scene",
+            shaderUrl: "file:///themes/pearl-drift/shaders/workbench.glsl",
+            sharedUniforms: {
+              iridescence: 0.9
+            }
+          },
+          themeMode: "light",
+          effectsMode: "auto"
+        })
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const runtimeInput = themeSurfaceRuntimeMock.mount.mock.calls[0]?.[0] as
+      | {
+          sceneState: {
+            nextFrame: (
+              surface: "workbenchBackground",
+              viewport: { width: number; height: number }
+            ) => { uniforms: Record<string, number> };
+          };
+        }
+      | undefined;
+    expect(runtimeInput).toBeDefined();
+    expect(
+      runtimeInput?.sceneState.nextFrame("workbenchBackground", { width: 320, height: 200 }).uniforms
+    ).toMatchObject({
+      iridescence: 0.9,
+      themeMode: 0
     });
   });
 });

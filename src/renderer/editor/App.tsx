@@ -1468,6 +1468,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           layout={titlebarLayout}
           title={headerTitle}
           isDirty={state.isDirty}
+          themeMode={resolvedThemeMode}
           effectsMode={preferences.theme.effectsMode}
           titlebarSurface={activeTitlebarSurface}
           onTitlebarSurfaceRuntimeModeChange={handleTitlebarSurfaceRuntimeModeChange}
@@ -1481,6 +1482,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           <ThemeSurfaceHost
             surface="workbenchBackground"
             descriptor={activeWorkbenchSurface}
+            themeMode={resolvedThemeMode}
             effectsMode={preferences.theme.effectsMode}
             onRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
           />

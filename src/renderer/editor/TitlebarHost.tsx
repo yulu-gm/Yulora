@@ -2,12 +2,14 @@ import type { ThemeEffectsMode } from "../../shared/theme-package";
 import { ThemeSurfaceHost, type ThemeSurfaceHostDescriptor } from "./ThemeSurfaceHost";
 import type { TitlebarItem, TitlebarLayoutDescriptor, TitlebarSlot } from "./titlebar-layout";
 import type { ThemeSurfaceRuntimeMode } from "../shader/theme-surface-runtime";
+import type { ThemeAppearanceMode } from "../shader/theme-scene-state";
 
 type TitlebarHostProps = {
   platform: NodeJS.Platform;
   layout: TitlebarLayoutDescriptor;
   title: string;
   isDirty: boolean;
+  themeMode: ThemeAppearanceMode;
   effectsMode: ThemeEffectsMode;
   titlebarSurface: ThemeSurfaceHostDescriptor | null;
   onTitlebarSurfaceRuntimeModeChange?: (mode: ThemeSurfaceRuntimeMode) => void;
@@ -105,6 +107,7 @@ export function TitlebarHost({
   layout,
   title,
   isDirty,
+  themeMode,
   effectsMode,
   titlebarSurface,
   onTitlebarSurfaceRuntimeModeChange
@@ -121,6 +124,7 @@ export function TitlebarHost({
         <ThemeSurfaceHost
           surface="titlebarBackdrop"
           descriptor={titlebarSurface}
+          themeMode={themeMode}
           effectsMode={effectsMode}
           onRuntimeModeChange={onTitlebarSurfaceRuntimeModeChange}
         />

@@ -3,11 +3,42 @@ import { describe, expect, it } from "vitest";
 import { createThemeSceneState } from "./theme-scene-state";
 
 describe("theme scene state", () => {
+  it("injects the resolved theme mode as a built-in shader uniform", () => {
+    const lightScene = createThemeSceneState(
+      {
+        sceneId: "pearl-scene",
+        themeMode: "light",
+        effectsMode: "full",
+        sharedUniforms: { iridescence: 1 }
+      },
+      { now: () => 1_000 }
+    );
+    const darkScene = createThemeSceneState(
+      {
+        sceneId: "pearl-scene",
+        themeMode: "dark",
+        effectsMode: "full",
+        sharedUniforms: { iridescence: 1, themeMode: 99 }
+      },
+      { now: () => 1_000 }
+    );
+
+    expect(lightScene.nextFrame("workbenchBackground", { width: 800, height: 600 }).uniforms).toMatchObject({
+      iridescence: 1,
+      themeMode: 0
+    });
+    expect(darkScene.nextFrame("workbenchBackground", { width: 800, height: 600 }).uniforms).toMatchObject({
+      iridescence: 1,
+      themeMode: 1
+    });
+  });
+
   it("shares a clock snapshot across surfaces rendered in the same turn", () => {
     let nowMs = 1_000;
     const scene = createThemeSceneState(
       {
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "full",
         sharedUniforms: { rainAmount: 0.7 }
       },
@@ -32,6 +63,7 @@ describe("theme scene state", () => {
     const scene = createThemeSceneState(
       {
         sceneId: "mist-scene",
+        themeMode: "light",
         effectsMode: "auto",
         sharedUniforms: {}
       },

@@ -73,6 +73,26 @@ describe("theme surface runtime", () => {
     expect(shader).not.toMatch(/\bfogColor\b/u);
   });
 
+  it("keeps the pearl-drift workbench shader driven by theme mode instead of a manual background-tone slider", () => {
+    const shader = readFileSync(
+      path.join(process.cwd(), "fixtures/themes/pearl-drift/shaders/workbench-background.glsl"),
+      "utf8"
+    );
+    const manifest = readFileSync(
+      path.join(process.cwd(), "fixtures/themes/pearl-drift/manifest.json"),
+      "utf8"
+    );
+
+    expect(manifest).not.toMatch(/"id"\s*:\s*"backgroundTone"/u);
+    expect(manifest).not.toMatch(/"backgroundTone"\s*:/u);
+
+    expect(shader).toMatch(/\buniform\s+float\s+u_themeMode\s*;/u);
+    expect(shader).not.toMatch(/\buniform\s+float\s+u_backgroundTone\s*;/u);
+    expect(shader).toMatch(/float\s+tone\s*=\s*clamp\(u_themeMode\s*,\s*0\.0\s*,\s*1\.0\)\s*;/u);
+    expect(shader).toMatch(/vec3\s+baseColor\s*=\s*mix\(/u);
+    expect(shader).toMatch(/vec3\s+pearlTint\s*=\s*mix\(/u);
+  });
+
   it("does not inject shadertoy-compatible uniforms when channel 0 is absent", () => {
     const source = buildFragmentShaderSource(
       [
@@ -183,6 +203,7 @@ describe("theme surface runtime", () => {
       effectsMode: "off",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "off",
         sharedUniforms: {}
       })
@@ -215,6 +236,7 @@ describe("theme surface runtime", () => {
       effectsMode: "auto",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "auto",
         sharedUniforms: { rainAmount: 0.7 }
       })
@@ -226,7 +248,7 @@ describe("theme surface runtime", () => {
       expect.objectContaining({
         surface: "workbenchBackground",
         viewport: { width: 320, height: 200 },
-        uniforms: { rainAmount: 0.7 }
+        uniforms: expect.objectContaining({ rainAmount: 0.7, themeMode: 1 })
       })
     );
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
@@ -258,6 +280,7 @@ describe("theme surface runtime", () => {
       effectsMode: "full",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "full",
         sharedUniforms: {}
       })
@@ -396,6 +419,7 @@ describe("theme surface runtime", () => {
         effectsMode: "full",
         sceneState: createThemeSceneState({
           sceneId: "rain-scene",
+          themeMode: "dark",
           effectsMode: "full",
           sharedUniforms: {}
         })
@@ -445,6 +469,7 @@ describe("theme surface runtime", () => {
       effectsMode: "auto",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "auto",
         sharedUniforms: { rainAmount: 0.7 }
       })
@@ -504,6 +529,7 @@ describe("theme surface runtime", () => {
       effectsMode: "auto",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "auto",
         sharedUniforms: {}
       })
@@ -551,6 +577,7 @@ describe("theme surface runtime", () => {
       effectsMode: "full",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "full",
         sharedUniforms: {}
       })
@@ -584,6 +611,7 @@ describe("theme surface runtime", () => {
       effectsMode: "auto",
       sceneState: createThemeSceneState({
         sceneId: "rain-scene",
+        themeMode: "dark",
         effectsMode: "auto",
         sharedUniforms: {}
       })
@@ -630,6 +658,7 @@ describe("theme surface runtime", () => {
         effectsMode: "auto",
         sceneState: createThemeSceneState({
           sceneId: "rain-scene",
+          themeMode: "dark",
           effectsMode: "auto",
           sharedUniforms: {}
         })

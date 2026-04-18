@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ThemeEffectsMode, ThemeSurfaceSlot } from "../../shared/theme-package";
-import { createThemeSceneState } from "../shader/theme-scene-state";
+import { createThemeSceneState, type ThemeAppearanceMode } from "../shader/theme-scene-state";
 import {
   createThemeSurfaceRuntime,
   type ThemeSurfaceRuntimeChannels,
@@ -19,6 +19,7 @@ export type ThemeSurfaceHostDescriptor = {
 type ThemeSurfaceHostProps = {
   surface: ThemeSurfaceSlot;
   descriptor: ThemeSurfaceHostDescriptor;
+  themeMode: ThemeAppearanceMode;
   effectsMode: ThemeEffectsMode;
   onRuntimeModeChange?: (mode: ThemeSurfaceRuntimeMode) => void;
 };
@@ -58,6 +59,7 @@ function parseChannels(serializedChannels: string): ThemeSurfaceRuntimeChannels 
 export function ThemeSurfaceHost({
   surface,
   descriptor,
+  themeMode,
   effectsMode,
   onRuntimeModeChange
 }: ThemeSurfaceHostProps) {
@@ -104,6 +106,7 @@ export function ThemeSurfaceHost({
 
         const sceneState = createThemeSceneState({
           sceneId: descriptor.sceneId,
+          themeMode,
           effectsMode,
           sharedUniforms
         });
@@ -144,6 +147,7 @@ export function ThemeSurfaceHost({
     descriptor.shaderUrl,
     channels,
     sharedUniforms,
+    themeMode,
     effectsMode,
     surface,
     onRuntimeModeChange

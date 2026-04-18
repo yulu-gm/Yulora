@@ -1,5 +1,7 @@
 import type { ThemeEffectsMode, ThemeSurfaceSlot } from "../../shared/theme-package";
 
+export type ThemeAppearanceMode = "light" | "dark";
+
 export type ThemeSceneViewport = {
   width: number;
   height: number;
@@ -23,6 +25,7 @@ export type ThemeSceneState = {
 
 type ThemeSceneStateInput = {
   sceneId: string;
+  themeMode: ThemeAppearanceMode;
   effectsMode: ThemeEffectsMode;
   sharedUniforms: Record<string, number>;
 };
@@ -52,13 +55,20 @@ function cloneUniforms(sharedUniforms: Record<string, number>): Record<string, n
   );
 }
 
+function resolveThemeModeUniform(mode: ThemeAppearanceMode): number {
+  return mode === "dark" ? 1 : 0;
+}
+
 export function createThemeSceneState(
   input: ThemeSceneStateInput,
   options: ThemeSceneStateOptions = {}
 ): ThemeSceneState {
   const now = options.now ?? getNow;
   const startedAtMs = now();
-  const sharedUniforms = cloneUniforms(input.sharedUniforms);
+  const sharedUniforms = {
+    ...cloneUniforms(input.sharedUniforms),
+    themeMode: resolveThemeModeUniform(input.themeMode)
+  };
   const sharedUniformKeys = Object.freeze(Object.keys(sharedUniforms));
   let cachedNowMs: number | null = null;
   let clearScheduled = false;
