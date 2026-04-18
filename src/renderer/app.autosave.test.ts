@@ -32,7 +32,6 @@ type EditorTestCommandListener = (payload: EditorTestCommandEnvelope) => void;
 type ScenarioRunEventListener = (payload: RunnerEventEnvelope) => void;
 type ScenarioRunTerminalListener = (payload: ScenarioRunTerminal) => void;
 type PreferencesChangedListener = (preferences: Preferences) => void;
-type ThemeDescriptor = Awaited<ReturnType<Window["yulora"]["listThemes"]>>[number];
 type ThemePackageDescriptor = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
 type UpdatePreferencesResult = Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>;
 
@@ -45,8 +44,6 @@ type SettingsDriver = {
 type RenderEditorAppOptions = {
   listThemePackagesResult?: ThemePackageDescriptor[];
   refreshThemePackagesResult?: ThemePackageDescriptor[];
-  refreshThemesResult?: ThemeDescriptor[];
-  listThemesResult?: ThemeDescriptor[];
   getPreferencesResult?: Preferences;
   updatePreferencesImplementation?: (patch: Partial<Preferences>) => Promise<UpdatePreferencesResult>;
 };
@@ -55,6 +52,10 @@ function makeManifestThemePackage(
   overrides: Partial<{
     id: string;
     name: string;
+    source: ThemePackageDescriptor["source"];
+    supports: ThemePackageDescriptor["manifest"]["supports"];
+    tokens: ThemePackageDescriptor["manifest"]["tokens"];
+    styles: ThemePackageDescriptor["manifest"]["styles"];
     scene: ThemePackageDescriptor["manifest"]["scene"];
     surfaces: ThemePackageDescriptor["manifest"]["surfaces"];
     parameters: ThemePackageDescriptor["manifest"]["parameters"];
@@ -65,22 +66,22 @@ function makeManifestThemePackage(
   return {
     id,
     kind: "manifest-package",
-    source: "community",
+    source: overrides.source ?? "community",
     packageRoot: `/tmp/yulora/themes/${id}`,
     manifest: {
       id,
       name: overrides.name ?? "Manifest Theme",
       version: "1.0.0",
       author: null,
-      supports: {
+      supports: overrides.supports ?? {
         light: true,
         dark: true
       },
-      tokens: {
+      tokens: overrides.tokens ?? {
         dark: `/tmp/yulora/themes/${id}/tokens-dark.css`,
         light: `/tmp/yulora/themes/${id}/tokens-light.css`
       },
-      styles: {
+      styles: overrides.styles ?? {
         ui: `/tmp/yulora/themes/${id}/ui.css`,
         editor: `/tmp/yulora/themes/${id}/editor.css`,
         markdown: `/tmp/yulora/themes/${id}/markdown.css`
@@ -132,11 +133,11 @@ const rainGlassUiStylesheetPath = join(
 );
 const lightTokenStylesheetPath = join(
   process.cwd(),
-  "src/renderer/styles/themes/default/light/tokens.css"
+  "src/renderer/theme-packages/default/tokens/light.css"
 );
 const lightMarkdownStylesheetPath = join(
   process.cwd(),
-  "src/renderer/styles/themes/default/light/markdown.css"
+  "src/renderer/theme-packages/default/styles/markdown.css"
 );
 
 vi.mock("./code-editor-view", async () => {
@@ -268,50 +269,27 @@ describe("App autosave", () => {
     >
   >;
   let listFontFamilies: ReturnType<typeof vi.fn<() => Promise<string[]>>>;
-  let listThemes: ReturnType<typeof vi.fn<() => Promise<ThemeDescriptor[]>>>;
-  let refreshThemes: ReturnType<typeof vi.fn<() => Promise<ThemeDescriptor[]>>>;
   let listThemePackages: ReturnType<typeof vi.fn<() => Promise<ThemePackageDescriptor[]>>>;
   let refreshThemePackages: ReturnType<typeof vi.fn<() => Promise<ThemePackageDescriptor[]>>>;
 
-  const communityThemes: ThemeDescriptor[] = [
-    {
-      id: "graphite",
-      source: "community",
-      name: "Graphite",
-      directoryName: "graphite",
-      modes: {
-        light: {
-          available: true,
-          availableParts: {
-            tokens: true,
-            ui: true,
-            editor: false,
-            markdown: true
-          },
-          partUrls: {
-            tokens: "file:///themes/graphite/light/tokens.css",
-            ui: "file:///themes/graphite/light/ui.css",
-            markdown: "file:///themes/graphite/light/markdown.css"
-          }
-        },
-        dark: {
-          available: true,
-          availableParts: {
-            tokens: true,
-            ui: true,
-            editor: true,
-            markdown: true
-          },
-          partUrls: {
-            tokens: "file:///themes/graphite/dark/tokens.css",
-            ui: "file:///themes/graphite/dark/ui.css",
-            editor: "file:///themes/graphite/dark/editor.css",
-            markdown: "file:///themes/graphite/dark/markdown.css"
-          }
-        }
-      }
+  const builtinDefaultThemePackage = makeManifestThemePackage({
+    id: "default",
+    name: "Yulora Default",
+    source: "builtin"
+  });
+  const graphiteThemePackage = makeManifestThemePackage({
+    id: "graphite",
+    name: "Graphite"
+  });
+  const defaultThemeCatalog = [builtinDefaultThemePackage, graphiteThemePackage];
+
+  function withBuiltinDefault(packages: ThemePackageDescriptor[]): ThemePackageDescriptor[] {
+    if (packages.some((entry) => entry.id === "default")) {
+      return packages;
     }
-  ];
+
+    return [builtinDefaultThemePackage, ...packages];
+  }
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -379,10 +357,12 @@ describe("App autosave", () => {
     listFontFamilies = vi
       .fn<() => Promise<string[]>>()
       .mockResolvedValue(["Segoe UI", "Source Han Sans SC", "霞鹜文楷"]);
-    listThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(communityThemes);
-    refreshThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(communityThemes);
-    listThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue([]);
-    refreshThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue([]);
+    listThemePackages = vi
+      .fn<() => Promise<ThemePackageDescriptor[]>>()
+      .mockResolvedValue(defaultThemeCatalog);
+    refreshThemePackages = vi
+      .fn<() => Promise<ThemePackageDescriptor[]>>()
+      .mockResolvedValue(defaultThemeCatalog);
 
     window.yulora = {
       platform: "win32",
@@ -429,8 +409,6 @@ describe("App autosave", () => {
         preferences: DEFAULT_PREFERENCES
       }),
       listFontFamilies,
-      listThemes,
-      refreshThemes,
       listThemePackages,
       refreshThemePackages,
       checkForUpdates: vi.fn().mockResolvedValue(undefined),
@@ -490,22 +468,18 @@ describe("App autosave", () => {
     options: RenderEditorAppOptions = {}
   ): Promise<SettingsDriver> {
     const {
-      listThemePackagesResult = [],
-      refreshThemePackagesResult = [],
-      listThemesResult = communityThemes,
-      refreshThemesResult = communityThemes,
+      listThemePackagesResult = defaultThemeCatalog,
+      refreshThemePackagesResult = defaultThemeCatalog,
       getPreferencesResult = DEFAULT_PREFERENCES,
       updatePreferencesImplementation
     } = options;
 
     listThemePackages = vi.fn<() => Promise<ThemePackageDescriptor[]>>().mockResolvedValue(
-      listThemePackagesResult
+      withBuiltinDefault(listThemePackagesResult)
     );
-    listThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(listThemesResult);
-    refreshThemes = vi.fn<() => Promise<ThemeDescriptor[]>>().mockResolvedValue(refreshThemesResult);
     refreshThemePackages = vi
       .fn<() => Promise<ThemePackageDescriptor[]>>()
-      .mockResolvedValue(refreshThemePackagesResult);
+      .mockResolvedValue(withBuiltinDefault(refreshThemePackagesResult));
 
     window.yulora = {
       ...window.yulora,
@@ -515,8 +489,6 @@ describe("App autosave", () => {
           ? vi.fn(updatePreferencesImplementation)
           : window.yulora.updatePreferences,
       listThemePackages,
-      listThemes,
-      refreshThemes,
       refreshThemePackages
     } as Window["yulora"];
 
@@ -1110,7 +1082,7 @@ describe("App autosave", () => {
       document.head
         .querySelector('link[data-yulora-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toContain("default/dark/tokens.css");
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
   });
 
   it("updates theme variables and mounted stylesheets when preferences change", async () => {
@@ -1150,10 +1122,10 @@ describe("App autosave", () => {
       document.head
         .querySelector('link[data-yulora-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe("file:///themes/graphite/dark/tokens.css");
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/graphite/tokens-dark.css"));
   });
 
-  it("resolves legacy package ids against matching theme family ids", async () => {
+  it("treats legacy-suffixed package ids as missing and falls back to builtin default", async () => {
     window.yulora = {
       ...window.yulora,
       getPreferences: vi.fn().mockResolvedValue({
@@ -1168,12 +1140,13 @@ describe("App autosave", () => {
       document.head
         .querySelector('link[data-yulora-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe("file:///themes/graphite/dark/tokens.css");
-    expect(container.textContent).not.toContain("已配置主题未找到");
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
+    expect(container.textContent).toContain("已配置主题未找到");
   });
 
   it("mounts non-empty theme package catalogs through preview asset urls without a missing-theme warning", async () => {
     const packageThemes: ThemePackageDescriptor[] = [
+      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
       makeManifestThemePackage({ id: "rain-glass", name: "Rain Glass" })
     ];
 
@@ -1183,7 +1156,7 @@ describe("App autosave", () => {
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: "rain-glass", effectsMode: "auto", parameters: {} }
       }),
-      listThemePackages: vi.fn().mockResolvedValue(packageThemes)
+      listThemePackages: vi.fn().mockResolvedValue(withBuiltinDefault(packageThemes))
     } as Window["yulora"];
 
     await renderApp();
@@ -1213,12 +1186,16 @@ describe("App autosave", () => {
     expect(container.textContent).not.toContain("已配置主题未找到");
   });
 
-  it("syncs theme and legacy catalogs when refreshing from settings", async () => {
-    const packageThemes = [makeManifestThemePackage({ id: "graphite", name: "Graphite" })];
+  it("refreshes the package catalog from settings and falls back to default when the selected package disappears", async () => {
+    const packageThemes = [
+      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "graphite", name: "Graphite" })
+    ];
     const driver = await renderEditorApp({
       listThemePackagesResult: packageThemes,
-      refreshThemePackagesResult: [],
-      refreshThemesResult: [],
+      refreshThemePackagesResult: [
+        makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" })
+      ],
       getPreferencesResult: {
         ...DEFAULT_PREFERENCES,
         theme: {
@@ -1260,13 +1237,12 @@ describe("App autosave", () => {
     });
 
     expect(refreshThemePackages).toHaveBeenCalledTimes(1);
-    expect(refreshThemes).toHaveBeenCalledTimes(1);
     expect(
       document
         .head
         .querySelector('link[data-yulora-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toContain("default/dark/tokens.css");
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
     expect(themeSelect?.value).toBe("default");
   });
 
@@ -1678,44 +1654,28 @@ describe("App autosave", () => {
   });
 
   it("falls back to the builtin theme and routes the unsupported-mode warning through the top notification banner", async () => {
-    const darkOnlyThemes: ThemeDescriptor[] = [
-      {
+    const darkOnlyThemes: ThemePackageDescriptor[] = [
+      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({
         id: "midnight",
-        source: "community",
         name: "Midnight",
-        directoryName: "midnight",
-        modes: {
-          light: {
-            available: false,
-            availableParts: {
-              tokens: false,
-              ui: false,
-              editor: false,
-              markdown: false
-            },
-            partUrls: {}
-          },
-          dark: {
-            available: true,
-            availableParts: {
-              tokens: true,
-              ui: true,
-              editor: true,
-              markdown: false
-            },
-            partUrls: {
-              tokens: "file:///themes/midnight/dark/tokens.css",
-              ui: "file:///themes/midnight/dark/ui.css",
-              editor: "file:///themes/midnight/dark/editor.css"
-            }
-          }
+        supports: {
+          light: false,
+          dark: true
+        },
+        tokens: {
+          dark: "/tmp/yulora/themes/midnight/tokens-dark.css"
+        },
+        styles: {
+          ui: "/tmp/yulora/themes/midnight/ui.css",
+          editor: "/tmp/yulora/themes/midnight/editor.css"
         }
-      }
+      })
     ];
 
     window.yulora = {
       ...window.yulora,
-      listThemes: vi.fn().mockResolvedValue(darkOnlyThemes)
+      listThemePackages: vi.fn().mockResolvedValue(darkOnlyThemes)
     } as Window["yulora"];
 
     await renderApp();
@@ -1742,7 +1702,7 @@ describe("App autosave", () => {
       document.head
         .querySelector('link[data-yulora-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toContain("default/light/tokens.css");
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-light.css"));
     expect(container.textContent).toContain("该主题不支持浅色模式");
     expect(container.querySelector('[data-yulora-region="app-notification-banner"]')?.textContent).toContain(
       "该主题不支持浅色模式"
@@ -2817,10 +2777,11 @@ describe("App autosave", () => {
 
   it("uses a light code block palette in the default light theme", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
+    const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
 
-    expect(lightMarkdownStylesheet).toContain("--yulora-code-block-bg: #f3f6fa;");
-    expect(lightMarkdownStylesheet).toContain("--yulora-code-block-text: #334155;");
-    expect(lightMarkdownStylesheet).not.toContain("--yulora-code-block-bg: #17212b;");
+    expect(lightMarkdownRule).toContain("--yulora-code-block-bg: #f3f6fa;");
+    expect(lightMarkdownRule).toContain("--yulora-code-block-text: #334155;");
+    expect(lightMarkdownRule).not.toContain("--yulora-code-block-bg: #17212b;");
   });
 
   it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
@@ -2858,6 +2819,33 @@ describe("App autosave", () => {
         }
       }
     });
+  });
+
+  it("falls back to builtin default theme when selected package is missing", async () => {
+    const packageThemes: ThemePackageDescriptor[] = [
+      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "rain-glass", name: "Rain Glass" })
+    ];
+
+    await renderEditorApp({
+      listThemePackagesResult: packageThemes,
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark",
+          selectedId: "missing-rain-glass",
+          effectsMode: "auto",
+          parameters: {}
+        }
+      }
+    });
+
+    expect(
+      document.head
+        .querySelector('link[data-yulora-theme-part="tokens"]')
+        ?.getAttribute("href")
+    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
   });
 
   async function renderAndOpenDocument(options: RenderEditorAppOptions = {}): Promise<void> {

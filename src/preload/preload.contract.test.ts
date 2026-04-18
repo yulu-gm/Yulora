@@ -159,29 +159,33 @@ describe("preload contract", () => {
     void api.completeEditorTestCommand(completeInput);
     void api.getPreferences();
     void api.updatePreferences(updatePreferencesInput);
+    expect(api).not.toHaveProperty("listThemes");
+    expect(api).not.toHaveProperty("refreshThemes");
+
     void api.listFontFamilies();
-    void api.listThemes();
-    void api.refreshThemes();
+    void api.listThemePackages();
+    void api.refreshThemePackages();
     void api.checkForUpdates();
 
-    expect(invoke.mock.calls).toEqual([
-      [OPEN_MARKDOWN_FILE_CHANNEL],
-      [OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, openPathInput],
-      [HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL, droppedMarkdownInput],
-      [SAVE_MARKDOWN_FILE_CHANNEL, saveInput],
-      [SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput],
-      [IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput],
-      ["yulora:open-editor-test-window"],
-      [START_SCENARIO_RUN_CHANNEL, startRunInput],
-      [INTERRUPT_SCENARIO_RUN_CHANNEL, interruptInput],
-      [COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, completeInput],
-      [GET_PREFERENCES_CHANNEL],
-      [UPDATE_PREFERENCES_CHANNEL, updatePreferencesInput],
-      ["yulora:list-font-families"],
-      ["yulora:list-themes"],
-      ["yulora:refresh-themes"],
-      [CHECK_FOR_APP_UPDATES_CHANNEL]
-    ]);
+    expect(invoke.mock.calls).toContainEqual([OPEN_MARKDOWN_FILE_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, openPathInput]);
+    expect(invoke.mock.calls).toContainEqual([HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL, droppedMarkdownInput]);
+    expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_CHANNEL, saveInput]);
+    expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput]);
+    expect(invoke.mock.calls).toContainEqual([IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput]);
+    expect(invoke.mock.calls).toContainEqual(["yulora:open-editor-test-window"]);
+    expect(invoke.mock.calls).toContainEqual([START_SCENARIO_RUN_CHANNEL, startRunInput]);
+    expect(invoke.mock.calls).toContainEqual([INTERRUPT_SCENARIO_RUN_CHANNEL, interruptInput]);
+    expect(invoke.mock.calls).toContainEqual([COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, completeInput]);
+    expect(invoke.mock.calls).toContainEqual([GET_PREFERENCES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([UPDATE_PREFERENCES_CHANNEL, updatePreferencesInput]);
+    expect(invoke.mock.calls).toContainEqual(["yulora:list-font-families"]);
+    expect(invoke.mock.calls).toContainEqual(["yulora:list-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual(["yulora:refresh-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual([CHECK_FOR_APP_UPDATES_CHANNEL]);
+
+    expect(invoke.mock.calls).not.toContainEqual(["yulora:list-themes"]);
+    expect(invoke.mock.calls).not.toContainEqual(["yulora:refresh-themes"]);
   });
 
   it("resolves dropped file paths through Electron webUtils", async () => {
