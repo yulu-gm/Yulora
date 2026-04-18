@@ -1496,6 +1496,34 @@ describe("App autosave", () => {
     expect(overlay?.getAttribute("data-state")).toBe("hidden");
   });
 
+  it("does not show the shortcut hint overlay when Control is held without editor focus", async () => {
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Control",
+          ctrlKey: true,
+          bubbles: true
+        })
+      );
+    });
+
+    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+
+    expect(overlay?.getAttribute("data-state")).toBe("hidden");
+    expect(overlay?.textContent ?? "").not.toContain("Ctrl+B");
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", {
+          key: "Control",
+          bubbles: true
+        })
+      );
+    });
+  });
+
   it("hides the shortcut hint overlay on window blur", async () => {
     await renderAndOpenDocument();
 
