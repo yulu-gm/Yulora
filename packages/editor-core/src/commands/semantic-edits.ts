@@ -21,6 +21,10 @@ export function computeStrongToggle(ctx: SemanticContext): SemanticEdit | null {
   return computeInlineToggle(ctx, { type: "strong", marker: "**" });
 }
 
+export function computeEmphasisToggle(ctx: SemanticContext): SemanticEdit | null {
+  return computeInlineToggle(ctx, { type: "emphasis", marker: "*" });
+}
+
 type InlineToggleSpec = {
   type: "strong" | "emphasis";
   marker: "**" | "*";

@@ -5,7 +5,7 @@ import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
 import { createActiveBlockStateFromMarkdownDocument } from "../active-block";
 import { readSemanticContext } from "./semantic-context";
-import { computeStrongToggle } from "./semantic-edits";
+import { computeEmphasisToggle, computeStrongToggle } from "./semantic-edits";
 
 const buildContext = (doc: string, anchor: number, head = anchor) => {
   const state = EditorState.create({ doc, selection: { anchor, head } });
@@ -53,5 +53,35 @@ describe("computeStrongToggle", () => {
 
     expect(result!.changes).toEqual({ from: contentFrom - 2, to: contentTo + 2, insert: "bold" });
     expect(result!.selection).toEqual({ anchor: contentFrom - 2, head: contentTo - 2 });
+  });
+});
+
+describe("computeEmphasisToggle", () => {
+  it("wraps a non-empty selection with single-asterisk markers", () => {
+    const doc = "alpha word beta";
+    const from = doc.indexOf("word");
+    const to = from + 4;
+    const result = computeEmphasisToggle(buildContext(doc, from, to));
+
+    expect(result!.changes).toEqual({ from, to, insert: "*word*" });
+    expect(result!.selection).toEqual({ anchor: from + 1, head: to + 1 });
+  });
+
+  it("inserts an empty pair and parks the cursor between markers", () => {
+    const doc = "alpha ";
+    const result = computeEmphasisToggle(buildContext(doc, doc.length));
+
+    expect(result!.changes).toEqual({ from: doc.length, to: doc.length, insert: "**" });
+    expect(result!.selection).toEqual({ anchor: doc.length + 1, head: doc.length + 1 });
+  });
+
+  it("unwraps an emphasis selection when the selection covers the content exactly", () => {
+    const doc = "alpha *word* beta";
+    const contentFrom = doc.indexOf("word");
+    const contentTo = contentFrom + 4;
+    const result = computeEmphasisToggle(buildContext(doc, contentFrom, contentTo));
+
+    expect(result!.changes).toEqual({ from: contentFrom - 1, to: contentTo + 1, insert: "word" });
+    expect(result!.selection).toEqual({ anchor: contentFrom - 1, head: contentTo - 1 });
   });
 });
