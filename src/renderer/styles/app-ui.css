@@ -117,6 +117,7 @@
 }
 
 .app-layout {
+  grid-row: 2;
   height: 100%;
   min-height: 0;
   position: relative;

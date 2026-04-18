@@ -2263,12 +2263,14 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const editorStylesheet = readFileSync(join(process.cwd(), "src/renderer/styles/editor-source.css"), "utf-8");
     const shellRule = getCssRule(appUiStylesheet, ".app-shell");
+    const layoutRule = getCssRule(appUiStylesheet, ".app-layout");
     const workspaceRule = getCssRule(appUiStylesheet, ".app-workspace");
     const titlebarRule = getCssRule(appUiStylesheet, ".app-titlebar");
 
     expect(shellRule).toContain("overflow: hidden;");
     expect(shellRule).toContain("display: grid;");
     expect(shellRule).toContain("grid-template-rows: var(--yulora-titlebar-height) minmax(0, 1fr);");
+    expect(layoutRule).toContain("grid-row: 2;");
     expect(workspaceRule).toContain("height: 100%;");
     expect(workspaceRule).toContain("overflow: hidden;");
     expect(titlebarRule).toContain("min-height: var(--yulora-titlebar-height);");
