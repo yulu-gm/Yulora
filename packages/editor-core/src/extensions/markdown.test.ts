@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
 import { createYuloraMarkdownExtensions } from "./markdown";
+import { TEXT_EDITING_SHORTCUTS } from "./markdown-shortcuts";
 
 const dispatchCompositionEvent = (
   target: HTMLElement,
@@ -174,9 +175,14 @@ describe("createYuloraMarkdownExtensions", () => {
     const source = "alpha bold beta";
     const { view, destroy } = createHarness({ source });
     view.dispatch({ selection: { anchor: 6, head: 10 } });
+    const strongShortcut = TEXT_EDITING_SHORTCUTS.find(
+      ({ id }) => id === "toggle-strong"
+    );
+
+    expect(strongShortcut).toBeDefined();
 
     const keyEvent = new KeyboardEvent("keydown", {
-      key: "b",
+      key: strongShortcut?.key.slice(-1).toLowerCase() ?? "b",
       code: "KeyB",
       bubbles: true,
       cancelable: true,
@@ -193,9 +199,14 @@ describe("createYuloraMarkdownExtensions", () => {
     const source = "Paragraph";
     const { view, destroy } = createHarness({ source });
     view.dispatch({ selection: { anchor: 0 } });
+    const headingShortcut = TEXT_EDITING_SHORTCUTS.find(
+      ({ id }) => id === "toggle-heading-2"
+    );
+
+    expect(headingShortcut).toBeDefined();
 
     const keyEvent = new KeyboardEvent("keydown", {
-      key: "2",
+      key: headingShortcut?.key.slice(-1) ?? "2",
       code: "Digit2",
       bubbles: true,
       cancelable: true,
