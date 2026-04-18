@@ -237,4 +237,40 @@ describe("createAppUpdater", () => {
     ]);
     expect(updater.getState()).toEqual({ kind: "error", message: "network down" });
   });
+
+  it("surfaces rejected checkForUpdates calls for manual checks", async () => {
+    const autoUpdater = createFakeAutoUpdater();
+    const dialog = createDialog();
+    const logger = createLogger();
+    const notifications: Array<{ kind: string; message: string }> = [];
+    autoUpdater.checkForUpdates.mockRejectedValueOnce(new Error("feed unavailable"));
+    const updater = createAppUpdater({
+      app: {
+        isPackaged: true,
+        getVersion: () => "0.1.0"
+      },
+      autoUpdater,
+      broadcast: vi.fn(),
+      dialog,
+      logger,
+      notify: (notification) => notifications.push(notification),
+      platform: "win32",
+      runtimeMode: "editor"
+    });
+
+    await expect(updater.checkForUpdates("manual")).resolves.toBeUndefined();
+
+    expect(notifications).toEqual([
+      {
+        kind: "loading",
+        message: "正在检查更新…"
+      },
+      {
+        kind: "error",
+        message: "检查更新失败：feed unavailable"
+      }
+    ]);
+    expect(logger.error).toHaveBeenCalledWith("[yulora] auto update failed: feed unavailable");
+    expect(updater.getState()).toEqual({ kind: "error", message: "feed unavailable" });
+  });
 });

@@ -86,15 +86,29 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
     options.broadcast(nextState);
   };
 
+  const handleUpdateFailure = (error: unknown): void => {
+    const message = resolveErrorMessage(error);
+    isChecking = false;
+    logger.error(`[yulora] auto update failed: ${message}`);
+    setState({ kind: "error", message });
+
+    if (lastCheckSource === "manual") {
+      options.notify({
+        kind: "error",
+        message: `\u68c0\u67e5\u66f4\u65b0\u5931\u8d25\uff1a${message}`
+      });
+    }
+  };
+
   const showInstallDialog = async (): Promise<void> => {
     const result = await options.dialog.showMessageBox({
       type: "info",
-      buttons: ["立即重启更新", "稍后"],
+      buttons: ["\u7acb\u5373\u91cd\u542f\u66f4\u65b0", "\u7a0d\u540e"],
       defaultId: 0,
       cancelId: 1,
-      title: "安装更新",
-      message: "新版本已下载完成。",
-      detail: `Yulora ${activeVersion} 已准备好安装。`
+      title: "\u5b89\u88c5\u66f4\u65b0",
+      message: "\u65b0\u7248\u672c\u5df2\u4e0b\u8f7d\u5b8c\u6210\u3002",
+      detail: `Yulora ${activeVersion} \u5df2\u51c6\u5907\u597d\u5b89\u88c5\u3002`
     });
 
     if (result.response === 0) {
@@ -139,7 +153,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
       if (lastCheckSource === "manual") {
         options.notify({
           kind: "info",
-          message: "当前已是最新版本。"
+          message: "\u5f53\u524d\u5df2\u662f\u6700\u65b0\u7248\u672c\u3002"
         });
       }
     });
@@ -157,17 +171,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
     });
 
     options.autoUpdater.on("error", (error) => {
-      const message = resolveErrorMessage(error);
-      isChecking = false;
-      logger.error(`[yulora] auto update failed: ${message}`);
-      setState({ kind: "error", message });
-
-      if (lastCheckSource === "manual") {
-        options.notify({
-          kind: "error",
-          message: `检查更新失败：${message}`
-        });
-      }
+      handleUpdateFailure(error);
     });
   }
 
@@ -181,7 +185,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
         if (source === "manual") {
           options.notify({
             kind: "warning",
-            message: "自动更新仅在已安装的 Windows 版本中可用。"
+            message: "\u81ea\u52a8\u66f4\u65b0\u4ec5\u5728\u5df2\u5b89\u88c5\u7684 Windows \u7248\u672c\u4e2d\u53ef\u7528\u3002"
           });
         }
 
@@ -194,11 +198,17 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
       if (source === "manual") {
         options.notify({
           kind: "loading",
-          message: "正在检查更新…"
+          message: "\u6b63\u5728\u68c0\u67e5\u66f4\u65b0\u2026"
         });
       }
 
-      await options.autoUpdater.checkForUpdates();
+      try {
+        await options.autoUpdater.checkForUpdates();
+      } catch (error) {
+        if (isChecking) {
+          handleUpdateFailure(error);
+        }
+      }
     },
     getState(): AppUpdateState {
       return state;

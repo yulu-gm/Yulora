@@ -22,12 +22,15 @@ describe("main process window wiring", () => {
     const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
     const mainSource = readFileSync(mainPath, "utf8");
 
+    expect(mainSource).toContain('import { createAppUpdateCheckRunner } from "./app-update-check-runner"');
     expect(mainSource).toContain('import("electron-updater")');
     expect(mainSource).toContain('createAppUpdater({');
+    expect(mainSource).toContain('const runAppUpdateCheck = createAppUpdateCheckRunner({');
     expect(mainSource).toContain('ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL');
     expect(mainSource).toContain('broadcastToWindows(APP_UPDATE_STATE_EVENT, state)');
     expect(mainSource).toContain('setTimeout(() => {');
-    expect(mainSource).toContain('void getAppUpdater().then((controller) => controller.checkForUpdates("auto"))');
+    expect(mainSource).toContain('void runAppUpdateCheck("manual")');
+    expect(mainSource).toContain('void runAppUpdateCheck("auto")');
     expect(mainSource).toContain('if (command === "check-for-updates") {');
     expect(mainSource).not.toContain('import { autoUpdater } from "electron-updater"');
   });

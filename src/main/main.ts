@@ -25,6 +25,8 @@ import { resolveRendererEntry } from "./paths";
 import { configureMainProcessRuntime, shouldRequestSingleInstanceLock } from "./runtime-environment";
 import { createRuntimeWindowManager, resolveAppRuntimeMode } from "./runtime-windows";
 import { resolveWindowIconPath } from "./window-icon";
+import { createAppUpdateCheckRunner } from "./app-update-check-runner";
+import { resolveAutoUpdaterModule } from "./resolve-auto-updater-module";
 import {
   COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
   type EditorTestCommandResultEnvelope
@@ -212,10 +214,11 @@ app.whenReady().then(async () => {
   const getAppUpdater = async (): Promise<AppUpdaterController> => {
     if (!appUpdaterPromise) {
       appUpdaterPromise = (async () => {
-        const [{ autoUpdater }, { createAppUpdater }] = await Promise.all([
+        const [autoUpdaterModule, { createAppUpdater }] = await Promise.all([
           import("electron-updater"),
           import("./app-updater.js")
         ]);
+        const autoUpdater = resolveAutoUpdaterModule(autoUpdaterModule);
 
         return createAppUpdater({
           app,
@@ -240,8 +243,17 @@ app.whenReady().then(async () => {
 
     return appUpdaterPromise;
   };
+  const runAppUpdateCheck = createAppUpdateCheckRunner({
+    getController: getAppUpdater,
+    logger: {
+      error: (message: string) => console.error(message)
+    },
+    notify: (notification: AppNotification) => {
+      broadcastToWindows(APP_NOTIFICATION_EVENT, notification);
+    }
+  });
   runManualAppUpdateCheck = () => {
-    void getAppUpdater().then((controller) => controller.checkForUpdates("manual"));
+    void runAppUpdateCheck("manual");
   };
 
   const windowManager = createRuntimeWindowManager({
@@ -296,9 +308,7 @@ app.whenReady().then(async () => {
     preferencesService.updatePreferences(patch)
   );
   ipcMain.handle(LIST_FONT_FAMILIES_CHANNEL, async () => fontCatalogService.listFontFamilies());
-  ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL, async () =>
-    getAppUpdater().then((controller) => controller.checkForUpdates("manual"))
-  );
+  ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL, async () => runAppUpdateCheck("manual"));
   ipcMain.handle(LIST_THEME_PACKAGES_CHANNEL, async () => themePackageService.listThemePackages());
   ipcMain.handle(REFRESH_THEME_PACKAGES_CHANNEL, async () =>
     themePackageService.refreshThemePackages()
@@ -391,7 +401,7 @@ app.whenReady().then(async () => {
   }
 
   setTimeout(() => {
-    void getAppUpdater().then((controller) => controller.checkForUpdates("auto"));
+    void runAppUpdateCheck("auto");
   }, AUTO_UPDATE_STARTUP_DELAY_MS);
 
   app.on("activate", () => {
