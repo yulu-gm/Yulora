@@ -149,6 +149,7 @@
 .app-rail {
   align-self: start;
   position: sticky;
+  z-index: 2;
   top: 0;
   height: 100%;
   padding: var(--yulora-space-6) var(--yulora-space-3) var(--yulora-space-5);
@@ -228,23 +229,26 @@
 }
 
 .table-tool-strip {
+  position: relative;
   width: 100%;
   display: grid;
-  gap: 10px;
+  justify-items: center;
+  gap: 8px;
   align-content: start;
 }
 
 .table-tool-button {
-  width: 100%;
-  padding: 10px 12px;
+  position: relative;
+  inline-size: 44px;
+  block-size: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 1px solid var(--yulora-border-faint);
   border-radius: 14px;
   background: color-mix(in srgb, var(--yulora-surface-raised-bg) 92%, transparent);
   color: var(--yulora-text-body);
-  font: inherit;
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
-  text-align: left;
   cursor: pointer;
   transition:
     transform 140ms ease,
@@ -259,8 +263,41 @@
   background: color-mix(in srgb, var(--yulora-surface-raised-bg) 82%, var(--yulora-accent, #7a8f8f) 18%);
 }
 
-.table-tool-button.is-danger {
+.table-tool-button:focus-visible {
+  outline: 2px solid var(--yulora-focus-ring);
+  outline-offset: 2px;
+}
+
+.table-tool-button-icon {
+  inline-size: 18px;
+  block-size: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.table-tool-button[data-tone="danger"] {
   color: var(--yulora-text-strong);
+}
+
+.table-tool-tooltip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 10px);
+  transform: translateY(-50%);
+  padding: 8px 10px;
+  border: 1px solid var(--yulora-border-faint);
+  border-radius: 12px;
+  background: var(--yulora-surface-panel-bg, var(--yulora-surface-raised-bg));
+  color: var(--yulora-text-body);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: var(--yulora-shadow-1);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ── Settings entry icon button ─────────────────────────────── */

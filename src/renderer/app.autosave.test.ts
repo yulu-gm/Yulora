@@ -2540,7 +2540,92 @@ describe("App autosave", () => {
     expect(
       container.querySelector('.app-rail-mode-group-default')?.getAttribute("data-state")
     ).toBe("closing");
-    expect(tableStrip?.textContent).toContain("Row Above");
+    expect(tableStrip).not.toBeNull();
+  });
+
+  it("renders table rail tools as icon buttons with accessible labels", async () => {
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      codeEditorMock.emitActiveBlockChange({
+        activeBlock: {
+          id: "table:0-1",
+          type: "table"
+        },
+        blockMap: { blocks: [] },
+        selection: { anchor: 0, head: 0 },
+        tableCursor: {
+          mode: "inside",
+          tableStartOffset: 0,
+          row: 0,
+          column: 0,
+          offsetInCell: 0
+        }
+      });
+      await Promise.resolve();
+    });
+
+    const tableStrip = container.querySelector<HTMLElement>('[data-yulora-region="table-tool-strip"]');
+    const toolButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-yulora-region="table-tool-button"]')
+    );
+
+    expect(tableStrip).not.toBeNull();
+    expect(toolButtons).toHaveLength(7);
+    expect(toolButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Row Above",
+      "Row Below",
+      "Column Left",
+      "Column Right",
+      "Delete Row",
+      "Delete Column",
+      "Delete Table"
+    ]);
+    expect(toolButtons.every((button) => button.querySelector("svg") !== null)).toBe(true);
+    expect(tableStrip?.textContent?.trim()).toBe("");
+  });
+
+  it("shows a table tool tooltip on hover and hides it on mouse leave", async () => {
+    await renderAndOpenDocument();
+
+    await act(async () => {
+      codeEditorMock.emitActiveBlockChange({
+        activeBlock: {
+          id: "table:0-1",
+          type: "table"
+        },
+        blockMap: { blocks: [] },
+        selection: { anchor: 0, head: 0 },
+        tableCursor: {
+          mode: "inside",
+          tableStartOffset: 0,
+          row: 0,
+          column: 0,
+          offsetInCell: 0
+        }
+      });
+      await Promise.resolve();
+    });
+
+    const rowAboveButton = container.querySelector<HTMLButtonElement>(
+      '[data-yulora-region="table-tool-button"][aria-label="Row Above"]'
+    );
+
+    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')).toBeNull();
+
+    await act(async () => {
+      rowAboveButton?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')?.textContent).toContain("Row Above");
+
+    await act(async () => {
+      rowAboveButton?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')).toBeNull();
   });
 
   it("does not show the shortcut hint overlay if Control is released before 1 second elapses", async () => {
@@ -3178,6 +3263,22 @@ describe("App autosave", () => {
     expect(collapsedHeaderRule).toContain("transform:");
     expect(statusBarRule).toContain("transition:");
     expect(collapsedStatusBarRule).toContain("transform:");
+  });
+
+  it("defines compact icon rail tool styles and tooltip positioning", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const railRule = getCssRule(appUiStylesheet, ".app-rail");
+    const stripRule = getCssRule(appUiStylesheet, ".table-tool-strip");
+    const buttonRule = getCssRule(appUiStylesheet, ".table-tool-button");
+    const tooltipRule = getCssRule(appUiStylesheet, ".table-tool-tooltip");
+    const dangerRule = getCssRule(appUiStylesheet, '.table-tool-button[data-tone="danger"]');
+
+    expect(railRule).toContain("z-index: 2;");
+    expect(stripRule).toContain("justify-items: center;");
+    expect(buttonRule).toContain("inline-size: 44px;");
+    expect(buttonRule).toContain("block-size: 44px;");
+    expect(tooltipRule).toContain("left: calc(100% + 10px);");
+    expect(dangerRule).toContain("color:");
   });
 
   it("updates document font presets through dropdowns only", async () => {

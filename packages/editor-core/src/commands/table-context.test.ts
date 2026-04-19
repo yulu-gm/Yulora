@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseMarkdownDocument } from "@yulora/markdown-engine";
 
 import { createActiveBlockStateFromMarkdownDocument } from "../active-block";
+import { deriveTableCursorState } from "../table-cursor-state";
 import { readTableContext } from "./table-context";
 
 const buildTableContext = (doc: string, anchor: number, head = anchor) => {
@@ -12,6 +13,7 @@ const buildTableContext = (doc: string, anchor: number, head = anchor) => {
     parseMarkdownDocument(doc),
     { anchor, head }
   );
+  activeState.tableCursor = deriveTableCursorState(doc, { anchor, head }, activeState.blockMap, null);
 
   return readTableContext(state, activeState);
 };
