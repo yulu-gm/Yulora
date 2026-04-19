@@ -53,7 +53,6 @@ describe("createThemePackageService", () => {
       path.join(userDataDir, "themes", "rain-glass", "manifest.json"),
       JSON.stringify({
         id: "rain-glass",
-        contractVersion: 2,
         name: "Rain Glass",
         version: "1.0.0",
         supports: { light: true, dark: true },
@@ -89,7 +88,6 @@ describe("createThemePackageService", () => {
       path.join(userDataDir, "themes", "rain-glass", "manifest.json"),
       JSON.stringify({
         id: "rain-glass",
-        contractVersion: 2,
         name: "Rain Glass",
         version: "1.0.0",
         supports: { light: true, dark: true },
@@ -143,7 +141,6 @@ describe("createThemePackageService", () => {
     await mkdir(path.join(userDataDir, "themes", "paper"), { recursive: true });
     await writeFile(path.join(userDataDir, "themes", "paper", "manifest.json"), JSON.stringify({
       id: "paper",
-      contractVersion: 2,
       name: "Paper",
       version: "1.0.0",
       supports: { light: true, dark: true },
@@ -166,7 +163,6 @@ describe("createThemePackageService", () => {
     await mkdir(path.join(userDataDir, "themes", "graphite"), { recursive: true });
     await writeFile(path.join(userDataDir, "themes", "graphite", "manifest.json"), JSON.stringify({
       id: "graphite",
-      contractVersion: 2,
       name: "Graphite",
       version: "1.0.0",
       supports: { light: true, dark: true },
