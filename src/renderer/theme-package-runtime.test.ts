@@ -15,7 +15,7 @@ describe("theme package runtime", () => {
     document.head.innerHTML = "";
     document.documentElement.removeAttribute(THEME_RUNTIME_THEME_MODE_ATTRIBUTE);
     document.documentElement.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.wordCount);
-    document.documentElement.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.focusMode);
+    document.documentElement.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.readingMode);
     document.documentElement.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportWidth);
     document.documentElement.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportHeight);
   });
@@ -92,7 +92,7 @@ describe("theme package runtime", () => {
   it("applies runtime env CSS variables to the root element", () => {
     applyThemeRuntimeEnv(document.documentElement, {
       wordCount: 42,
-      focusMode: 1,
+      readingMode: 1,
       themeMode: "dark",
       viewport: {
         width: 1440,
@@ -104,7 +104,7 @@ describe("theme package runtime", () => {
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
       "42"
     );
-    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.focusMode)).toBe(
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.readingMode)).toBe(
       "1"
     );
     expect(
@@ -118,7 +118,7 @@ describe("theme package runtime", () => {
   it("clears runtime env CSS variables from the root element", () => {
     applyThemeRuntimeEnv(document.documentElement, {
       wordCount: 42,
-      focusMode: 1,
+      readingMode: 1,
       themeMode: "dark",
       viewport: {
         width: 1440,
@@ -132,7 +132,7 @@ describe("theme package runtime", () => {
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
       ""
     );
-    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.focusMode)).toBe(
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.readingMode)).toBe(
       ""
     );
     expect(

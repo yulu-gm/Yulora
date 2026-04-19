@@ -2,9 +2,15 @@
   --yulora-inline-code-bg: rgba(255, 160, 108, 0.14);
   --yulora-inline-code-text: #ffd9bc;
   --yulora-list-marker: #d6a987;
+  --yulora-list-marker-size: 0.3rem;
+  --yulora-list-ordered-marker-width: 1.68rem;
   --yulora-task-border: #a6846a;
   --yulora-task-bg: color-mix(in srgb, var(--yulora-surface-bg) 92%, #ffb07a 8%);
   --yulora-task-check: #ff9a5c;
+  --yulora-task-size: 0.96rem;
+  --yulora-task-radius: 0.24rem;
+  --yulora-blockquote-bg: color-mix(in srgb, var(--yulora-surface-blockquote-bg) 82%, transparent);
+  --yulora-blockquote-border: color-mix(in srgb, var(--yulora-list-marker) 54%, var(--yulora-border-muted));
   --yulora-thematic-break: #4a3c33;
   --yulora-code-block-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 88%, #1a0f08 12%);
   --yulora-code-block-text: #efe1cf;

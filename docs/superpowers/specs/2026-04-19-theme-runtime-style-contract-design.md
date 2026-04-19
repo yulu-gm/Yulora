@@ -319,7 +319,7 @@ runtime env 只维护一份源数据，然后同时暴露给 CSS 与 shader。
 ```css
 :root {
   --yulora-env-word-count: 1234;
-  --yulora-env-focus-mode: 1;
+  --yulora-env-reading-mode: 1;
   --yulora-env-viewport-width: 1440;
   --yulora-env-viewport-height: 900;
 }
@@ -338,7 +338,7 @@ runtime env 只维护一份源数据，然后同时暴露给 CSS 与 shader。
 
 ```glsl
 uniform float u_wordCount;
-uniform float u_focusMode;
+uniform float u_readingMode;
 uniform float u_themeMode;
 uniform vec2 u_viewport;
 ```
@@ -346,7 +346,7 @@ uniform vec2 u_viewport;
 含义固定：
 
 - `u_wordCount`: 当前文档字数
-- `u_focusMode`: `0` 或 `1`
+- `u_readingMode`: `0` 或 `1`
 - `u_themeMode`: `0`=light，`1`=dark
 - `u_viewport`: 当前 surface viewport 尺寸
 
@@ -370,7 +370,7 @@ uniform vec2 u_viewport;
 这组 env 足够支持第一阶段的交互主题表达：
 
 - 字数越多，shader 或 CSS 装饰越丰富
-- 聚焦模式下自动收敛动画与视觉噪声
+- 阅读模式下自动收敛动画与视觉噪声
 - light / dark 模式触发不同视觉分支
 - 窗口尺寸驱动背景构图和密度
 
@@ -450,7 +450,7 @@ renderer 自己也必须遵守 contract：
 - 主题切换时 slot 能正确更新
 - light / dark 切换时 `data-yulora-theme-mode` 与 token 层一致
 - 字数、聚焦状态和 viewport 变化能同步到 `document.documentElement`
-- shader surface 能拿到一致的 `u_wordCount`、`u_focusMode`、`u_themeMode`、`u_viewport`
+- shader surface 能拿到一致的 `u_wordCount`、`u_readingMode`、`u_themeMode`、`u_viewport`
 
 ### Theme Package Regression
 
@@ -464,7 +464,7 @@ renderer 自己也必须遵守 contract：
 2. 点击按钮，确认系统打开 `<userData>/themes/`。
 3. 在该目录安装或替换主题后，点击“刷新主题”，确认列表更新。
 4. 切换主题与 light/dark 模式，确认基础视觉正常变化。
-5. 打开支持动态效果的主题，确认字数、聚焦模式和窗口尺寸变化可驱动主题表现。
+5. 打开支持动态效果的主题，确认字数、阅读模式和窗口尺寸变化可驱动主题表现。
 6. 分别在 macOS 和 Windows 上确认“打开主题目录”行为正常。
 
 ## Acceptance

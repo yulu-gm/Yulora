@@ -69,7 +69,7 @@ function parseChannels(serializedChannels: string): ThemeSurfaceRuntimeChannels 
 function serializeRuntimeEnv(runtimeEnv: ThemeRuntimeEnv): string {
   return JSON.stringify([
     runtimeEnv.wordCount,
-    runtimeEnv.focusMode,
+    runtimeEnv.readingMode,
     runtimeEnv.viewport.width,
     runtimeEnv.viewport.height
   ]);
@@ -87,6 +87,7 @@ export function ThemeSurfaceHost({
   const runtimeRef = useRef(createThemeSurfaceRuntime());
   const sceneStateRef = useRef<ReturnType<typeof createThemeSceneState> | null>(null);
   const mountedSurfaceRef = useRef<{ invalidate: () => void; unmount: () => void } | null>(null);
+  const runtimeEnvRef = useRef(runtimeEnv);
   const [mode, setMode] = useState<ThemeSurfaceRuntimeMode>("fallback");
   const sharedUniformsSignature = useMemo(
     () => serializeSharedUniforms(descriptor.sharedUniforms),
@@ -108,6 +109,7 @@ export function ThemeSurfaceHost({
     () => serializeRuntimeEnv(runtimeEnv),
     [runtimeEnv]
   );
+  runtimeEnvRef.current = runtimeEnv;
 
   useEffect(() => {
     let isDisposed = false;
@@ -135,11 +137,7 @@ export function ThemeSurfaceHost({
           themeMode,
           effectsMode,
           sharedUniforms,
-          runtimeEnv: {
-            wordCount: runtimeEnv.wordCount,
-            focusMode: runtimeEnv.focusMode,
-            viewport: runtimeEnv.viewport
-          }
+          runtimeEnv: runtimeEnvRef.current
         });
         sceneStateRef.current = sceneState;
         const result = await runtimeRef.current.mount({
@@ -193,7 +191,7 @@ export function ThemeSurfaceHost({
   useEffect(() => {
     sceneStateRef.current?.updateRuntimeEnv({
       wordCount: runtimeEnv.wordCount,
-      focusMode: runtimeEnv.focusMode,
+      readingMode: runtimeEnv.readingMode,
       viewport: runtimeEnv.viewport
     });
     mountedSurfaceRef.current?.invalidate();

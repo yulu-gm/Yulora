@@ -1,3 +1,16 @@
+:root {
+  --yulora-list-marker-size: 0.3rem;
+  --yulora-list-ordered-marker-width: 1.5rem;
+  --yulora-task-size: 0.92rem;
+  --yulora-task-radius: 0.2rem;
+  --yulora-blockquote-bg: color-mix(
+    in srgb,
+    var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12)) 12%,
+    transparent
+  );
+  --yulora-blockquote-border: var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12));
+}
+
 .document-editor .cm-inactive-heading {
   color: var(--yulora-markdown-heading, var(--yulora-text-primary, #171a1f));
 }
@@ -157,19 +170,21 @@
   content: "";
   position: absolute;
   top: 50%;
-  left: 0.32rem;
-  width: 0.28rem;
-  height: 0.28rem;
+  left: calc((0.9rem - var(--yulora-list-marker-size)) / 2);
+  width: var(--yulora-list-marker-size);
+  height: var(--yulora-list-marker-size);
   border-radius: 999px;
-  background: var(--yulora-markdown-list-bullet, #98a2b3);
+  background: var(--yulora-list-marker);
   transform: translateY(-50%);
 }
 
 .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {
   display: inline-block;
-  min-width: 1.35rem;
-  margin-right: 0.12rem;
+  min-width: var(--yulora-list-ordered-marker-width);
+  margin-right: 0.18rem;
   text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 .document-editor .cm-inactive-list-task .cm-inactive-list-marker {
@@ -204,11 +219,11 @@
 .document-editor .cm-inactive-task-marker::before {
   content: "";
   box-sizing: border-box;
-  width: 0.92rem;
-  height: 0.92rem;
-  border: 1.5px solid var(--yulora-control-border, rgba(15, 23, 42, 0.12));
-  border-radius: 0.2rem;
-  background: var(--yulora-control-bg, rgba(255, 255, 255, 0.9));
+  width: var(--yulora-task-size);
+  height: var(--yulora-task-size);
+  border: 1.5px solid var(--yulora-task-border, var(--yulora-control-border, rgba(15, 23, 42, 0.12)));
+  border-radius: var(--yulora-task-radius);
+  background: var(--yulora-task-bg, var(--yulora-control-bg, rgba(255, 255, 255, 0.9)));
 }
 
 .document-editor .cm-inactive-task-marker[data-task-state="checked"]::after {
@@ -237,14 +252,10 @@
 
 .document-editor .cm-inactive-blockquote {
   color: var(--yulora-markdown-quote-fg, var(--yulora-text-secondary, #31353d));
-  background: color-mix(
-    in srgb,
-    var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12)) 12%,
-    transparent
-  );
-  box-shadow: inset 3px 0 0 var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12));
-  padding-left: 1.25rem;
-  padding-right: 0.9rem;
+  background: var(--yulora-blockquote-bg);
+  box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);
+  padding-left: 1.1rem;
+  padding-right: 0.85rem;
 }
 
 .document-editor .cm-inactive-blockquote-start {

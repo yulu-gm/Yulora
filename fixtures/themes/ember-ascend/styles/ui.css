@@ -9,25 +9,19 @@
   --yulora-danger-border: color-mix(in srgb, var(--yulora-border-subtle) 68%, #c94f4f 32%);
   --yulora-danger-text: color-mix(in srgb, var(--yulora-text-strong) 80%, #8b1e1e 20%);
   --yulora-focus-ring: var(--yulora-ember-accent);
-
-  --yu-ctrl-solid-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 92%, transparent);
-  --yu-ctrl-solid-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 94%, transparent);
-  --yu-ctrl-solid-border: var(--yulora-border-subtle);
-  --yu-ctrl-solid-border-hover: var(--yulora-border-muted);
-  --yu-ctrl-text: var(--yulora-text-secondary);
-  --yu-ctrl-text-hover: var(--yulora-text-strong);
-  --yu-ctrl-glass-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 50%, var(--yulora-surface-raised-bg));
-  --yu-ctrl-glass-bg-hover: color-mix(in srgb, var(--yulora-glass-strong-bg) 72%, var(--yulora-surface-raised-bg));
-  --yu-ctrl-glass-border: var(--yulora-glass-border);
-  --yu-ctrl-glass-border-hover: color-mix(in srgb, var(--yulora-glass-border) 64%, var(--yulora-ember-accent) 36%);
-  --yu-input-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 48%, var(--yulora-surface-raised-bg));
-  --yu-input-bg-focus: color-mix(in srgb, var(--yulora-glass-strong-bg) 70%, var(--yulora-surface-raised-bg));
-  --yu-input-border: var(--yulora-border-muted);
-  --yu-input-border-focus: var(--yulora-focus-ring);
-  --yu-input-ring: color-mix(in srgb, var(--yulora-focus-ring) 18%, transparent);
-  --yu-segment-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 40%, var(--yulora-surface-raised-bg));
-  --yu-segment-border: var(--yulora-border-muted);
-  --yu-segment-active-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 66%, var(--yulora-surface-raised-bg));
+  --yulora-welcome-heading: color-mix(in srgb, var(--yulora-text-strong) 94%, var(--yulora-ember-accent-soft) 6%);
+  --yulora-welcome-kicker: color-mix(in srgb, var(--yulora-text-subtle) 82%, var(--yulora-ember-accent-soft) 18%);
+  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-secondary) 90%, var(--yulora-ember-accent-soft) 10%);
+  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 48%, transparent);
+  --yulora-welcome-meta-border: color-mix(in srgb, var(--yulora-glass-border) 52%, var(--yulora-border-subtle));
+  --yulora-welcome-meta-text: color-mix(in srgb, var(--yulora-text-subtle) 82%, var(--yulora-ember-accent-soft) 18%);
+  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 92%, transparent);
+  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 94%, transparent);
+  --yulora-rail-control-border: var(--yulora-border-subtle);
+  --yulora-rail-control-border-hover: color-mix(in srgb, var(--yulora-border-muted) 72%, var(--yulora-ember-accent) 28%);
+  --yulora-rail-control-fg: color-mix(in srgb, var(--yulora-text-secondary) 88%, var(--yulora-ember-accent-soft) 12%);
+  --yulora-rail-control-fg-hover: color-mix(in srgb, var(--yulora-text-strong) 84%, var(--yulora-ember-accent-soft) 16%);
+  --yulora-rail-control-shadow: var(--yulora-shadow-1);
 }
 
 /* Side rail — dark smoke glass that frames the ember backdrop. */

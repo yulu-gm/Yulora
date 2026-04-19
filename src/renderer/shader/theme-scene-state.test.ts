@@ -14,7 +14,7 @@ describe("theme scene state", () => {
         },
         runtimeEnv: {
           wordCount: 24,
-          focusMode: 0,
+          readingMode: 0,
           viewport: { width: 800, height: 600 }
         }
       },
@@ -29,13 +29,13 @@ describe("theme scene state", () => {
           iridescence: 1,
           themeMode: 99,
           wordCount: -1,
-          focusMode: 0,
+          readingMode: 0,
           viewportWidth: 1,
           viewportHeight: 1
         },
         runtimeEnv: {
           wordCount: 512,
-          focusMode: 1,
+          readingMode: 1,
           viewport: { width: 1_440, height: 900 }
         }
       },
@@ -45,7 +45,7 @@ describe("theme scene state", () => {
     expect(lightScene.nextFrame("workbenchBackground", { width: 800, height: 600 }).uniforms).toMatchObject({
       iridescence: 1,
       wordCount: 24,
-      focusMode: 0,
+      readingMode: 0,
       themeMode: 0,
       viewportWidth: 800,
       viewportHeight: 600
@@ -53,7 +53,7 @@ describe("theme scene state", () => {
     expect(darkScene.nextFrame("workbenchBackground", { width: 1_440, height: 900 }).uniforms).toMatchObject({
       iridescence: 1,
       wordCount: 512,
-      focusMode: 1,
+      readingMode: 1,
       themeMode: 1,
       viewportWidth: 1_440,
       viewportHeight: 900
@@ -70,7 +70,7 @@ describe("theme scene state", () => {
         sharedUniforms: { rainAmount: 0.7 },
         runtimeEnv: {
           wordCount: 32,
-          focusMode: 1,
+          readingMode: 1,
           viewport: { width: 1_200, height: 800 }
         }
       },
@@ -100,7 +100,7 @@ describe("theme scene state", () => {
         sharedUniforms: {},
         runtimeEnv: {
           wordCount: 0,
-          focusMode: 0,
+          readingMode: 0,
           viewport: { width: 800, height: 600 }
         }
       },
@@ -125,7 +125,7 @@ describe("theme scene state", () => {
         sharedUniforms: { rainAmount: 0.7 },
         runtimeEnv: {
           wordCount: 12,
-          focusMode: 0,
+          readingMode: 0,
           viewport: { width: 1_024, height: 768 }
         }
       },
@@ -134,14 +134,14 @@ describe("theme scene state", () => {
 
     scene.updateRuntimeEnv({
       wordCount: 128,
-      focusMode: 1,
+      readingMode: 1,
       viewport: { width: 1_280, height: 720 }
     });
 
     expect(scene.nextFrame("workbenchBackground", { width: 1_280, height: 720 }).uniforms).toMatchObject({
       rainAmount: 0.7,
       wordCount: 128,
-      focusMode: 1,
+      readingMode: 1,
       themeMode: 1,
       viewportWidth: 1_280,
       viewportHeight: 720

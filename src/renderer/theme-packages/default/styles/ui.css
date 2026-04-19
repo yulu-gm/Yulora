@@ -21,4 +21,17 @@
   --yulora-danger-bg: var(--yulora-banner-error-bg);
   --yulora-danger-border: color-mix(in srgb, var(--yulora-text-danger) 24%, var(--yulora-panel-border));
   --yulora-danger-text: var(--yulora-text-danger);
+  --yulora-welcome-heading: var(--yulora-text-strong);
+  --yulora-welcome-kicker: var(--yulora-text-subtle);
+  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-muted) 88%, var(--yulora-workspace-bg));
+  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-panel-bg) 72%, transparent);
+  --yulora-welcome-meta-border: var(--yulora-border-subtle);
+  --yulora-welcome-meta-text: var(--yulora-text-subtle);
+  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, transparent);
+  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 96%, transparent);
+  --yulora-rail-control-border: var(--yulora-border-subtle);
+  --yulora-rail-control-border-hover: var(--yulora-border-muted);
+  --yulora-rail-control-fg: var(--yulora-text-secondary);
+  --yulora-rail-control-fg-hover: var(--yulora-text-strong);
+  --yulora-rail-control-shadow: var(--yulora-shadow-1);
 }

@@ -46,16 +46,19 @@
 
 .settings-entry {
   padding: 0;
-  border: 1px solid var(--yulora-control-border);
-  background: var(--yulora-control-bg);
-  color: var(--yulora-control-fg);
-  box-shadow: var(--yulora-shadow-1);
+  border: 1px solid var(--yulora-rail-control-border, var(--yulora-control-border));
+  background: var(--yulora-rail-control-bg, var(--yulora-control-bg));
+  color: var(--yulora-rail-control-fg, var(--yulora-control-fg));
+  box-shadow: var(--yulora-rail-control-shadow, var(--yulora-shadow-1));
 }
 
 .settings-entry:hover {
-  border-color: color-mix(in srgb, var(--yulora-control-border) 82%, var(--yulora-panel-border));
-  background: var(--yulora-control-bg-hover);
-  color: var(--yulora-text-primary);
+  border-color: var(
+    --yulora-rail-control-border-hover,
+    color-mix(in srgb, var(--yulora-control-border) 82%, var(--yulora-panel-border))
+  );
+  background: var(--yulora-rail-control-bg-hover, var(--yulora-control-bg-hover));
+  color: var(--yulora-rail-control-fg-hover, var(--yulora-text-primary));
 }
 
 /* ── Glass controls (inside glass panels / drawers) ──────────── */

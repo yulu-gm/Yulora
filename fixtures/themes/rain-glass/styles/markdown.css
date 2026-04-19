@@ -3,9 +3,15 @@
   --yulora-inline-code-text: var(--yulora-markdown-inline-code-fg);
   --yulora-list-marker: var(--yulora-markdown-list-bullet);
   --yulora-list-text: var(--yulora-markdown-list-text);
+  --yulora-list-marker-size: 0.32rem;
+  --yulora-list-ordered-marker-width: 1.72rem;
   --yulora-task-border: color-mix(in srgb, var(--yulora-markdown-task-done) 42%, var(--yulora-panel-border));
   --yulora-task-bg: color-mix(in srgb, var(--yulora-workspace-bg) 92%, transparent);
   --yulora-task-check: var(--yulora-markdown-task-done);
+  --yulora-task-size: 0.96rem;
+  --yulora-task-radius: 0.24rem;
+  --yulora-blockquote-bg: color-mix(in srgb, var(--yulora-markdown-quote-border) 12%, transparent);
+  --yulora-blockquote-border: var(--yulora-markdown-quote-border);
   --yulora-thematic-break: var(--yulora-markdown-hr);
   --yulora-code-block-bg: var(--yulora-markdown-code-bg);
   --yulora-code-block-text: var(--yulora-markdown-code-fg);
@@ -61,10 +67,12 @@
   color: var(--yulora-markdown-list-text);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-marker,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before {
+[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {
   color: var(--yulora-markdown-list-bullet);
-  background: var(--yulora-markdown-list-bullet);
+}
+
+[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before {
+  background: var(--yulora-list-marker);
 }
 
 [data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-task-checked {
@@ -73,8 +81,8 @@
 
 [data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-blockquote {
   color: var(--yulora-markdown-quote-fg);
-  background: color-mix(in srgb, var(--yulora-markdown-quote-border) 12%, transparent);
-  border-left: 3px solid var(--yulora-markdown-quote-border);
+  background: var(--yulora-blockquote-bg);
+  box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);
 }
 
 [data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-code-block {

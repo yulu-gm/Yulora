@@ -200,10 +200,27 @@ const rainGlassUiStylesheetPath = join(
   process.cwd(),
   "fixtures/themes/rain-glass/styles/ui.css"
 );
+const pearlDriftUiStylesheetPath = join(
+  process.cwd(),
+  "fixtures/themes/pearl-drift/styles/ui.css"
+);
+const emberAscendUiStylesheetPath = join(
+  process.cwd(),
+  "fixtures/themes/ember-ascend/styles/ui.css"
+);
+const defaultUiStylesheetPath = join(
+  process.cwd(),
+  "src/renderer/theme-packages/default/styles/ui.css"
+);
 const lightMarkdownStylesheetPath = join(
   process.cwd(),
   "src/renderer/theme-packages/default/styles/markdown.css"
 );
+const pearlDriftManifestPath = join(process.cwd(), "fixtures/themes/pearl-drift/manifest.json");
+const emberAscendManifestPath = join(process.cwd(), "fixtures/themes/ember-ascend/manifest.json");
+const pearlDriftLightTokensPath = join(process.cwd(), "fixtures/themes/pearl-drift/tokens/light.css");
+const pearlDriftDarkTokensPath = join(process.cwd(), "fixtures/themes/pearl-drift/tokens/dark.css");
+const emberAscendDarkTokensPath = join(process.cwd(), "fixtures/themes/ember-ascend/tokens/dark.css");
 
 vi.mock("./code-editor-view", async () => {
   const React = await import("react");
@@ -985,6 +1002,9 @@ describe("App autosave", () => {
     expect(container.textContent).toContain("Untitled.md");
     expect(container.querySelector('[data-yulora-region="empty-state"]')).toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
+    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.yuloraShellMode).toBe(
+      "editing"
+    );
   });
 
   it("routes the first save for a new untitled document through Save As", async () => {
@@ -2096,6 +2116,8 @@ describe("App autosave", () => {
   it("renders rail, workspace header, status strip, and word count for an open document", async () => {
     await renderAndOpenDocument();
 
+    await clickEditorContent();
+
     const rail = container.querySelector('[data-yulora-layout="rail"]');
     const workspace = container.querySelector('[data-yulora-layout="workspace"]');
     const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
@@ -2117,6 +2139,8 @@ describe("App autosave", () => {
   it("uses the workspace header as the single open-document identity surface while the outline stays collapsed by default", async () => {
     await renderAndOpenDocument();
 
+    await clickEditorContent();
+
     const rail = container.querySelector('[data-yulora-layout="rail"]');
     const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
     const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
@@ -2134,6 +2158,8 @@ describe("App autosave", () => {
 
   it("expands the floating outline panel from a compact right-side toggle and routes item clicks to editor navigation", async () => {
     await renderAndOpenDocument();
+
+    await clickEditorContent();
 
     const outlineToggle = container.querySelector<HTMLButtonElement>(
       '[data-yulora-region="outline-toggle"]'
@@ -2169,6 +2195,8 @@ describe("App autosave", () => {
 
   it("collapses the floating outline panel back to a compact toggle", async () => {
     await renderAndOpenDocument();
+
+    await clickEditorContent();
 
     const outlineToggle = container.querySelector<HTMLButtonElement>(
       '[data-yulora-region="outline-toggle"]'
@@ -2207,14 +2235,48 @@ describe("App autosave", () => {
   it("renders the empty state inside a shared workspace canvas", async () => {
     await renderApp();
 
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const appLayout = container.querySelector<HTMLElement>(".app-layout");
+    const appWorkspace = container.querySelector<HTMLElement>(".app-workspace");
+    const rail = container.querySelector<HTMLElement>('[data-yulora-layout="rail"]');
     const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
-    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
+    const workspaceCanvas = container.querySelector<HTMLElement>('[data-yulora-region="workspace-canvas"]');
     const emptyState = container.querySelector('[data-yulora-region="empty-state"]');
 
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appLayout?.dataset.yuloraHasDocument).toBe("false");
+    expect(appWorkspace?.dataset.yuloraHasDocument).toBe("false");
+    expect(workspaceCanvas?.dataset.yuloraHasDocument).toBe("false");
+    expect(rail?.dataset.visibility).toBe("visible");
     expect(workspaceHeader).not.toBeNull();
     expect(workspaceCanvas).not.toBeNull();
     expect(emptyState).not.toBeNull();
     expect(workspaceCanvas?.contains(emptyState)).toBe(true);
+  });
+
+  it("keeps the welcome screen in reading mode when settings opens and closes", async () => {
+    await renderApp();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+
+    await act(async () => {
+      settingsButton?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
   });
 
   it("renders a fixed app status bar outside the scrolling document flow", async () => {
@@ -2406,207 +2468,152 @@ describe("App autosave", () => {
     expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
   });
 
-  it("only renders the manual focus entry when the trigger mode is manual", async () => {
+  it("opens an existing document in reading mode", async () => {
     await renderAndOpenDocument();
 
-    expect(container.querySelector('[data-yulora-region="focus-toggle"]')).toBeNull();
+    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.yuloraShellMode).toBe(
+      "reading"
+    );
   });
 
-  it("enters and exits manual focus mode from the editor-corner toggle while keeping the editor mounted", async () => {
-    await renderAndOpenDocument({
-      getPreferencesResult: {
-        ...DEFAULT_PREFERENCES,
-        focus: {
-          ...DEFAULT_PREFERENCES.focus,
-          triggerMode: "manual"
-        }
-      }
-    });
-
-    const appShell = container.querySelector<HTMLElement>(".app-shell");
-    const rail = container.querySelector<HTMLElement>('[data-yulora-layout="rail"]');
-    const workspaceHeader = container.querySelector<HTMLElement>('[data-yulora-region="workspace-header"]');
-    const statusBar = container.querySelector<HTMLElement>('[data-yulora-region="app-status-bar"]');
-    const workspaceCanvas = container.querySelector<HTMLElement>('[data-yulora-region="workspace-canvas"]');
-    const focusToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="focus-toggle"]');
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
-    expect(focusToggle).not.toBeNull();
-    expect(workspaceCanvas?.contains(focusToggle ?? null)).toBe(true);
-    expect(rail?.contains(focusToggle ?? null)).toBe(false);
-
-    await act(async () => {
-      focusToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
-    expect(rail?.dataset.visibility).toBe("collapsed");
-    expect(workspaceHeader?.dataset.visibility).toBe("collapsed");
-    expect(statusBar?.dataset.visibility).toBe("collapsed");
-    expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
-
-    await act(async () => {
-      focusToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
-    expect(rail?.dataset.visibility).toBe("visible");
-    expect(workspaceHeader?.dataset.visibility).toBe("visible");
-    expect(statusBar?.dataset.visibility).toBe("visible");
-  });
-
-  it("auto-enters focus mode after the configured idle delay and exits on pointer activity", async () => {
+  it("enters editing mode when the user clicks into the editor body", async () => {
     await renderAndOpenDocument();
 
     const appShell = container.querySelector<HTMLElement>(".app-shell");
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
     await act(async () => {
-      vi.advanceTimersByTime(2999);
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.focus();
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
-
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
   });
 
-  it("enters auto focus on keyboard input in auto mode and keeps manual focus active through pointer input", async () => {
-    let currentPreferences: Preferences = DEFAULT_PREFERENCES;
+  it("keeps reading mode when the editor only receives middle-click focus", async () => {
+    await renderAndOpenDocument();
 
-    await renderAndOpenDocument({
-      updatePreferencesImplementation: async (patch) => {
-        currentPreferences = {
-          ...currentPreferences,
-          ...patch,
-          focus: {
-            ...currentPreferences.focus,
-            ...(patch.focus ?? {})
-          }
-        };
-
-        return {
-          status: "success",
-          preferences: currentPreferences
-        };
-      }
-    });
     const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
     await act(async () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 1 }));
+      editorSurface?.focus();
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+  });
+
+  it("exits editing mode when Escape is pressed", async () => {
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
     await act(async () => {
-      window.dispatchEvent(new WheelEvent("wheel", { deltaY: 10, bubbles: true }));
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.focus();
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    const focusTriggerMode = container.querySelector<HTMLSelectElement>("#settings-focus-trigger-mode");
-    expect(focusTriggerMode).not.toBeNull();
-
-    await act(async () => {
-      if (focusTriggerMode) {
-        focusTriggerMode.value = "manual";
-        focusTriggerMode.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-      await Promise.resolve();
-    });
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    await act(async () => {
-      vi.advanceTimersByTime(180);
-      await Promise.resolve();
-    });
-
-    const focusToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="focus-toggle"]');
-    expect(focusToggle).not.toBeNull();
-
-    await act(async () => {
-      focusToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
-
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
   });
 
-  it("forces focus mode off when settings opens while leaving the outline state unchanged", async () => {
-    await renderAndOpenDocument({
-      getPreferencesResult: {
-        ...DEFAULT_PREFERENCES,
-        focus: {
-          ...DEFAULT_PREFERENCES.focus,
-          triggerMode: "manual"
-        }
-      }
-    });
+  it("exits editing mode when the user clicks the editor blank area", async () => {
+    await renderAndOpenDocument();
 
     const appShell = container.querySelector<HTMLElement>(".app-shell");
-    const focusToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="focus-toggle"]');
-    const outlineToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="outline-toggle"]');
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
+    await act(async () => {
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.focus();
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+
+    await act(async () => {
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 40 }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+  });
+
+  it("exits editing mode when the user clicks workspace-canvas blank area outside the editor", async () => {
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const workspaceShell = container.querySelector<HTMLElement>(".workspace-shell");
+
+    await clickEditorContent();
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+
+    await act(async () => {
+      workspaceShell?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 24 }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+  });
+
+  it("collapses the rail in document reading mode while keeping it available on the welcome screen", async () => {
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const rail = container.querySelector<HTMLElement>('[data-yulora-layout="rail"]');
+    const workspaceHeader = container.querySelector<HTMLElement>('[data-yulora-region="workspace-header"]');
+    const statusBar = container.querySelector<HTMLElement>('[data-yulora-region="app-status-bar"]');
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
+
+    await clickEditorContent();
+
+    const outlineToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="outline-toggle"]');
     await act(async () => {
       outlineToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await Promise.resolve();
     });
 
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
     expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
 
     await act(async () => {
-      focusToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraFocusMode).toBe("active");
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(rail?.dataset.visibility).toBe("collapsed");
+    expect(workspaceHeader?.dataset.visibility).toBe("collapsed");
+    expect(statusBar?.dataset.visibility).toBe("collapsed");
+    expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
 
     await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.focus();
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraFocusMode).toBe("inactive");
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(rail?.dataset.visibility).toBe("visible");
+    expect(workspaceHeader?.dataset.visibility).toBe("visible");
+    expect(statusBar?.dataset.visibility).toBe("visible");
     expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
   });
 
@@ -3290,7 +3297,7 @@ describe("App autosave", () => {
     expect(recentFilesInput?.disabled).toBe(true);
   });
 
-  it("renders focus settings controls and persists trigger mode and idle delay changes", async () => {
+  it("does not render removed focus settings controls", async () => {
     const driver = await renderEditorApp();
     await driver.openSettings();
 
@@ -3298,45 +3305,9 @@ describe("App autosave", () => {
     const focusIdlePreset = container.querySelector<HTMLSelectElement>("#settings-focus-idle-preset");
     const focusIdleSeconds = container.querySelector<HTMLInputElement>("#settings-focus-idle-seconds");
 
-    expect(focusTriggerMode).not.toBeNull();
-    expect(focusIdlePreset).not.toBeNull();
-    expect(focusIdleSeconds).not.toBeNull();
-
-    await act(async () => {
-      focusTriggerMode!.value = "manual";
-      focusTriggerMode!.dispatchEvent(new Event("change", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
-      focus: { triggerMode: "manual" }
-    });
-
-    await act(async () => {
-      focusIdlePreset!.value = "5";
-      focusIdlePreset!.dispatchEvent(new Event("change", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
-      focus: { idleDelayMs: 5000 }
-    });
-
-    await act(async () => {
-      focusIdleSeconds!.focus();
-      focusIdleSeconds!.value = "3.5";
-      focusIdleSeconds!.dispatchEvent(new Event("input", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      focusIdleSeconds!.blur();
-      await Promise.resolve();
-    });
-
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
-      focus: { idleDelayMs: 3500 }
-    });
+    expect(focusTriggerMode).toBeNull();
+    expect(focusIdlePreset).toBeNull();
+    expect(focusIdleSeconds).toBeNull();
   });
 
   it("persists the ui font preset from settings and applies it to the document root", async () => {
@@ -3380,66 +3351,24 @@ describe("App autosave", () => {
     );
   });
 
-  it("shows the manual focus entry immediately after switching to manual mode in settings", async () => {
-    let currentPreferences: Preferences = DEFAULT_PREFERENCES;
+  it("does not render a legacy mode toggle entry in the workspace", async () => {
+    await renderAndOpenDocument();
 
-    await renderAndOpenDocument({
-      updatePreferencesImplementation: async (patch) => {
-        currentPreferences = {
-          ...currentPreferences,
-          ...patch,
-          focus: {
-            ...currentPreferences.focus,
-            ...(patch.focus ?? {})
-          }
-        };
-
-        return {
-          status: "success",
-          preferences: currentPreferences
-        };
-      }
-    });
-
-    const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
-    expect(settingsButton).not.toBeNull();
-
-    await act(async () => {
-      settingsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
-
-    const triggerMode = container.querySelector<HTMLSelectElement>("#settings-focus-trigger-mode");
-    expect(triggerMode).not.toBeNull();
     expect(container.querySelector('[data-yulora-region="focus-toggle"]')).toBeNull();
-
-    await act(async () => {
-      if (triggerMode) {
-        triggerMode.value = "manual";
-        triggerMode.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(180);
-      await Promise.resolve();
-    });
-
-    const focusToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="focus-toggle"]');
-    expect(focusToggle).not.toBeNull();
-    expect(container.querySelector<HTMLElement>('[data-yulora-region="workspace-canvas"]')?.contains(focusToggle ?? null)).toBe(true);
   });
 
-  it("defines animated shell chrome transitions for focus mode and fully retracts the rail", () => {
+  it("defines animated shell chrome transitions for document reading mode and fully retracts the rail", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const railRule = getCssRule(appUiStylesheet, ".app-rail");
     const collapsedRailRule = getCssRule(appUiStylesheet, '.app-rail[data-visibility="collapsed"]');
+    const readingLayoutRule = getCssRule(
+      appUiStylesheet,
+      '.app-layout[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+    );
+    const readingWorkspaceRule = getCssRule(
+      appUiStylesheet,
+      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+    );
     const headerRule = getCssRule(appUiStylesheet, ".app-header");
     const collapsedHeaderRule = getCssRule(appUiStylesheet, '.app-header[data-visibility="collapsed"]');
     const statusBarRule = getCssRule(appUiStylesheet, ".app-status-bar");
@@ -3451,6 +3380,8 @@ describe("App autosave", () => {
     expect(railRule).toContain("transition:");
     expect(collapsedRailRule).toContain("transform: translateX(calc(-100% - 1px));");
     expect(collapsedRailRule).toContain("opacity: 0;");
+    expect(readingLayoutRule).toContain("grid-template-columns: 0 minmax(0, 1fr);");
+    expect(readingWorkspaceRule).toContain("grid-template-rows: minmax(0, 1fr);");
     expect(headerRule).toContain("transition:");
     expect(collapsedHeaderRule).toContain("transform:");
     expect(statusBarRule).toContain("transition:");
@@ -3459,17 +3390,23 @@ describe("App autosave", () => {
 
   it("defines compact icon rail tool styles and tooltip positioning", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const appSource = readFileSync(join(process.cwd(), "src/renderer/editor/App.tsx"), "utf-8");
     const railRule = getCssRule(appUiStylesheet, ".app-rail");
     const stripRule = getCssRule(appUiStylesheet, ".table-tool-strip");
     const buttonRule = getCssRule(appUiStylesheet, ".table-tool-button");
     const tooltipRule = getCssRule(appUiStylesheet, ".table-tool-tooltip");
     const dangerRule = getCssRule(appUiStylesheet, '.table-tool-button[data-tone="danger"]');
 
-    expect(railRule).toContain("z-index: 2;");
+    expect(railRule).toContain("z-index: 2 !important;");
+    expect(appUiStylesheet).not.toContain(".app-layout > .app-rail");
     expect(stripRule).toContain("justify-items: center;");
     expect(buttonRule).toContain("inline-size: 44px;");
     expect(buttonRule).toContain("block-size: 44px;");
+    expect(tooltipRule).toContain("position: absolute;");
     expect(tooltipRule).toContain("left: calc(100% + 10px);");
+    expect(tooltipRule).toContain("transform: translateY(-50%);");
+    expect(tooltipRule).toContain("z-index: 3;");
+    expect(appSource).not.toContain('data-yulora-region="table-tool-tooltip-layer"');
     expect(dangerRule).toContain("color:");
   });
 
@@ -3653,8 +3590,8 @@ describe("App autosave", () => {
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
       "6"
     );
-    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.focusMode)).toBe(
-      "0"
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.readingMode)).toBe(
+      "1"
     );
     expect(
       document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.viewportWidth)
@@ -3861,7 +3798,7 @@ describe("App autosave", () => {
   });
 
   it("keeps the integrated rain glass status strip in normal workspace flow", () => {
-    const rainGlassUiStylesheet = readFileSync(rainGlassUiStylesheetPath, "utf-8");
+    const rainGlassUiStylesheet = readFileSync(rainGlassUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
     expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"].app-workspace');
     expect(rainGlassUiStylesheet).toContain("grid-template-rows: auto minmax(0, 1fr) auto;");
@@ -3906,7 +3843,7 @@ describe("App autosave", () => {
   });
 
   it("styles preferences as a semi-transparent glass drawer", () => {
-    const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
+    const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
     expect(settingsStylesheet).toContain(
       "background: color-mix(in srgb, var(--yulora-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);"
@@ -3942,6 +3879,107 @@ describe("App autosave", () => {
     expect(primitivesStylesheet).toContain("color: var(--yulora-text-muted);");
   });
 
+  it("routes welcome card copy and the rail settings button through theme-specific ui tokens", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const primitivesStylesheet = readFileSync(primitivesStylesheetPath, "utf-8");
+    const welcomeHeadingRule = getCssRule(appUiStylesheet, ".empty-inner h1");
+    const welcomeKickerRule = getCssRule(appUiStylesheet, ".empty-kicker");
+    const welcomeCopyRule = getCssRule(appUiStylesheet, ".empty-copy");
+    const welcomeMetaRule = getCssRule(appUiStylesheet, ".empty-meta");
+    const settingsEntryRule = getCssRule(primitivesStylesheet, ".settings-entry");
+    const settingsEntryHoverRule = getCssRule(primitivesStylesheet, ".settings-entry:hover");
+
+    expect(welcomeHeadingRule).toContain("color: var(--yulora-welcome-heading, var(--yulora-text-primary, #171a1f));");
+    expect(welcomeKickerRule).toContain("color: var(--yulora-welcome-kicker, var(--yulora-text-muted, #687180));");
+    expect(welcomeCopyRule).toContain("color: var(--yulora-welcome-copy, var(--yulora-text-muted, #687180));");
+    expect(welcomeMetaRule).toContain("border: 1px solid var(--yulora-welcome-meta-border, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)));");
+    expect(welcomeMetaRule).toContain("background: var(--yulora-welcome-meta-bg, transparent);");
+    expect(welcomeMetaRule).toContain("color: var(--yulora-welcome-meta-text, var(--yulora-text-muted, #687180));");
+    expect(settingsEntryRule).toContain("border: 1px solid var(--yulora-rail-control-border, var(--yulora-control-border));");
+    expect(settingsEntryRule).toContain("background: var(--yulora-rail-control-bg, var(--yulora-control-bg));");
+    expect(settingsEntryRule).toContain("color: var(--yulora-rail-control-fg, var(--yulora-control-fg));");
+    expect(settingsEntryHoverRule).toContain("--yulora-rail-control-border-hover");
+    expect(settingsEntryHoverRule).toContain("background: var(--yulora-rail-control-bg-hover, var(--yulora-control-bg-hover));");
+    expect(settingsEntryHoverRule).toContain("color: var(--yulora-rail-control-fg-hover, var(--yulora-text-primary));");
+  });
+
+  it("defines welcome card and rail button ui tokens for bundled and fixture themes", () => {
+    const defaultUiStylesheet = readFileSync(defaultUiStylesheetPath, "utf-8");
+    const rainGlassUiStylesheet = readFileSync(rainGlassUiStylesheetPath, "utf-8");
+    const pearlDriftUiStylesheet = readFileSync(pearlDriftUiStylesheetPath, "utf-8");
+    const emberAscendUiStylesheet = readFileSync(emberAscendUiStylesheetPath, "utf-8");
+    const pearlDarkRule = getCssRule(
+      pearlDriftUiStylesheet,
+      ':root[data-yulora-theme-mode="dark"]'
+    );
+
+    for (const stylesheet of [
+      defaultUiStylesheet,
+      rainGlassUiStylesheet,
+      pearlDriftUiStylesheet,
+      emberAscendUiStylesheet
+    ]) {
+      expect(stylesheet).toContain("--yulora-welcome-heading:");
+      expect(stylesheet).toContain("--yulora-welcome-copy:");
+      expect(stylesheet).toContain("--yulora-welcome-meta-border:");
+      expect(stylesheet).toContain("--yulora-rail-control-bg:");
+      expect(stylesheet).toContain("--yulora-rail-control-bg-hover:");
+      expect(stylesheet).toContain("--yulora-rail-control-border:");
+      expect(stylesheet).toContain("--yulora-rail-control-fg:");
+    }
+
+    expect(pearlDarkRule).toContain("--yulora-welcome-heading:");
+    expect(pearlDarkRule).toContain("--yulora-rail-control-bg:");
+    expect(pearlDarkRule).toContain("--yulora-rail-control-fg:");
+  });
+
+  it("keeps rain glass list and quote overrides aligned with the shared markdown structure tokens", () => {
+    const rainGlassMarkdownStylesheet = readFileSync(
+      join(process.cwd(), "fixtures/themes/rain-glass/styles/markdown.css"),
+      "utf-8"
+    );
+    const rainGlassRootRule = getCssRule(rainGlassMarkdownStylesheet, ":root");
+    const rainGlassUnorderedListMarkerRule = getCssRule(
+      rainGlassMarkdownStylesheet,
+      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before'
+    );
+    const rainGlassBlockquoteRule = getCssRule(
+      rainGlassMarkdownStylesheet,
+      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-blockquote'
+    );
+
+    expect(rainGlassRootRule).toContain("--yulora-list-marker-size:");
+    expect(rainGlassRootRule).toContain("--yulora-list-ordered-marker-width:");
+    expect(rainGlassRootRule).toContain("--yulora-task-size:");
+    expect(rainGlassRootRule).toContain("--yulora-blockquote-bg:");
+    expect(rainGlassMarkdownStylesheet).not.toContain(
+      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-marker {'
+    );
+    expect(rainGlassMarkdownStylesheet).toContain(
+      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {'
+    );
+    expect(rainGlassUnorderedListMarkerRule).toContain("background: var(--yulora-list-marker);");
+    expect(rainGlassBlockquoteRule).toContain("background: var(--yulora-blockquote-bg);");
+    expect(rainGlassBlockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);");
+  });
+
+  it("defines formal semantic text, control, editor, and markdown slots for bundled dark fixture themes", () => {
+    const pearlDriftLightTokens = readFileSync(pearlDriftLightTokensPath, "utf-8");
+    const pearlDriftDarkTokens = readFileSync(pearlDriftDarkTokensPath, "utf-8");
+    const emberAscendDarkTokens = readFileSync(emberAscendDarkTokensPath, "utf-8");
+
+    for (const stylesheet of [pearlDriftLightTokens, pearlDriftDarkTokens, emberAscendDarkTokens]) {
+      expect(stylesheet).toContain("--yulora-text-primary:");
+      expect(stylesheet).toContain("--yulora-text-secondary:");
+      expect(stylesheet).toContain("--yulora-control-bg:");
+      expect(stylesheet).toContain("--yulora-control-border:");
+      expect(stylesheet).toContain("--yulora-editor-fg:");
+      expect(stylesheet).toContain("--yulora-markdown-body:");
+      expect(stylesheet).toContain("--yulora-markdown-heading:");
+      expect(stylesheet).toContain("--yulora-markdown-strong:");
+    }
+  });
+
   it("routes the default light markdown palette through formal semantic slots", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
@@ -3961,6 +3999,57 @@ describe("App autosave", () => {
     expect(lightMarkdownRule).toContain("--yulora-table-cell-active-bg:");
     expect(lightMarkdownRule).toContain("--yulora-table-cell-min-height:");
     expect(lightMarkdownRule).toContain("--yulora-table-header-font-weight:");
+  });
+
+  it("keeps bundled community theme fixtures on contract version 2 so they stay discoverable", () => {
+    const pearlDriftManifest = JSON.parse(
+      readFileSync(pearlDriftManifestPath, "utf-8")
+    ) as { contractVersion?: number };
+    const emberAscendManifest = JSON.parse(
+      readFileSync(emberAscendManifestPath, "utf-8")
+    ) as { contractVersion?: number };
+
+    expect(pearlDriftManifest.contractVersion).toBe(2);
+    expect(emberAscendManifest.contractVersion).toBe(2);
+  });
+
+  it("defines restrained list, task, and blockquote tokens in the default markdown theme stylesheet", () => {
+    const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
+    const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
+
+    expect(lightMarkdownRule).toContain("--yulora-list-marker-size:");
+    expect(lightMarkdownRule).toContain("--yulora-list-ordered-marker-width:");
+    expect(lightMarkdownRule).toContain("--yulora-task-size:");
+    expect(lightMarkdownRule).toContain("--yulora-task-radius:");
+    expect(lightMarkdownRule).toContain("--yulora-blockquote-bg:");
+    expect(lightMarkdownRule).toContain("--yulora-blockquote-border:");
+  });
+
+  it("renders markdown lists and quotes with explicit markers instead of solid blocks", () => {
+    const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const listMarkerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-list-marker");
+    const unorderedListMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before"
+    );
+    const orderedListMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-list-ordered .cm-inactive-list-marker"
+    );
+    const taskMarkerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-task-marker::before");
+    const blockquoteRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote");
+
+    expect(listMarkerRule).not.toContain("background:");
+    expect(unorderedListMarkerRule).toContain("width: var(--yulora-list-marker-size);");
+    expect(unorderedListMarkerRule).toContain("height: var(--yulora-list-marker-size);");
+    expect(unorderedListMarkerRule).toContain("background: var(--yulora-list-marker);");
+    expect(orderedListMarkerRule).toContain("min-width: var(--yulora-list-ordered-marker-width);");
+    expect(orderedListMarkerRule).toContain("font-variant-numeric: tabular-nums;");
+    expect(taskMarkerRule).toContain("width: var(--yulora-task-size);");
+    expect(taskMarkerRule).toContain("height: var(--yulora-task-size);");
+    expect(taskMarkerRule).toContain("border-radius: var(--yulora-task-radius);");
+    expect(blockquoteRule).toContain("background: var(--yulora-blockquote-bg);");
+    expect(blockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);");
   });
 
   it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
@@ -4049,6 +4138,17 @@ describe("App autosave", () => {
     });
 
     expect(openMarkdownFile).toHaveBeenCalledTimes(1);
+  }
+
+  async function clickEditorContent(): Promise<void> {
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
+
+    await act(async () => {
+      editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
+      editorSurface?.focus();
+      await Promise.resolve();
+    });
   }
 
   function emitAppUpdateState(state: AppUpdateState): void {

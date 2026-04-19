@@ -2,9 +2,15 @@
   --yulora-inline-code-bg: rgba(107, 104, 212, 0.12);
   --yulora-inline-code-text: #3d3a9a;
   --yulora-list-marker: #8a87c6;
+  --yulora-list-marker-size: 0.3rem;
+  --yulora-list-ordered-marker-width: 1.72rem;
   --yulora-task-border: #a9a6d3;
   --yulora-task-bg: color-mix(in srgb, var(--yulora-surface-bg) 92%, #9a97ea 8%);
   --yulora-task-check: #6b68d4;
+  --yulora-task-size: 0.96rem;
+  --yulora-task-radius: 0.24rem;
+  --yulora-blockquote-bg: color-mix(in srgb, var(--yulora-surface-blockquote-bg) 82%, transparent);
+  --yulora-blockquote-border: color-mix(in srgb, var(--yulora-list-marker) 56%, var(--yulora-border-muted));
   --yulora-thematic-break: #d4d4e4;
   --yulora-code-block-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 88%, #ece9f7 12%);
   --yulora-code-block-text: #2b2c40;
@@ -29,14 +35,20 @@
   --yulora-table-header-font-weight: 625;
 }
 
-:root[data-yulora-theme="dark"] {
+:root[data-yulora-theme-mode="dark"] {
   --yulora-inline-code-bg: rgba(161, 158, 239, 0.18);
   --yulora-inline-code-text: #e8e7f8;
   --yulora-list-marker: #7f7ca5;
+  --yulora-list-marker-size: 0.3rem;
+  --yulora-list-ordered-marker-width: 1.72rem;
   --yulora-list-text: #f2f1fb;
   --yulora-task-border: #5a5b7e;
   --yulora-task-bg: color-mix(in srgb, var(--yulora-surface-bg) 92%, #a19eef 8%);
   --yulora-task-check: #a19eef;
+  --yulora-task-size: 0.96rem;
+  --yulora-task-radius: 0.24rem;
+  --yulora-blockquote-bg: color-mix(in srgb, var(--yulora-surface-blockquote-bg) 84%, transparent);
+  --yulora-blockquote-border: color-mix(in srgb, var(--yulora-list-marker) 52%, var(--yulora-border-muted));
   --yulora-thematic-break: #35364e;
   --yulora-code-block-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, #0a0914 6%);
   --yulora-code-block-text: #e3e2f1;

@@ -241,24 +241,50 @@ function hasFileDrag(dataTransfer: DataTransfer | null): boolean {
 }
 
 type AppNotificationBannerState = "hidden" | "open" | "closing";
-type FocusModeSource = "manual" | "auto";
+type ShellMode = "reading" | "editing";
+
+const EDITOR_INTERACTIVE_TARGET_SELECTOR = [
+  ".cm-table-widget",
+  ".cm-table-widget-input",
+  "input",
+  "textarea",
+  "[contenteditable='true']"
+].join(", ");
+
+const WORKSPACE_NON_EDITOR_INTERACTIVE_SELECTOR = [
+  ".outline-panel",
+  ".outline-entry",
+  "button",
+  "a",
+  "input",
+  "textarea",
+  "select",
+  "[contenteditable='true']"
+].join(", ");
+
+function isPointerInsideRect(event: MouseEvent, element: HTMLElement): boolean {
+  const rect = element.getBoundingClientRect();
+  return (
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom
+  );
+}
+
+function isEditingContentPointerEvent(event: MouseEvent, editorContainer: HTMLElement): boolean {
+  const target = event.target;
+
+  if (target instanceof Element && target.closest(EDITOR_INTERACTIVE_TARGET_SELECTOR)) {
+    return true;
+  }
+
+  const contentElement = editorContainer.querySelector<HTMLElement>(".cm-content");
+  return contentElement ? isPointerInsideRect(event, contentElement) : false;
+}
 
 function supportsControlledTitlebar(platform: NodeJS.Platform): boolean {
   return platform === "darwin";
-}
-
-function isAutoFocusKeyboardEvent(event: KeyboardEvent): boolean {
-  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
-    return false;
-  }
-
-  return (
-    event.key.length === 1 ||
-    event.key === "Enter" ||
-    event.key === "Backspace" ||
-    event.key === "Delete" ||
-    event.key === "Tab"
-  );
 }
 
 function resolveThemeMode(mode: ThemeMode): ResolvedThemeMode {
@@ -490,7 +516,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const [isOutlineClosing, setIsOutlineClosing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSettingsClosing, setIsSettingsClosing] = useState(false);
-  const [focusModeSource, setFocusModeSource] = useState<FocusModeSource | null>(null);
+  const [shellMode, setShellMode] = useState<ShellMode>("reading");
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [fontFamilies, setFontFamilies] = useState<string[]>([]);
   const [themePackages, setThemePackages] = useState<
@@ -536,10 +562,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const themePackageRuntimeRef = useRef<ReturnType<typeof createThemePackageRuntime> | null>(null);
   const outlineCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shortcutHintHoldTimerRef = useRef<number | null>(null);
+  const lastEditorPointerIntentRef = useRef<"editing" | "blank" | null>(null);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
   const lastThemeDynamicNotificationKeyRef = useRef<string | null>(null);
   const fontFamilyLoadStateRef = useRef<"idle" | "loading" | "loaded">("idle");
@@ -552,8 +578,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     : null;
   const currentDocumentWordCount = currentDocumentMetrics?.meaningfulCharacterCount ?? 0;
   const isDocumentOpen = Boolean(state.currentDocument);
-  const isFocusModeActive = focusModeSource !== null;
-  const isManualFocusToggleEnabled = preferences.focus.triggerMode === "manual";
+  const isReadingMode = shellMode === "reading";
+  const isDocumentReadingMode = isDocumentOpen && isReadingMode;
   const isOutlinePanelVisible = isOutlineOpen || isOutlineClosing;
   const isSettingsDrawerVisible = isSettingsOpen || isSettingsClosing;
   const hintText =
@@ -590,11 +616,11 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     () =>
       buildThemeRuntimeEnv({
         wordCount: currentDocumentWordCount,
-        isFocusModeActive,
+        isReadingMode: isDocumentReadingMode,
         themeMode: resolvedThemeMode,
         viewport: getWindowViewport()
       }),
-    [currentDocumentWordCount, isFocusModeActive, resolvedThemeMode]
+    [currentDocumentWordCount, isDocumentReadingMode, resolvedThemeMode]
   );
   const activeThemePackages = themePackages.map(normalizeThemePackageDescriptor);
   const activeThemePackageResolution = resolveActiveThemePackage(
@@ -653,6 +679,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       activeThemeParameterOverrides
     ]
   );
+  const activeWorkbenchChannel0Src = activeWorkbenchSurface?.channels?.["0"]?.src ?? null;
+  const activeTitlebarChannel0Src = activeTitlebarSurface?.channels?.["0"]?.src ?? null;
   const themeDynamicMode = useMemo<ThemeDynamicAggregateMode>(
     () =>
       resolveThemeDynamicAggregateMode({
@@ -686,7 +714,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   function createThemeRuntimeEnv(themeMode: ResolvedThemeMode = resolvedThemeMode): ThemeRuntimeEnv {
     return buildThemeRuntimeEnv({
       wordCount: currentDocumentWordCount,
-      isFocusModeActive,
+      isReadingMode: isDocumentReadingMode,
       themeMode,
       viewport: getWindowViewport()
     });
@@ -807,19 +835,14 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
   useEffect(() => {
     setWorkbenchSurfaceRuntimeMode(null);
-  }, [
-    activeWorkbenchSurface?.sceneId,
-    activeWorkbenchSurface?.shaderUrl,
-    activeWorkbenchSurface?.channels?.["0"]?.src,
-    preferences.theme.effectsMode
-  ]);
+  }, [activeWorkbenchSurface?.sceneId, activeWorkbenchSurface?.shaderUrl, activeWorkbenchChannel0Src, preferences.theme.effectsMode]);
 
   useEffect(() => {
     setTitlebarSurfaceRuntimeMode(null);
   }, [
     activeTitlebarSurface?.sceneId,
     activeTitlebarSurface?.shaderUrl,
-    activeTitlebarSurface?.channels?.["0"]?.src,
+    activeTitlebarChannel0Src,
     controlledTitlebarEnabled,
     preferences.theme.effectsMode
   ]);
@@ -857,13 +880,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
   }
 
-  function clearFocusIdleTimer(): void {
-    if (focusIdleTimerRef.current !== null) {
-      clearTimeout(focusIdleTimerRef.current);
-      focusIdleTimerRef.current = null;
-    }
-  }
-
   const clearNotificationTimers = useCallback((): void => {
     if (notificationHideTimerRef.current !== null) {
       clearTimeout(notificationHideTimerRef.current);
@@ -876,50 +892,62 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
   }, []);
 
-  const scheduleFocusIdle = useCallback((): void => {
-    clearFocusIdleTimer();
+  const enterEditingMode = useCallback((): void => {
+    setShellMode("editing");
+  }, []);
 
-    if (
-      preferencesRef.current.focus.triggerMode !== "auto" ||
-      !stateRef.current.currentDocument ||
-      isSettingsOpen ||
-      isSettingsClosing
-    ) {
+  const enterReadingMode = useCallback((): void => {
+    if (!stateRef.current.currentDocument || isSettingsOpen || isSettingsClosing) {
       return;
     }
 
-    focusIdleTimerRef.current = setTimeout(() => {
-      focusIdleTimerRef.current = null;
-      setFocusModeSource((current) => current ?? "auto");
-    }, preferencesRef.current.focus.idleDelayMs);
+    setShellMode("reading");
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && editorContainerRef.current?.contains(activeElement)) {
+      activeElement.blur();
+    }
   }, [isSettingsClosing, isSettingsOpen]);
 
-  const exitFocusMode = useCallback((): void => {
-    setFocusModeSource(null);
-    scheduleFocusIdle();
-  }, [scheduleFocusIdle]);
+  const handleWorkspaceCanvasMouseDownCapture = useCallback(
+    (event: React.MouseEvent<HTMLElement>): void => {
+      if (event.button !== 0 || !stateRef.current.currentDocument) {
+        return;
+      }
 
-  const enterFocusMode = useCallback((source: FocusModeSource): void => {
-    if (isSettingsOpen || isSettingsClosing) {
-      return;
-    }
+      const target = event.target;
+      const editorContainer = editorContainerRef.current;
 
-    clearFocusIdleTimer();
-    setFocusModeSource((current) => current ?? source);
-  }, [isSettingsClosing, isSettingsOpen]);
+      if (!(target instanceof Element)) {
+        return;
+      }
 
-  function toggleManualFocusMode(): void {
-    if (preferencesRef.current.focus.triggerMode !== "manual" && focusModeSource !== "manual") {
-      return;
-    }
+      if (target.closest(".outline-panel, .outline-entry")) {
+        return;
+      }
 
-    if (focusModeSource !== null) {
-      exitFocusMode();
-      return;
-    }
+      if (
+        editorContainer &&
+        editorContainer.contains(target) &&
+        isEditingContentPointerEvent(event.nativeEvent, editorContainer)
+      ) {
+        return;
+      }
 
-    enterFocusMode("manual");
-  }
+      if (
+        !editorContainer?.contains(target) &&
+        target.closest(WORKSPACE_NON_EDITOR_INTERACTIVE_SELECTOR)
+      ) {
+        return;
+      }
+
+      lastEditorPointerIntentRef.current = null;
+      event.preventDefault();
+      event.stopPropagation();
+      enterReadingMode();
+    },
+    [enterReadingMode]
+  );
 
   function clearShortcutHintHoldTimer(): void {
     if (shortcutHintHoldTimerRef.current !== null) {
@@ -1058,7 +1086,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     preferencesRef.current = nextPreferences;
     setPreferences(nextPreferences);
     scheduleAutosave(stateRef.current);
-    scheduleFocusIdle();
   });
 
   const handleLoadFontFamilies = useEffectEvent(async (): Promise<void> => {
@@ -1090,23 +1117,20 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
   }, [yulora]);
 
-  const handleUpdatePreferences = useCallback(
-    async (
-      patch: PreferencesUpdate
-    ): Promise<Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>> => {
-      const result = await yulora.updatePreferences(patch);
-      preferencesRef.current = result.preferences;
-      setPreferences(result.preferences);
-      scheduleAutosave(stateRef.current);
-      scheduleFocusIdle();
-      return result;
-    },
-    [scheduleAutosave, scheduleFocusIdle, yulora]
-  );
+  async function handleUpdatePreferences(
+    patch: PreferencesUpdate
+  ): Promise<Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>> {
+    const result = await yulora.updatePreferences(patch);
+    preferencesRef.current = result.preferences;
+    setPreferences(result.preferences);
+    scheduleAutosave(stateRef.current);
+    return result;
+  }
 
   function openSettingsDrawer(): void {
-    setFocusModeSource(null);
-    clearFocusIdleTimer();
+    if (stateRef.current.currentDocument) {
+      setShellMode("editing");
+    }
     const activeElement = document.activeElement;
     shouldRestoreEditorFocusRef.current =
       settingsOpenOriginRef.current === "editor" ||
@@ -1179,6 +1203,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
 
     applyState((current) => applyOpenMarkdownResult(current, result));
+    if (result.status === "success") {
+      setShellMode("reading");
+    }
   });
 
   const handleNewMarkdown = useEffectEvent((): void => {
@@ -1187,6 +1214,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     setOutlineItems([]);
     setActiveHeadingId(null);
     applyState((current) => createNewMarkdownDocumentState(current));
+    setShellMode("editing");
   });
 
   const handleOpenMarkdownFromPath = useEffectEvent(async (targetPath: string): Promise<void> => {
@@ -1205,6 +1233,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
 
     applyState((current) => applyOpenMarkdownResult(current, result));
+    if (result.status === "success") {
+      setShellMode("reading");
+    }
   });
 
   const handleWindowDragOver = useEffectEvent((event: globalThis.DragEvent): void => {
@@ -1445,30 +1476,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    if (isSettingsOpen || isSettingsClosing) {
-      clearFocusIdleTimer();
-      return;
-    }
-
-    scheduleFocusIdle();
-    return () => clearFocusIdleTimer();
-  }, [
-    isDocumentOpen,
-    isSettingsClosing,
-    isSettingsOpen,
-    preferences.focus.triggerMode,
-    preferences.focus.idleDelayMs,
-    scheduleFocusIdle
-  ]);
-
-  useEffect(() => {
-    if (focusModeSource === "manual" && preferences.focus.triggerMode !== "manual") {
-      setFocusModeSource(null);
-      scheduleFocusIdle();
-    }
-  }, [focusModeSource, preferences.focus.triggerMode, scheduleFocusIdle]);
-
-  useEffect(() => {
     const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
 
     if (!mediaQuery) {
@@ -1493,36 +1500,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
   useEffect(() => {
     syncThemeRuntimeEnv(resolvedThemeMode);
-  }, [currentDocumentWordCount, isFocusModeActive, resolvedThemeMode]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        !isAutoFocusKeyboardEvent(event) ||
-        preferencesRef.current.focus.triggerMode !== "auto"
-      ) {
-        return;
-      }
-
-      enterFocusMode("auto");
-      scheduleFocusIdle();
-    };
-
-    const handlePointerActivity = () => {
-      setFocusModeSource((current) => (current === "auto" ? null : current));
-      scheduleFocusIdle();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("mousemove", handlePointerActivity);
-    window.addEventListener("wheel", handlePointerActivity);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("mousemove", handlePointerActivity);
-      window.removeEventListener("wheel", handlePointerActivity);
-    };
-  }, [enterFocusMode, scheduleFocusIdle]);
+  }, [currentDocumentWordCount, isDocumentReadingMode, resolvedThemeMode]);
 
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
@@ -1531,9 +1509,40 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       return undefined;
     }
 
+    const handleMouseDownCapture = (event: MouseEvent) => {
+      if (event.target instanceof Node && editorContainer.contains(event.target)) {
+        if (event.button !== 0) {
+          lastEditorPointerIntentRef.current = null;
+          return;
+        }
+
+        const isEditingContentClick = isEditingContentPointerEvent(event, editorContainer);
+        lastEditorPointerIntentRef.current = isEditingContentClick ? "editing" : "blank";
+
+        if (!isEditingContentClick) {
+          event.preventDefault();
+          enterReadingMode();
+        }
+      }
+    };
+
+    const clearLastPointerIntent = () => {
+      lastEditorPointerIntentRef.current = null;
+    };
+
     const handleFocusIn = (event: FocusEvent) => {
       if (event.target instanceof Node && editorContainer.contains(event.target)) {
+        const pointerIntent = lastEditorPointerIntentRef.current;
+        lastEditorPointerIntentRef.current = null;
         setIsEditorFocused(true);
+
+        if (pointerIntent !== "editing") {
+          return;
+        }
+
+        if (stateRef.current.currentDocument) {
+          enterEditingMode();
+        }
       }
     };
 
@@ -1542,14 +1551,18 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       setIsEditorFocused(activeElement instanceof Node && editorContainer.contains(activeElement));
     };
 
+    editorContainer.addEventListener("mousedown", handleMouseDownCapture, true);
     editorContainer.addEventListener("focusin", handleFocusIn);
     editorContainer.addEventListener("focusout", handleFocusOut);
+    window.addEventListener("mouseup", clearLastPointerIntent);
 
     return () => {
+      editorContainer.removeEventListener("mousedown", handleMouseDownCapture, true);
       editorContainer.removeEventListener("focusin", handleFocusIn);
       editorContainer.removeEventListener("focusout", handleFocusOut);
+      window.removeEventListener("mouseup", clearLastPointerIntent);
     };
-  }, [isDocumentOpen, state.editorLoadRevision]);
+  }, [enterEditingMode, enterReadingMode, isDocumentOpen, state.editorLoadRevision]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1728,12 +1741,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       return;
     }
 
+    if (shellMode !== "editing") {
+      return;
+    }
+
     const frame = requestAnimationFrame(() => {
       editorRef.current?.focus();
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [isDocumentOpen, state.editorLoadRevision]);
+  }, [isDocumentOpen, shellMode, state.currentDocument?.path, state.editorLoadRevision]);
 
   useEffect(() => {
     if (isSettingsOpen || isSettingsClosing || pendingFocusRestoreRef.current === null) {
@@ -1765,6 +1782,21 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [isSettingsOpen]);
 
   useEffect(() => {
+    if (!isDocumentOpen || isSettingsOpen || isSettingsClosing) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && shellMode === "editing") {
+        enterReadingMode();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enterReadingMode, isDocumentOpen, isSettingsClosing, isSettingsOpen, shellMode]);
+
+  useEffect(() => {
     const startupOpenPath = startupOpenPathRef.current;
 
     if (!startupOpenPath) {
@@ -1780,7 +1812,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       clearAutosaveTimer();
       clearOutlineCloseTimer();
       clearSettingsCloseTimer();
-      clearFocusIdleTimer();
       clearNotificationTimers();
       themePackageRuntimeRef.current?.clear();
       clearThemeDynamicModeFromDocument(document.documentElement);
@@ -1793,7 +1824,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   return (
     <main
       className="app-shell"
-      data-yulora-focus-mode={isFocusModeActive ? "active" : "inactive"}
+      data-yulora-shell-mode={shellMode}
       style={
         {
           "--yulora-titlebar-height": controlledTitlebarEnabled ? `${titlebarLayout.height}px` : "0px"
@@ -1815,7 +1846,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       ) : null}
       <div
         className="app-layout"
-        data-yulora-focus-mode={isFocusModeActive ? "active" : "inactive"}
+        data-yulora-shell-mode={shellMode}
+        data-yulora-has-document={isDocumentOpen ? "true" : "false"}
       >
         {activeWorkbenchSurface ? (
           <ThemeSurfaceHost
@@ -1831,7 +1863,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           className="app-rail"
           data-yulora-layout="rail"
           data-yulora-rail-mode={activeShortcutGroup.id}
-          data-visibility={isFocusModeActive ? "collapsed" : "visible"}
+          data-visibility={isDocumentOpen && isReadingMode ? "collapsed" : "visible"}
         >
           <div className="app-rail-brand">
             <p className="app-name">Yulora</p>
@@ -1930,6 +1962,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         <div
           className="app-workspace"
           data-yulora-layout="workspace"
+          data-yulora-shell-mode={shellMode}
+          data-yulora-has-document={isDocumentOpen ? "true" : "false"}
         >
           {notification && notificationState !== "hidden" ? (
             <div
@@ -1954,7 +1988,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           <header
             className="app-header workspace-header"
             data-yulora-region="workspace-header"
-            data-visibility={isFocusModeActive ? "collapsed" : "visible"}
+            data-visibility={isReadingMode ? "collapsed" : "visible"}
           >
             <div className="workspace-title-group">
               <p className="workspace-kicker">{headerEyebrow}</p>
@@ -1967,6 +2001,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           <section
             className={`workspace-canvas ${state.currentDocument ? "is-editor-open" : ""}`}
             data-yulora-region="workspace-canvas"
+            data-yulora-shell-mode={shellMode}
+            data-yulora-has-document={isDocumentOpen ? "true" : "false"}
+            onMouseDownCapture={handleWorkspaceCanvasMouseDownCapture}
           >
             {state.currentDocument ? (
               <>
@@ -1982,34 +2019,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                   />
                 </div>
                 <section className={`workspace-shell ${isOutlineOpen ? "is-outline-open" : ""}`}>
-                  {isManualFocusToggleEnabled ? (
-                    <button
-                      type="button"
-                      className="focus-toggle-entry"
-                      data-yulora-region="focus-toggle"
-                      aria-label={isFocusModeActive ? "Exit focus mode" : "Enter focus mode"}
-                      aria-pressed={isFocusModeActive}
-                      onClick={toggleManualFocusMode}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <path
-                          d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span>{isFocusModeActive ? "Exit focus" : "Enter focus"}</span>
-                    </button>
-                  ) : null}
                   <div
                     className="document-canvas"
                     ref={editorContainerRef}
@@ -2161,7 +2170,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           <footer
             className="app-status-bar"
             data-yulora-region="app-status-bar"
-            data-visibility={isFocusModeActive ? "collapsed" : "visible"}
+            data-visibility={isReadingMode ? "collapsed" : "visible"}
           >
             <div data-yulora-region="status-strip">
               {appUpdateStatusLabel ? <p className="app-update-status">{appUpdateStatusLabel}</p> : null}

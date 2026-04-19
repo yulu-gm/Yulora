@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { openThemesDirectory } from "./open-themes-directory";
@@ -6,16 +8,18 @@ describe("openThemesDirectory", () => {
   it("creates the themes directory and opens it", async () => {
     const mkdir = vi.fn().mockResolvedValue(undefined);
     const openPath = vi.fn().mockResolvedValue("");
+    const userDataDir = "C:/Users/chenglinwu/AppData/Roaming/Yulora";
+    const themesDirectory = path.join(userDataDir, "themes");
 
-    await openThemesDirectory("C:/Users/chenglinwu/AppData/Roaming/Yulora", {
+    await openThemesDirectory(userDataDir, {
       mkdir,
       openPath
     });
 
-    expect(mkdir).toHaveBeenCalledWith("C:/Users/chenglinwu/AppData/Roaming/Yulora/themes", {
+    expect(mkdir).toHaveBeenCalledWith(themesDirectory, {
       recursive: true
     });
-    expect(openPath).toHaveBeenCalledWith("C:/Users/chenglinwu/AppData/Roaming/Yulora/themes");
+    expect(openPath).toHaveBeenCalledWith(themesDirectory);
   });
 
   it("throws when the shell reports a failure message", async () => {

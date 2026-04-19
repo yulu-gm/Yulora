@@ -81,7 +81,6 @@ describe("loadPreferencesFromDisk", () => {
     expect(result.preferences).toEqual({
       version: 2,
       autosave: { idleDelayMs: 2500 },
-      focus: DEFAULT_PREFERENCES.focus,
       recentFiles: { maxEntries: 20 },
       ui: { fontFamily: null, fontSize: 18 },
       document: { fontFamily: "Fira Code", cjkFontFamily: "Source Han Sans SC", fontSize: 16 },

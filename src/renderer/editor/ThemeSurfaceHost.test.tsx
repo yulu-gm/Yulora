@@ -56,7 +56,7 @@ describe("ThemeSurfaceHost", () => {
   ): ThemeRuntimeEnv {
     return {
       wordCount: overrides.wordCount ?? 42,
-      focusMode: overrides.focusMode ?? 1,
+      readingMode: overrides.readingMode ?? 1,
       themeMode: overrides.themeMode ?? "dark",
       viewport: overrides.viewport ?? {
         width: 1_280,
@@ -213,7 +213,7 @@ describe("ThemeSurfaceHost", () => {
           themeMode: "light",
           runtimeEnv: createRuntimeEnv({
             wordCount: 42,
-            focusMode: 1,
+            readingMode: 1,
             themeMode: "light",
             viewport: {
               width: 1_280,
@@ -243,7 +243,7 @@ describe("ThemeSurfaceHost", () => {
     ).toMatchObject({
       iridescence: 0.9,
       wordCount: 42,
-      focusMode: 1,
+      readingMode: 1,
       themeMode: 0,
       viewportWidth: 320,
       viewportHeight: 200
@@ -266,7 +266,7 @@ describe("ThemeSurfaceHost", () => {
           themeMode: "dark",
           runtimeEnv: createRuntimeEnv({
             wordCount: 42,
-            focusMode: 1,
+            readingMode: 1,
             themeMode: "dark",
             viewport: {
               width: 1_280,
@@ -306,7 +306,7 @@ describe("ThemeSurfaceHost", () => {
           themeMode: "dark",
           runtimeEnv: createRuntimeEnv({
             wordCount: 84,
-            focusMode: 0,
+            readingMode: 0,
             themeMode: "dark",
             viewport: {
               width: 1_600,
@@ -327,7 +327,7 @@ describe("ThemeSurfaceHost", () => {
     ).toMatchObject({
       rainAmount: 0.8,
       wordCount: 84,
-      focusMode: 0,
+      readingMode: 0,
       themeMode: 1,
       viewportWidth: 640,
       viewportHeight: 360

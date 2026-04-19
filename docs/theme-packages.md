@@ -24,7 +24,7 @@ The current runtime works like this:
 5. The selected package is resolved against the active light/dark mode.
 6. If the selected package is missing or does not support that mode, renderer falls back to builtin `default`.
 7. Renderer mounts theme stylesheets in stable order: `tokens`, `ui`, `titlebar`, `editor`, `markdown`.
-8. Renderer exposes the built-in runtime env on `document.documentElement`: `--yulora-env-word-count`, `--yulora-env-focus-mode`, `--yulora-env-viewport-width`, `--yulora-env-viewport-height`, plus `data-yulora-theme-mode`.
+8. Renderer exposes the built-in runtime env on `document.documentElement`: `--yulora-env-word-count`, `--yulora-env-reading-mode`, `--yulora-env-viewport-width`, `--yulora-env-viewport-height`, plus `data-yulora-theme-mode`.
 9. Optional shader surfaces are mounted separately and may fall back to static CSS at runtime.
 
 ## Package Layout
@@ -134,7 +134,7 @@ Author expectations:
 - the shader source must compile on its own
 - `mainImage(...)` is supported and wrapped automatically
 - plain fragment entrypoints are also supported
-- the runtime injects built-in uniforms `u_wordCount`, `u_focusMode`, `u_themeMode`, `u_viewportWidth`, `u_viewportHeight`, plus the usual timing/resolution inputs and optional shared uniforms
+- the runtime injects built-in uniforms `u_wordCount`, `u_readingMode`, `u_themeMode`, `u_viewportWidth`, `u_viewportHeight`, plus the usual timing/resolution inputs and optional shared uniforms
 - `u_themeMode` is a built-in float uniform: `0` for light mode, `1` for dark mode
 - `iChannel0`, `iResolution`, and `iTime` are only injected when channel `0` is configured
 

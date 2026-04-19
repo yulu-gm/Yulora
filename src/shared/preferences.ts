@@ -16,7 +16,6 @@ export const PREFERENCES_CHANGED_EVENT = "yulora:preferences-changed";
 
 export type ThemeMode = "system" | "light" | "dark";
 export type ThemeEffectsMode = "auto" | "full" | "off";
-export type FocusTriggerMode = "manual" | "auto";
 
 export type AutosavePreferences = {
   /** Milliseconds of editor idleness before autosave fires. */
@@ -33,13 +32,6 @@ export type UiPreferences = {
   fontFamily: string | null;
   /** Font size in pixels, or `null` to use the theme default. */
   fontSize: number | null;
-};
-
-export type FocusPreferences = {
-  /** How shell focus mode should be entered. */
-  triggerMode: FocusTriggerMode;
-  /** Milliseconds of editor idleness before auto focus activates. */
-  idleDelayMs: number;
 };
 
 export type DocumentPreferences = {
@@ -68,7 +60,6 @@ export type ThemePreferences = {
 export type Preferences = {
   version: PreferencesSchemaVersion;
   autosave: AutosavePreferences;
-  focus: FocusPreferences;
   recentFiles: RecentFilesPreferences;
   ui: UiPreferences;
   document: DocumentPreferences;
@@ -77,7 +68,6 @@ export type Preferences = {
 
 export type PreferencesUpdate = {
   autosave?: Partial<AutosavePreferences>;
-  focus?: Partial<FocusPreferences>;
   recentFiles?: Partial<RecentFilesPreferences>;
   ui?: Partial<UiPreferences>;
   document?: Partial<DocumentPreferences>;
@@ -88,10 +78,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   version: PREFERENCES_SCHEMA_VERSION,
   autosave: {
     idleDelayMs: 1000
-  },
-  focus: {
-    triggerMode: "auto",
-    idleDelayMs: 3000
   },
   recentFiles: {
     maxEntries: 10
@@ -115,8 +101,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 const AUTOSAVE_IDLE_MIN_MS = 100;
 const AUTOSAVE_IDLE_MAX_MS = 60_000;
-const FOCUS_IDLE_MIN_MS = 500;
-const FOCUS_IDLE_MAX_MS = 30_000;
 
 const RECENT_FILES_MIN = 0;
 const RECENT_FILES_MAX = 100;
@@ -126,7 +110,6 @@ const FONT_SIZE_MAX = 72;
 
 const THEME_MODES: readonly ThemeMode[] = ["system", "light", "dark"];
 const THEME_EFFECTS_MODES: readonly ThemeEffectsMode[] = ["auto", "full", "off"];
-const FOCUS_TRIGGER_MODES: readonly FocusTriggerMode[] = ["manual", "auto"];
 
 function clampInteger(value: number, min: number, max: number): number {
   return Math.min(Math.max(Math.round(value), min), max);
@@ -142,24 +125,6 @@ function normalizeIdleDelay(value: unknown): number {
   }
 
   return clampInteger(value, AUTOSAVE_IDLE_MIN_MS, AUTOSAVE_IDLE_MAX_MS);
-}
-
-function normalizeFocusIdleDelay(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return DEFAULT_PREFERENCES.focus.idleDelayMs;
-  }
-
-  return clampInteger(value, FOCUS_IDLE_MIN_MS, FOCUS_IDLE_MAX_MS);
-}
-
-function normalizeFocusTriggerMode(value: unknown): FocusTriggerMode {
-  if (typeof value !== "string") {
-    return DEFAULT_PREFERENCES.focus.triggerMode;
-  }
-
-  return FOCUS_TRIGGER_MODES.includes(value as FocusTriggerMode)
-    ? (value as FocusTriggerMode)
-    : DEFAULT_PREFERENCES.focus.triggerMode;
 }
 
 function normalizeMaxEntries(value: unknown): number {
@@ -281,7 +246,6 @@ export function normalizePreferences(raw: unknown): Preferences {
   const source = isRecord(raw) ? raw : {};
 
   const autosaveSource = isRecord(source.autosave) ? source.autosave : {};
-  const focusSource = isRecord(source.focus) ? source.focus : {};
   const recentFilesSource = isRecord(source.recentFiles) ? source.recentFiles : {};
   const uiSource = isRecord(source.ui) ? source.ui : {};
   const documentSource = isRecord(source.document) ? source.document : {};
@@ -291,10 +255,6 @@ export function normalizePreferences(raw: unknown): Preferences {
     version: PREFERENCES_SCHEMA_VERSION,
     autosave: {
       idleDelayMs: normalizeIdleDelay(autosaveSource.idleDelayMs)
-    },
-    focus: {
-      triggerMode: normalizeFocusTriggerMode(focusSource.triggerMode),
-      idleDelayMs: normalizeFocusIdleDelay(focusSource.idleDelayMs)
     },
     recentFiles: {
       maxEntries: normalizeMaxEntries(recentFilesSource.maxEntries)
@@ -362,7 +322,6 @@ export function mergePreferences(
   return normalizePreferences({
     version: PREFERENCES_SCHEMA_VERSION,
     autosave: { ...current.autosave, ...patch.autosave },
-    focus: { ...current.focus, ...patch.focus },
     recentFiles: { ...current.recentFiles, ...patch.recentFiles },
     ui: { ...current.ui, ...patch.ui },
     document: { ...current.document, ...patch.document },

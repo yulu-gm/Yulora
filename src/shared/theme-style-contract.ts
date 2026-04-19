@@ -4,7 +4,7 @@ export const THEME_RUNTIME_THEME_MODE_ATTRIBUTE = "data-yulora-theme-mode";
 
 export const THEME_RUNTIME_ENV_CSS_VARS = {
   wordCount: "--yulora-env-word-count",
-  focusMode: "--yulora-env-focus-mode",
+  readingMode: "--yulora-env-reading-mode",
   viewportWidth: "--yulora-env-viewport-width",
   viewportHeight: "--yulora-env-viewport-height"
 } as const;

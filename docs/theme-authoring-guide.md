@@ -352,13 +352,13 @@ Yulora 当前支持两种参数：
 
 除了 `parameters[]`，runtime 还会自动提供一组内建环境值，不需要也不允许在 manifest 中声明：
 
-- CSS：`--yulora-env-word-count`、`--yulora-env-focus-mode`、`--yulora-env-viewport-width`、`--yulora-env-viewport-height`
+- CSS：`--yulora-env-word-count`、`--yulora-env-reading-mode`、`--yulora-env-viewport-width`、`--yulora-env-viewport-height`
 - 属性：`:root[data-yulora-theme-mode="light|dark"]`
-- shader uniforms：`u_wordCount`、`u_focusMode`、`u_themeMode`、`u_viewportWidth`、`u_viewportHeight`
+- shader uniforms：`u_wordCount`、`u_readingMode`、`u_themeMode`、`u_viewportWidth`、`u_viewportHeight`
 
 推荐用途：
 
-- 用字数或 focus mode 调整动态强度
+- 用字数或 reading mode 调整动态强度
 - 用 viewport 做背景构图或密度控制
 - 用 `data-yulora-theme-mode` 写 light/dark 分支，而不是再造私有 mode 标记
 
@@ -650,7 +650,7 @@ node scripts/sync-dev-themes.mjs
 - 样式挂载顺序仍为 `tokens -> ui -> titlebar -> editor -> markdown`
 - 主题缺失的样式 part 不会残留旧主题样式
 - 编辑区、设置页、状态栏、空态、侧边轨都保持可读
-- `document.documentElement` 上能看到 `--yulora-env-word-count`、`--yulora-env-focus-mode`、`--yulora-env-viewport-width`、`--yulora-env-viewport-height` 与 `data-yulora-theme-mode`
+- `document.documentElement` 上能看到 `--yulora-env-word-count`、`--yulora-env-reading-mode`、`--yulora-env-viewport-width`、`--yulora-env-viewport-height` 与 `data-yulora-theme-mode`
 
 ### C. 回退验收
 

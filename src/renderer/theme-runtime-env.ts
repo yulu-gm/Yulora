@@ -7,7 +7,7 @@ type ThemeMode = "light" | "dark";
 
 export type ThemeRuntimeEnv = {
   wordCount: number;
-  focusMode: 0 | 1;
+  readingMode: 0 | 1;
   themeMode: ThemeMode;
   viewport: {
     width: number;
@@ -17,13 +17,13 @@ export type ThemeRuntimeEnv = {
 
 export function buildThemeRuntimeEnv(input: {
   wordCount: number;
-  isFocusModeActive: boolean;
+  isReadingMode: boolean;
   themeMode: ThemeMode;
   viewport: ThemeRuntimeEnv["viewport"];
 }): ThemeRuntimeEnv {
   return {
     wordCount: input.wordCount,
-    focusMode: input.isFocusModeActive ? 1 : 0,
+    readingMode: input.isReadingMode ? 1 : 0,
     themeMode: input.themeMode,
     viewport: input.viewport
   };
@@ -32,7 +32,7 @@ export function buildThemeRuntimeEnv(input: {
 export function applyThemeRuntimeEnv(root: HTMLElement, env: ThemeRuntimeEnv): void {
   root.setAttribute(THEME_RUNTIME_THEME_MODE_ATTRIBUTE, env.themeMode);
   root.style.setProperty(THEME_RUNTIME_ENV_CSS_VARS.wordCount, String(env.wordCount));
-  root.style.setProperty(THEME_RUNTIME_ENV_CSS_VARS.focusMode, String(env.focusMode));
+  root.style.setProperty(THEME_RUNTIME_ENV_CSS_VARS.readingMode, String(env.readingMode));
   root.style.setProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportWidth, String(env.viewport.width));
   root.style.setProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportHeight, String(env.viewport.height));
 }
@@ -40,7 +40,7 @@ export function applyThemeRuntimeEnv(root: HTMLElement, env: ThemeRuntimeEnv): v
 export function clearThemeRuntimeEnv(root: HTMLElement): void {
   root.removeAttribute(THEME_RUNTIME_THEME_MODE_ATTRIBUTE);
   root.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.wordCount);
-  root.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.focusMode);
+  root.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.readingMode);
   root.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportWidth);
   root.style.removeProperty(THEME_RUNTIME_ENV_CSS_VARS.viewportHeight);
 }

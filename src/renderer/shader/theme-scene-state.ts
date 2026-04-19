@@ -25,7 +25,7 @@ export type ThemeSceneState = {
   nextFrame: (surface: ThemeSurfaceSlot, viewport: ThemeSceneViewport) => ThemeSceneFrame;
 };
 
-export type ThemeSceneRuntimeEnv = Pick<ThemeRuntimeEnv, "wordCount" | "focusMode" | "viewport">;
+export type ThemeSceneRuntimeEnv = Pick<ThemeRuntimeEnv, "wordCount" | "readingMode" | "viewport">;
 
 type ThemeSceneStateInput = {
   sceneId: string;
@@ -68,14 +68,14 @@ function normalizeWordCount(wordCount: number): number {
   return Number.isFinite(wordCount) ? Math.max(0, Math.round(wordCount)) : 0;
 }
 
-function normalizeFocusMode(focusMode: number): 0 | 1 {
-  return focusMode === 1 ? 1 : 0;
+function normalizeReadingMode(readingMode: number): 0 | 1 {
+  return readingMode === 1 ? 1 : 0;
 }
 
 function normalizeRuntimeEnv(runtimeEnv: ThemeSceneRuntimeEnv): ThemeSceneRuntimeEnv {
   return {
     wordCount: normalizeWordCount(runtimeEnv.wordCount),
-    focusMode: normalizeFocusMode(runtimeEnv.focusMode),
+    readingMode: normalizeReadingMode(runtimeEnv.readingMode),
     viewport: normalizeViewport(runtimeEnv.viewport)
   };
 }
@@ -90,7 +90,7 @@ function createBuiltInUniforms(
   return {
     themeMode: resolveThemeModeUniform(mode),
     wordCount: runtimeEnv.wordCount,
-    focusMode: runtimeEnv.focusMode,
+    readingMode: runtimeEnv.readingMode,
     viewportWidth: normalizedViewport.width,
     viewportHeight: normalizedViewport.height
   };

@@ -124,7 +124,6 @@ type ThemePackageManifest = {
 type Preferences = {
   version: 2;
   autosave: { idleDelayMs: number };
-  focus: { triggerMode: "manual" | "auto"; idleDelayMs: number };
   recentFiles: { maxEntries: number };
   ui: { fontFamily: string | null; fontSize: number | null };
   document: { fontFamily: string | null; cjkFontFamily: string | null; fontSize: number | null };
@@ -138,7 +137,6 @@ type Preferences = {
 
 type PreferencesUpdate = {
   autosave?: Partial<Preferences["autosave"]>;
-  focus?: Partial<Preferences["focus"]>;
   recentFiles?: Partial<Preferences["recentFiles"]>;
   ui?: Partial<Preferences["ui"]>;
   document?: Partial<Preferences["document"]>;

@@ -13,10 +13,23 @@
   --yulora-danger-border: color-mix(in srgb, var(--yulora-border-subtle) 56%, #c94f4f 44%);
   --yulora-danger-text: #8b1e2a;
   --yulora-focus-ring: var(--yulora-pearl-accent);
+  --yulora-welcome-heading: color-mix(in srgb, var(--yulora-text-strong) 94%, var(--yulora-pearl-accent-deep) 6%);
+  --yulora-welcome-kicker: color-mix(in srgb, var(--yulora-text-subtle) 88%, var(--yulora-pearl-accent-soft) 12%);
+  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-secondary) 90%, var(--yulora-workspace-bg));
+  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 44%, transparent);
+  --yulora-welcome-meta-border: color-mix(in srgb, var(--yulora-glass-border) 56%, var(--yulora-border-subtle));
+  --yulora-welcome-meta-text: color-mix(in srgb, var(--yulora-text-subtle) 88%, var(--yulora-pearl-accent-soft) 12%);
+  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, transparent);
+  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 96%, transparent);
+  --yulora-rail-control-border: var(--yulora-border-subtle);
+  --yulora-rail-control-border-hover: var(--yulora-border-muted);
+  --yulora-rail-control-fg: var(--yulora-text-secondary);
+  --yulora-rail-control-fg-hover: var(--yulora-text-strong);
+  --yulora-rail-control-shadow: var(--yulora-shadow-1);
 }
 
 /* Dark-mode accent: pull the periwinkle up so it stays legible on indigo. */
-:root[data-yulora-theme="dark"] {
+:root[data-yulora-theme-mode="dark"] {
   --yulora-pearl-accent: #a19eef;
   --yulora-pearl-accent-soft: #c4c1f7;
   --yulora-pearl-accent-deep: #7773d8;
@@ -25,28 +38,22 @@
   --yulora-danger-bg: color-mix(in srgb, var(--yulora-surface-bg) 80%, #c94f4f 20%);
   --yulora-danger-border: color-mix(in srgb, var(--yulora-border-subtle) 50%, #c94f4f 50%);
   --yulora-danger-text: #ffc6cd;
+  --yulora-welcome-heading: color-mix(in srgb, var(--yulora-text-strong) 92%, var(--yulora-pearl-accent-soft) 8%);
+  --yulora-welcome-kicker: color-mix(in srgb, var(--yulora-text-subtle) 84%, var(--yulora-pearl-accent-soft) 16%);
+  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-secondary) 90%, var(--yulora-pearl-accent-soft) 10%);
+  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 58%, transparent);
+  --yulora-welcome-meta-border: color-mix(in srgb, var(--yulora-glass-border) 64%, var(--yulora-pearl-accent-soft) 18%);
+  --yulora-welcome-meta-text: color-mix(in srgb, var(--yulora-text-subtle) 74%, var(--yulora-pearl-accent-soft) 26%);
+  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 68%, var(--yulora-surface-raised-bg));
+  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-glass-strong-bg) 82%, var(--yulora-surface-muted-bg));
+  --yulora-rail-control-border: color-mix(in srgb, var(--yulora-glass-border) 70%, var(--yulora-border-subtle));
+  --yulora-rail-control-border-hover: color-mix(in srgb, var(--yulora-glass-border) 62%, var(--yulora-pearl-accent-soft) 38%);
+  --yulora-rail-control-fg: color-mix(in srgb, var(--yulora-text-secondary) 86%, var(--yulora-pearl-accent-soft) 14%);
+  --yulora-rail-control-fg-hover: color-mix(in srgb, var(--yulora-text-strong) 82%, var(--yulora-pearl-accent-soft) 18%);
+  --yulora-rail-control-shadow: 0 12px 28px color-mix(in srgb, var(--yulora-scrim) 18%, transparent);
 }
 
 :root {
-
-  --yu-ctrl-solid-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, transparent);
-  --yu-ctrl-solid-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 96%, transparent);
-  --yu-ctrl-solid-border: var(--yulora-border-subtle);
-  --yu-ctrl-solid-border-hover: var(--yulora-border-muted);
-  --yu-ctrl-text: var(--yulora-text-secondary);
-  --yu-ctrl-text-hover: var(--yulora-text-strong);
-  --yu-ctrl-glass-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 52%, var(--yulora-surface-raised-bg));
-  --yu-ctrl-glass-bg-hover: color-mix(in srgb, var(--yulora-glass-strong-bg) 74%, var(--yulora-surface-raised-bg));
-  --yu-ctrl-glass-border: var(--yulora-glass-border);
-  --yu-ctrl-glass-border-hover: color-mix(in srgb, var(--yulora-glass-border) 60%, var(--yulora-pearl-accent) 40%);
-  --yu-input-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 50%, var(--yulora-surface-raised-bg));
-  --yu-input-bg-focus: color-mix(in srgb, var(--yulora-glass-strong-bg) 72%, var(--yulora-surface-raised-bg));
-  --yu-input-border: var(--yulora-border-muted);
-  --yu-input-border-focus: var(--yulora-focus-ring);
-  --yu-input-ring: color-mix(in srgb, var(--yulora-focus-ring) 22%, transparent);
-  --yu-segment-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 44%, var(--yulora-surface-raised-bg));
-  --yu-segment-border: var(--yulora-border-muted);
-  --yu-segment-active-bg: color-mix(in srgb, var(--yulora-glass-strong-bg) 68%, var(--yulora-surface-raised-bg));
 }
 
 /* Side rail — pearly frosted glass hugging the left of the shader.

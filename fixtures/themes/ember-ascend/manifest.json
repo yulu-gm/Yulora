@@ -1,5 +1,6 @@
 {
   "id": "ember-ascend",
+  "contractVersion": 2,
   "name": "Ember Ascend",
   "version": "1.0.0",
   "author": "Yulora",
