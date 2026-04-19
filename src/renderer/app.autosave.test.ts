@@ -2679,6 +2679,11 @@ describe("App autosave", () => {
     await renderAndOpenDocument();
 
     await act(async () => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
       window.dispatchEvent(
         new KeyboardEvent("keydown", {
           key: "Control",
