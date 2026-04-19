@@ -47,6 +47,20 @@ function createCanvas(width = 640, height = 360): TestCanvas {
   });
 }
 
+function createRuntimeEnv(
+  overrides: Partial<{
+    wordCount: number;
+    focusMode: 0 | 1;
+    viewport: { width: number; height: number };
+  }> = {}
+) {
+  return {
+    wordCount: overrides.wordCount ?? 0,
+    focusMode: overrides.focusMode ?? 0,
+    viewport: overrides.viewport ?? { width: 640, height: 360 }
+  };
+}
+
 describe("theme surface runtime", () => {
   it("keeps the rain-glass workbench shader sampling an upright scene with reference-style refractive drops", () => {
     const shader = readFileSync(
@@ -234,7 +248,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "off",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -267,7 +282,8 @@ void main() {
         sceneId: "ember-scene",
         themeMode: "dark",
         effectsMode: "full",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -313,7 +329,8 @@ void main() {
         sceneId: "ember-scene",
         themeMode: "dark",
         effectsMode: "full",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -357,7 +374,8 @@ void main() {
         sceneId: "ember-scene",
         themeMode: "dark",
         effectsMode: "full",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -402,7 +420,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "auto",
-        sharedUniforms: { rainAmount: 0.7 }
+        sharedUniforms: { rainAmount: 0.7 },
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -446,7 +465,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "full",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -585,7 +605,8 @@ void main() {
           sceneId: "rain-scene",
           themeMode: "dark",
           effectsMode: "full",
-          sharedUniforms: {}
+          sharedUniforms: {},
+          runtimeEnv: createRuntimeEnv()
         })
       });
 
@@ -635,7 +656,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "auto",
-        sharedUniforms: { rainAmount: 0.7 }
+        sharedUniforms: { rainAmount: 0.7 },
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -695,7 +717,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "auto",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -809,7 +832,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "full",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -843,7 +867,8 @@ void main() {
         sceneId: "rain-scene",
         themeMode: "dark",
         effectsMode: "auto",
-        sharedUniforms: {}
+        sharedUniforms: {},
+        runtimeEnv: createRuntimeEnv()
       })
     });
 
@@ -890,7 +915,8 @@ void main() {
           sceneId: "rain-scene",
           themeMode: "dark",
           effectsMode: "auto",
-          sharedUniforms: {}
+          sharedUniforms: {},
+          runtimeEnv: createRuntimeEnv()
         })
       });
 

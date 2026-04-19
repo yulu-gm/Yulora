@@ -32,7 +32,7 @@ type ThemeSceneStateInput = {
   themeMode: ThemeAppearanceMode;
   effectsMode: ThemeEffectsMode;
   sharedUniforms: Record<string, number>;
-  runtimeEnv?: ThemeSceneRuntimeEnv;
+  runtimeEnv: ThemeSceneRuntimeEnv;
 };
 
 type ThemeSceneStateOptions = {
@@ -96,17 +96,6 @@ function createBuiltInUniforms(
   };
 }
 
-function createDefaultRuntimeEnv(): ThemeSceneRuntimeEnv {
-  return {
-    wordCount: 0,
-    focusMode: 0,
-    viewport: {
-      width: 0,
-      height: 0
-    }
-  };
-}
-
 export function createThemeSceneState(
   input: ThemeSceneStateInput,
   options: ThemeSceneStateOptions = {}
@@ -114,7 +103,7 @@ export function createThemeSceneState(
   const now = options.now ?? getNow;
   const startedAtMs = now();
   const sharedUniforms = cloneUniforms(input.sharedUniforms);
-  let runtimeEnv = normalizeRuntimeEnv(input.runtimeEnv ?? createDefaultRuntimeEnv());
+  let runtimeEnv = normalizeRuntimeEnv(input.runtimeEnv);
   const sharedUniformKeys = Object.freeze(
     Object.keys({
       ...sharedUniforms,
