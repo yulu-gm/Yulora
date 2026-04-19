@@ -26,6 +26,7 @@ import {
 } from "../shared/preferences";
 import type {
   PreloadPreferences,
+  PreloadThemePackageDescriptor,
   PreloadPreferencesUpdate,
   PreloadUpdatePreferencesResult
 } from "./preload";
@@ -52,6 +53,7 @@ import {
   type AppNotification,
   type AppUpdateState
 } from "../shared/app-update";
+import type { ThemePackageManifest } from "../shared/theme-package";
 
 const exposeInMainWorld = vi.fn();
 const invoke = vi.fn();
@@ -110,6 +112,15 @@ describe("preload contract", () => {
       preferences: DEFAULT_PREFERENCES
     };
     expect(sample.status).toBe("success");
+  });
+
+  it("aligns theme package manifest typing with the shared contract", () => {
+    const descriptorContract: TypeEquals<
+      ThemePackageManifest,
+      PreloadThemePackageDescriptor["manifest"]
+    > = true;
+
+    void descriptorContract;
   });
 
   beforeEach(() => {

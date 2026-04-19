@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import type { ThemePackageManifest } from "../shared/theme-package";
 // Preload runs inside Electron's sandboxed environment, so local module imports
 // can prevent the bridge from loading at all. Keep the contract self-contained here.
 const OPEN_MARKDOWN_FILE_CHANNEL = "yulora:open-markdown-file";
@@ -68,26 +69,6 @@ type AppMenuCommand =
 type ThemeMode = "system" | "light" | "dark";
 type ThemeEffectsMode = "auto" | "full" | "off";
 type ThemeParameterOverrides = Record<string, Record<string, number>>;
-type ThemeParameterDescriptor =
-    | {
-      id: string;
-      label: string;
-      type: "slider";
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-      uniform?: string;
-      description?: string;
-    }
-  | {
-      id: string;
-      label: string;
-      type: "toggle";
-      default: boolean;
-      uniform?: string;
-      description?: string;
-    };
 
 type Preferences = {
   version: 2;
@@ -118,33 +99,7 @@ type ThemePackageDescriptor = {
   kind: "manifest-package";
   source: "builtin" | "community";
   packageRoot: string;
-  manifest: {
-    id: string;
-    name: string;
-    version: string;
-    author: string | null;
-    supports: { light: boolean; dark: boolean };
-    tokens: Partial<Record<"light" | "dark", string>>;
-    styles: Partial<Record<"ui" | "editor" | "markdown" | "titlebar", string>>;
-    layout: { titlebar: string | null };
-    scene: {
-      id: string;
-      sharedUniforms: Record<string, number>;
-      render?: { renderScale?: number; frameRate?: number };
-    } | null;
-    surfaces: Partial<
-      Record<
-        "workbenchBackground" | "titlebarBackdrop" | "welcomeHero",
-        {
-          kind: "fragment";
-          scene: string;
-          shader: string;
-          render?: { renderScale?: number; frameRate?: number };
-        }
-      >
-    >;
-    parameters: ThemeParameterDescriptor[];
-  };
+  manifest: ThemePackageManifest;
 };
 
 type AppUpdateState =
@@ -190,6 +145,7 @@ type UpdatePreferencesResult =
 export type {
   Preferences as PreloadPreferences,
   PreferencesUpdate as PreloadPreferencesUpdate,
+  ThemePackageDescriptor as PreloadThemePackageDescriptor,
   AppNotification as PreloadAppNotification,
   AppUpdateState as PreloadAppUpdateState,
   UpdatePreferencesResult as PreloadUpdatePreferencesResult

@@ -70,6 +70,7 @@ function makeManifestThemePackage(
     packageRoot: `/tmp/yulora/themes/${id}`,
     manifest: {
       id,
+      contractVersion: 2,
       name: overrides.name ?? "Manifest Theme",
       version: "1.0.0",
       author: null,
