@@ -8,6 +8,7 @@ import { ThemeSurfaceHost } from "./ThemeSurfaceHost";
 import type { ThemeRuntimeEnv } from "../theme-runtime-env";
 
 const themeSurfaceRuntimeMock = vi.hoisted(() => ({
+  invalidate: vi.fn(),
   mount: vi.fn(
     async ({
       shaderSource
@@ -16,6 +17,7 @@ const themeSurfaceRuntimeMock = vi.hoisted(() => ({
       sceneState?: unknown;
     }) => ({
       mode: shaderSource.includes("broken") ? ("fallback" as const) : ("full" as const),
+      invalidate: themeSurfaceRuntimeMock.invalidate,
       unmount: vi.fn()
     })
   )
@@ -70,6 +72,7 @@ describe("ThemeSurfaceHost", () => {
 
     container.remove();
     vi.unstubAllGlobals();
+    themeSurfaceRuntimeMock.invalidate.mockClear();
     themeSurfaceRuntimeMock.mount.mockClear();
   });
 
@@ -318,6 +321,7 @@ describe("ThemeSurfaceHost", () => {
     });
 
     expect(themeSurfaceRuntimeMock.mount).toHaveBeenCalledTimes(1);
+    expect(themeSurfaceRuntimeMock.invalidate).toHaveBeenCalledTimes(1);
     expect(
       runtimeInput?.sceneState.nextFrame("workbenchBackground", { width: 640, height: 360 }).uniforms
     ).toMatchObject({

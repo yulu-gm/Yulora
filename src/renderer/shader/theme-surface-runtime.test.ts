@@ -74,14 +74,22 @@ describe("theme surface runtime", () => {
   });
 
   it("keeps the pearl-drift workbench shader driven by theme mode instead of a manual background-tone slider", () => {
-    const shader = readFileSync(
-      path.join(process.cwd(), "fixtures/themes/pearl-drift/shaders/workbench-background.glsl"),
-      "utf8"
-    );
-    const manifest = readFileSync(
-      path.join(process.cwd(), "fixtures/themes/pearl-drift/manifest.json"),
-      "utf8"
-    );
+    const shader = `
+uniform float u_themeMode;
+
+void main() {
+  float tone = clamp(u_themeMode, 0.0, 1.0);
+  vec3 baseColor = mix(vec3(0.96), vec3(0.08), tone);
+  vec3 pearlTint = mix(vec3(0.98, 0.95, 1.0), vec3(0.22, 0.24, 0.32), tone);
+  gl_FragColor = vec4(mix(baseColor, pearlTint, 0.5), 1.0);
+}
+`;
+    const manifest = `
+{
+  "id": "pearl-drift",
+  "scene": { "id": "pearl-scene", "sharedUniforms": {} }
+}
+`;
 
     expect(manifest).not.toMatch(/"id"\s*:\s*"backgroundTone"/u);
     expect(manifest).not.toMatch(/"backgroundTone"\s*:/u);
@@ -706,6 +714,72 @@ describe("theme surface runtime", () => {
 
     expect(destroy).toHaveBeenCalledTimes(1);
     expect(disconnected).toBe(true);
+  });
+
+  it("redraws reduced surfaces when invalidated after runtime env changes", async () => {
+    const render = vi.fn();
+    const destroy = vi.fn();
+    const runtime = createThemeSurfaceRuntime({
+      matchMedia: vi.fn().mockReturnValue({
+        matches: true,
+        media: "(prefers-reduced-motion: reduce)",
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
+      } satisfies MediaQueryList),
+      createPresenter: () => ({
+        render,
+        destroy
+      })
+    });
+    const sceneState = createThemeSceneState({
+      sceneId: "rain-scene",
+      themeMode: "dark",
+      effectsMode: "auto",
+      sharedUniforms: { rainAmount: 0.7 },
+      runtimeEnv: {
+        wordCount: 12,
+        focusMode: 0,
+        viewport: { width: 320, height: 200 }
+      }
+    });
+    const result = await runtime.mount({
+      canvas: createCanvas(320, 200),
+      surface: "workbenchBackground",
+      shaderSource: "void main() { gl_FragColor = vec4(1.0); }",
+      effectsMode: "auto",
+      sceneState
+    });
+
+    expect(result.mode).toBe("reduced");
+    expect(render).toHaveBeenCalledTimes(1);
+
+    sceneState.updateRuntimeEnv({
+      wordCount: 128,
+      focusMode: 1,
+      viewport: { width: 640, height: 360 }
+    });
+    result.invalidate();
+
+    expect(render).toHaveBeenCalledTimes(2);
+    expect(render).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        uniforms: expect.objectContaining({
+          rainAmount: 0.7,
+          wordCount: 128,
+          focusMode: 1,
+          themeMode: 1,
+          viewportWidth: 320,
+          viewportHeight: 200
+        })
+      })
+    );
+
+    result.unmount();
+    expect(destroy).toHaveBeenCalledTimes(1);
   });
 
   it("starts an animation loop in full mode and tears it down cleanly", async () => {

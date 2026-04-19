@@ -38,6 +38,9 @@ type ScenarioRunTerminalListener = (payload: ScenarioRunTerminal) => void;
 type PreferencesChangedListener = (preferences: Preferences) => void;
 type ThemePackageDescriptor = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
 type UpdatePreferencesResult = Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>;
+type MockMediaQueryList = MediaQueryList & {
+  __setMatches: (matches: boolean) => void;
+};
 
 type SettingsDriver = {
   openSettings: () => Promise<void>;
@@ -386,6 +389,7 @@ describe("App autosave", () => {
   let listFontFamilies: ReturnType<typeof vi.fn<() => Promise<string[]>>>;
   let listThemePackages: ReturnType<typeof vi.fn<() => Promise<ThemePackageDescriptor[]>>>;
   let refreshThemePackages: ReturnType<typeof vi.fn<() => Promise<ThemePackageDescriptor[]>>>;
+  let colorSchemeMediaQuery: MockMediaQueryList;
 
   const builtinDefaultThemePackage = makeManifestThemePackage({
     id: "default",
@@ -404,6 +408,54 @@ describe("App autosave", () => {
     }
 
     return [builtinDefaultThemePackage, ...packages];
+  }
+
+  function createMockMediaQueryList(query: string, initialMatches = false): MockMediaQueryList {
+    const mediaQueryList = {} as MockMediaQueryList;
+    const listeners = new Map<unknown, (event: MediaQueryListEvent) => void>();
+    let matches = initialMatches;
+
+    Object.defineProperty(mediaQueryList, "matches", {
+      configurable: true,
+      get: () => matches
+    });
+
+    Object.defineProperty(mediaQueryList, "media", {
+      configurable: true,
+      get: () => query
+    });
+    mediaQueryList.onchange = null;
+    mediaQueryList.addEventListener = vi.fn(
+      (_type: string, listener: EventListenerOrEventListenerObject) => {
+        const normalizedListener =
+          typeof listener === "function"
+            ? (event: MediaQueryListEvent) => listener.call(mediaQueryList, event)
+            : (event: MediaQueryListEvent) => listener.handleEvent(event);
+        listeners.set(listener, normalizedListener);
+      }
+    ) as MediaQueryList["addEventListener"];
+    mediaQueryList.removeEventListener = vi.fn(
+      (_type: string, listener: EventListenerOrEventListenerObject) => {
+        listeners.delete(listener);
+      }
+    ) as MediaQueryList["removeEventListener"];
+    mediaQueryList.addListener = vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+      listeners.set(listener, listener);
+    });
+    mediaQueryList.removeListener = vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+      listeners.delete(listener);
+    });
+    mediaQueryList.dispatchEvent = vi.fn(() => true);
+    mediaQueryList.__setMatches = (nextMatches: boolean) => {
+      matches = nextMatches;
+      const event = { matches: nextMatches, media: query } as MediaQueryListEvent;
+      mediaQueryList.onchange?.call(mediaQueryList, event);
+      for (const listener of listeners.values()) {
+        listener(event);
+      }
+    };
+
+    return mediaQueryList;
   }
 
   beforeEach(() => {
@@ -428,6 +480,17 @@ describe("App autosave", () => {
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockReturnValue(null as ReturnType<HTMLCanvasElement["getContext"]>);
     vi.stubGlobal("fetch", fetchMock);
+    colorSchemeMediaQuery = createMockMediaQueryList("(prefers-color-scheme: dark)", false);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => {
+        if (query === "(prefers-color-scheme: dark)") {
+          return colorSchemeMediaQuery;
+        }
+
+        return createMockMediaQueryList(query, false);
+      })
+    );
 
     openMarkdownFile = vi.fn<() => Promise<OpenMarkdownFileResult>>().mockResolvedValue({
       status: "success",
@@ -1741,6 +1804,54 @@ describe("App autosave", () => {
 
     expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).toBeNull();
     expect(document.documentElement.getAttribute("data-yulora-theme-dynamic-mode")).toBe("off");
+  });
+
+  it("re-resolves shader surfaces through React state when the system theme flips", async () => {
+    colorSchemeMediaQuery.__setMatches(true);
+
+    await renderEditorApp({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "system",
+          selectedId: "rain-glass",
+          effectsMode: "auto"
+        }
+      },
+      listThemePackagesResult: [
+        makeManifestThemePackage({
+          id: "rain-glass",
+          name: "Rain Glass",
+          supports: {
+            light: false,
+            dark: true
+          },
+          scene: {
+            id: "rain-scene",
+            sharedUniforms: { rainAmount: 0.7 }
+          },
+          surfaces: {
+            workbenchBackground: {
+              kind: "fragment",
+              scene: "rain-scene",
+              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+            }
+          }
+        })
+      ]
+    });
+
+    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).not.toBeNull();
+    expect(document.documentElement.getAttribute("data-yulora-theme")).toBe("dark");
+
+    await act(async () => {
+      colorSchemeMediaQuery.__setMatches(false);
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).toBeNull();
+    expect(document.documentElement.getAttribute("data-yulora-theme")).toBe("light");
   });
 
   it("shows a refresh error banner when refreshing theme packages fails", async () => {

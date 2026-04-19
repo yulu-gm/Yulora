@@ -86,6 +86,7 @@ export function ThemeSurfaceHost({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef(createThemeSurfaceRuntime());
   const sceneStateRef = useRef<ReturnType<typeof createThemeSceneState> | null>(null);
+  const mountedSurfaceRef = useRef<{ invalidate: () => void; unmount: () => void } | null>(null);
   const [mode, setMode] = useState<ThemeSurfaceRuntimeMode>("fallback");
   const sharedUniformsSignature = useMemo(
     () => serializeSharedUniforms(descriptor.sharedUniforms),
@@ -156,6 +157,7 @@ export function ThemeSurfaceHost({
           return;
         }
 
+        mountedSurfaceRef.current = result;
         mountedSurface = result;
         setMode(result.mode);
         onRuntimeModeChange?.(result.mode);
@@ -173,6 +175,7 @@ export function ThemeSurfaceHost({
       isDisposed = true;
       abortController.abort();
       sceneStateRef.current = null;
+      mountedSurfaceRef.current = null;
       mountedSurface?.unmount();
     };
   }, [
@@ -193,6 +196,7 @@ export function ThemeSurfaceHost({
       focusMode: runtimeEnv.focusMode,
       viewport: runtimeEnv.viewport
     });
+    mountedSurfaceRef.current?.invalidate();
   }, [runtimeEnvSignature, runtimeEnv]);
 
   return (

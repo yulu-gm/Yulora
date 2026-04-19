@@ -429,6 +429,9 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const [titlebarSurfaceRuntimeMode, setTitlebarSurfaceRuntimeMode] = useState<
     ThemeSurfaceRuntimeMode | null
   >(null);
+  const [systemThemeMode, setSystemThemeMode] = useState<ResolvedThemeMode>(() =>
+    resolveThemeMode("system")
+  );
   const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [isShortcutHintArmed, setIsShortcutHintArmed] = useState(false);
   const editorRef = useRef<CodeEditorHandle | null>(null);
@@ -496,7 +499,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     ? `正在下载更新${Number.isFinite(appUpdateState.percent) ? ` ${Math.round(appUpdateState.percent)}%` : "…"}`
     : null;
   const controlledTitlebarEnabled = supportsControlledTitlebar(yulora.platform);
-  const resolvedThemeMode = resolveThemeMode(preferences.theme.mode);
+  const resolvedThemeMode =
+    preferences.theme.mode === "system" ? systemThemeMode : preferences.theme.mode;
   const themeRuntimeEnv = useMemo<ThemeRuntimeEnv>(
     () =>
       buildThemeRuntimeEnv({
@@ -1273,6 +1277,22 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [focusModeSource, preferences.focus.triggerMode, scheduleFocusIdle]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
+
+    if (!mediaQuery) {
+      return undefined;
+    }
+
+    const applySystemThemeMode = () => {
+      setSystemThemeMode(mediaQuery.matches ? "dark" : "light");
+    };
+
+    applySystemThemeMode();
+    mediaQuery.addEventListener("change", applySystemThemeMode);
+    return () => mediaQuery.removeEventListener("change", applySystemThemeMode);
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => syncThemeRuntimeEnv();
 
     window.addEventListener("resize", handleResize);
@@ -1282,25 +1302,6 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   useEffect(() => {
     syncThemeRuntimeEnv(resolvedThemeMode);
   }, [currentDocumentWordCount, isFocusModeActive, resolvedThemeMode]);
-
-  useEffect(() => {
-    if (preferences.theme.mode !== "system") {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
-
-    if (!mediaQuery) {
-      return undefined;
-    }
-
-    const handleChange = () => {
-      syncThemeRuntimeEnv(mediaQuery.matches ? "dark" : "light");
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [preferences.theme.mode]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1460,20 +1461,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     };
 
     applyCurrentTheme();
-
-    if (preferences.theme.mode !== "system") {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
-
-    if (!mediaQuery) {
-      return undefined;
-    }
-
-    mediaQuery.addEventListener("change", applyCurrentTheme);
-    return () => mediaQuery.removeEventListener("change", applyCurrentTheme);
-  }, [activeThemeParameterOverrides, preferences, themePackages]);
+  }, [activeThemeParameterOverrides, preferences, resolvedThemeMode, themePackages]);
 
   useEffect(() => {
     return yulora.onAppUpdateState((nextState) => {
