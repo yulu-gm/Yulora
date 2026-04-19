@@ -497,6 +497,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     : null;
   const controlledTitlebarEnabled = supportsControlledTitlebar(yulora.platform);
   const resolvedThemeMode = resolveThemeMode(preferences.theme.mode);
+  const themeRuntimeEnv = useMemo<ThemeRuntimeEnv>(
+    () =>
+      buildThemeRuntimeEnv({
+        wordCount: currentDocumentWordCount,
+        isFocusModeActive,
+        themeMode: resolvedThemeMode,
+        viewport: getWindowViewport()
+      }),
+    [currentDocumentWordCount, isFocusModeActive, resolvedThemeMode]
+  );
   const activeThemePackages = themePackages.map(normalizeThemePackageDescriptor);
   const activeThemePackageResolution = resolveActiveThemePackage(
     preferences.theme.selectedId,
@@ -579,16 +589,18 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   );
   const shortcutHintModifierKey: "Control" | "Meta" = yulora.platform === "darwin" ? "Meta" : "Control";
   const isShortcutHintVisible = isDocumentOpen && isEditorFocused && isShortcutHintArmed;
+
+  function createThemeRuntimeEnv(themeMode: ResolvedThemeMode = resolvedThemeMode): ThemeRuntimeEnv {
+    return buildThemeRuntimeEnv({
+      wordCount: currentDocumentWordCount,
+      isFocusModeActive,
+      themeMode,
+      viewport: getWindowViewport()
+    });
+  }
+
   const syncThemeRuntimeEnv = useEffectEvent((themeMode: ResolvedThemeMode = resolvedThemeMode): void => {
-    applyThemeRuntimeEnv(
-      document.documentElement,
-      buildThemeRuntimeEnv({
-        wordCount: currentDocumentWordCount,
-        isFocusModeActive,
-        themeMode,
-        viewport: getWindowViewport()
-      })
-    );
+    applyThemeRuntimeEnv(document.documentElement, createThemeRuntimeEnv(themeMode));
   });
 
   function applyState(updater: (current: AppState) => AppState): void {
@@ -1603,6 +1615,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           title={headerTitle}
           isDirty={state.isDirty}
           themeMode={resolvedThemeMode}
+          runtimeEnv={themeRuntimeEnv}
           effectsMode={preferences.theme.effectsMode}
           titlebarSurface={activeTitlebarSurface}
           onTitlebarSurfaceRuntimeModeChange={handleTitlebarSurfaceRuntimeModeChange}
@@ -1617,6 +1630,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             surface="workbenchBackground"
             descriptor={activeWorkbenchSurface}
             themeMode={resolvedThemeMode}
+            runtimeEnv={themeRuntimeEnv}
             effectsMode={preferences.theme.effectsMode}
             onRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
           />
