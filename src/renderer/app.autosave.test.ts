@@ -3725,7 +3725,6 @@ describe("App autosave", () => {
     expect(appUiStylesheet).toContain("var(--yulora-titlebar-bg");
     expect(appUiStylesheet).toContain("var(--yulora-panel-bg");
     expect(appUiStylesheet).toContain("var(--yulora-control-bg");
-    expect(appUiStylesheet).toContain("var(--yulora-statusbar-bg");
     expect(appUiStylesheet).not.toContain("var(--yulora-surface-bg");
     expect(appUiStylesheet).not.toContain("var(--yulora-text-body");
     expect(settingsStylesheet).toContain("var(--yulora-panel-bg");
@@ -3864,8 +3863,10 @@ describe("App autosave", () => {
     expect(rainGlassUiStylesheet).toContain("padding: var(--yulora-space-4) var(--yulora-space-5);");
     expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar');
     expect(rainGlassUiStylesheet).toContain("position: static;");
+    expect(rainGlassUiStylesheet).toContain("background: transparent;");
     expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"]');
-    expect(rainGlassUiStylesheet).toContain("border-top: 1px solid");
+    expect(rainGlassUiStylesheet).not.toContain("border-top: 1px solid");
+    expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"] {\n  min-height: var(--yulora-status-bar-height);\n  padding-top: var(--yulora-space-2);\n  background: transparent;');
   });
 
   it("removes border framing from the editor shell and bottom status bar", () => {
@@ -3886,15 +3887,24 @@ describe("App autosave", () => {
     expect(appStatusBarRule).toContain("background: transparent;");
     expect(appStatusBarRule).not.toContain("box-shadow:");
     expect(appStatusBarRule).not.toContain("backdrop-filter:");
-    expect(statusStripRule).toContain("background: var(--yulora-statusbar-bg, transparent);");
-    expect(statusStripRule).toContain("border: 1px solid var(--yulora-statusbar-border, transparent);");
+    expect(statusStripRule).toContain("background: transparent;");
+    expect(statusStripRule).not.toContain("border:");
+  });
+
+  it("does not paint active paragraphs with block fills or accent rails", () => {
+    const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const activeParagraphRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-active-paragraph");
+
+    expect(activeParagraphRule).toContain("color: var(--yulora-editor-fg, var(--yulora-markdown-body, #31353d));");
+    expect(activeParagraphRule).not.toContain("background:");
+    expect(activeParagraphRule).not.toContain("box-shadow:");
   });
 
   it("styles preferences as a semi-transparent glass drawer", () => {
     const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
 
     expect(settingsStylesheet).toContain(
-      'background: color-mix(in srgb, var(--yulora-app-bg, #111318) 32%, black 68%);'
+      "background: color-mix(in srgb, var(--yulora-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);"
     );
     expect(settingsStylesheet).toContain("backdrop-filter: blur(28px) saturate(1.12);");
     expect(settingsStylesheet).toContain(".settings-shell::before");

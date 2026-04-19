@@ -1042,9 +1042,8 @@
   align-items: center;
   gap: var(--yulora-space-2) var(--yulora-space-5);
   padding: 0 var(--yulora-space-5);
-  border: 1px solid var(--yulora-statusbar-border, transparent);
   border-radius: inherit;
-  background: var(--yulora-statusbar-bg, transparent);
+  background: transparent;
 }
 
 .save-status,

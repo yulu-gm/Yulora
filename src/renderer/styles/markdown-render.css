@@ -80,8 +80,6 @@
 
 .document-editor .cm-active-paragraph {
   color: var(--yulora-editor-fg, var(--yulora-markdown-body, #31353d));
-  background: var(--yulora-active-block-bg, transparent);
-  box-shadow: inset 3px 0 0 var(--yulora-active-block-border, transparent);
 }
 
 .document-editor .cm-inactive-paragraph-leading {

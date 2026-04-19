@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--yulora-app-bg, #111318) 32%, black 68%);
+  background: color-mix(in srgb, var(--yulora-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);
 }
 
 [data-yulora-dialog="settings-drawer"][data-state="open"] {

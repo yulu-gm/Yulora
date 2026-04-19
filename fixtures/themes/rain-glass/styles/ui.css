@@ -142,12 +142,7 @@
   min-height: auto;
   padding: var(--yulora-space-2) 0 0;
   border-radius: 0;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--yulora-statusbar-bg) 88%, transparent),
-      color-mix(in srgb, var(--yulora-panel-bg) 24%, transparent)
-    );
+  background: transparent;
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -156,7 +151,7 @@
 [data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"] {
   min-height: var(--yulora-status-bar-height);
   padding-top: var(--yulora-space-2);
-  border-top: 1px solid color-mix(in srgb, var(--yulora-statusbar-border) 88%, transparent);
+  background: transparent;
 }
 
 /* Outline drawer — frosted glass with gentle sheen. */

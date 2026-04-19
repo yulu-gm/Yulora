@@ -50,6 +50,45 @@ describe("theme package runtime", () => {
     ]);
   });
 
+  it("mounts theme links after existing base stylesheet nodes", () => {
+    const baseStyle = document.createElement("style");
+    baseStyle.dataset.testid = "base-style";
+    baseStyle.textContent = ".base { color: red; }";
+    document.head.appendChild(baseStyle);
+
+    const runtime = createThemePackageRuntime(document);
+
+    runtime.applyPackage(
+      {
+        id: "default",
+        styles: {
+          ui: createPreviewAssetUrl("/theme/ui.css"),
+          markdown: createPreviewAssetUrl("/theme/markdown.css")
+        },
+        tokens: {
+          dark: createPreviewAssetUrl("/theme/tokens-dark.css")
+        }
+      },
+      "dark"
+    );
+
+    expect(Array.from(document.head.children).map((node) => node.getAttribute("data-testid") ?? node.tagName)).toEqual([
+      "base-style",
+      "LINK",
+      "LINK",
+      "LINK"
+    ]);
+    expect(
+      Array.from(document.head.querySelectorAll("link[data-yulora-theme-part]")).map((node) =>
+        node.getAttribute("href")
+      )
+    ).toEqual([
+      createPreviewAssetUrl("/theme/tokens-dark.css"),
+      createPreviewAssetUrl("/theme/ui.css"),
+      createPreviewAssetUrl("/theme/markdown.css")
+    ]);
+  });
+
   it("applies runtime env CSS variables to the root element", () => {
     applyThemeRuntimeEnv(document.documentElement, {
       wordCount: 42,
