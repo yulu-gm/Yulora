@@ -590,8 +590,9 @@
 }
 
 .workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] {
-  width: min(100%, var(--yulora-workspace-max-width));
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"].is-editor-open {
@@ -631,8 +632,8 @@
 
 .workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell {
   width: 100%;
-  max-width: min(100%, 960px);
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 .workspace-shell.is-outline-open {

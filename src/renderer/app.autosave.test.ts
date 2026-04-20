@@ -3736,6 +3736,17 @@ describe("App autosave", () => {
     expect(appSource).toContain('d="M9 6l6 6-6 6"');
   });
 
+  it("keeps the reading shell full width so the scrollbar and outline controls stay on the far right", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+
+    expect(appUiStylesheet).toContain(
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
+    );
+    expect(appUiStylesheet).toContain(
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
+    );
+  });
+
   it("defines shared scrollbar styling for the desktop shell", () => {
     const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
 

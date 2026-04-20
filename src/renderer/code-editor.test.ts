@@ -1665,6 +1665,93 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("renumbers ordered list markers after deleting a middle item", () => {
+    const host = document.createElement("div");
+    const source = ["1. Todo", "2. Todo2", "3. Todo3"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const view = getEditorView(host);
+    const deleteFrom = getLineStartOffset(source, 2);
+    const deleteTo = getLineStartOffset(source, 3);
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(deleteFrom, deleteTo);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(["1. Todo", "2. Todo3"].join("\n"));
+    expect(view?.state.selection.main.anchor).toBe(deleteFrom);
+    expect(view?.state.selection.main.head).toBe(deleteFrom);
+
+    controller.destroy();
+  });
+
+  it("continues an empty ordered list item when later siblings still exist", () => {
+    const host = document.createElement("div");
+    const source = ["1. Todo", "2. ", "3. Todo2", "4. Todo3"].join("\n");
+    const expected = ["1. Todo", "2. ", "3. ", "4. Todo2", "5. Todo3"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+    const view = getEditorView(host);
+    const emptyItemCursor = getLineStartOffset(source, 2) + "2. ".length;
+    const expectedCursor = getLineStartOffset(expected, 3) + "3. ".length;
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(emptyItemCursor);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe(expected);
+    expect(view?.state.selection.main.anchor).toBe(expectedCursor);
+    expect(view?.state.selection.main.head).toBe(expectedCursor);
+
+    controller.destroy();
+  });
+
+  it("exits a trailing empty ordered list item on Enter", () => {
+    const host = document.createElement("div");
+    const source = ["1. Todo", "2. "].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+    const view = getEditorView(host);
+    const emptyItemCursor = getLineStartOffset(source, 2) + "2. ".length;
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(emptyItemCursor);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("1. Todo\n");
+    expect(view?.state.selection.main.anchor).toBe("1. Todo\n".length);
+    expect(view?.state.selection.main.head).toBe("1. Todo\n".length);
+
+    controller.destroy();
+  });
+
   it("exits an empty nested list item on Enter", () => {
     const host = document.createElement("div");
     const source = ["- parent", "  - "].join("\n");

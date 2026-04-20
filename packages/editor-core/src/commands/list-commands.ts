@@ -1,4 +1,4 @@
-import { moveLineDown, moveLineUp } from "@codemirror/commands";
+import { deleteCharBackward, moveLineDown, moveLineUp } from "@codemirror/commands";
 import type { ChangeSpec } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { parseMarkdownDocument, type ListBlock, type ListItemBlock } from "@yulora/markdown-engine";
@@ -18,7 +18,11 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
     return false;
   }
 
-  if (parsed.content.trim().length === 0) {
+  const activeList = activeState.activeBlock?.type === "list" ? activeState.activeBlock : null;
+  const currentItemIndex =
+    activeList?.items.findIndex((item) => selection.head >= item.startOffset && selection.head <= item.endOffset) ?? -1;
+
+  if (parsed.content.trim().length === 0 && shouldExitEmptyListItem(activeList, currentItemIndex)) {
     const deleteTo =
       line.to < view.state.doc.length && view.state.doc.sliceString(line.to, line.to + 1) === "\n"
         ? line.to + 1
@@ -49,16 +53,13 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
   const orderedMarkerMatch = /^(\d+)([.)])$/.exec(parsed.marker);
   if (
     orderedMarkerMatch &&
-    activeState.activeBlock?.type === "list" &&
-    activeState.activeBlock.ordered
+    activeList &&
+    activeList.ordered
   ) {
-    const list = activeState.activeBlock;
+    const list = activeList;
     const currentIndent = parsed.indent.length;
     const delimiter = orderedMarkerMatch[2] ?? ".";
     const insertedNumber = Number.parseInt(orderedMarkerMatch[1] ?? "1", 10) + 1;
-    const currentItemIndex = list.items.findIndex(
-      (item) => insertAt >= item.startOffset && insertAt <= item.endOffset
-    );
 
     if (currentItemIndex >= 0) {
       let nextNumber = insertedNumber + 1;
@@ -90,6 +91,43 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
       head: nextAnchor
     }
   });
+
+  return true;
+}
+
+export function runListBackspace(view: EditorView, activeState: ActiveBlockState): boolean {
+  if (!isInsideOrderedList(activeState)) {
+    return false;
+  }
+  if (!deleteCharBackward(view)) {
+    return false;
+  }
+  renumberOrderedListAtSelection(view);
+  return true;
+}
+
+function shouldExitEmptyListItem(
+  list: ActiveBlockState["activeBlock"] & { type: "list" } | null,
+  currentItemIndex: number
+): boolean {
+  if (!list || currentItemIndex < 0) {
+    return true;
+  }
+
+  const currentItem = list.items[currentItemIndex];
+  if (!currentItem) {
+    return true;
+  }
+
+  for (let index = currentItemIndex + 1; index < list.items.length; index += 1) {
+    const item = list.items[index]!;
+    if (item.indent < currentItem.indent) {
+      return true;
+    }
+    if (item.indent === currentItem.indent) {
+      return false;
+    }
+  }
 
   return true;
 }
