@@ -1,10 +1,17 @@
-import { deleteCharBackward, moveLineDown, moveLineUp } from "@codemirror/commands";
-import type { ChangeSpec } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { parseMarkdownDocument, type ListBlock, type ListItemBlock } from "@yulora/markdown-engine";
+import type { ListItemBlock } from "@yulora/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import { buildContinuationPrefix, parseListLine } from "./line-parsers";
+import {
+  computeIndentListItem,
+  computeMoveListItemDown,
+  computeMoveListItemUp,
+  computeOrderedListEnter,
+  computeOutdentListItem,
+  type ListEdit
+} from "./list-edits";
+import { readSemanticContext } from "./semantic-context";
 
 export function runListEnter(view: EditorView, activeState: ActiveBlockState): boolean {
   const selection = view.state.selection.main;
@@ -18,11 +25,17 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
     return false;
   }
 
-  const activeList = activeState.activeBlock?.type === "list" ? activeState.activeBlock : null;
-  const currentItemIndex =
-    activeList?.items.findIndex((item) => selection.head >= item.startOffset && selection.head <= item.endOffset) ?? -1;
+  const semanticContext = readSemanticContext(view.state, activeState);
+  if (activeState.activeBlock?.type === "list" && /^\d+[.)]$/.test(parsed.marker) && selection.head === line.to) {
+    const orderedEdit = computeOrderedListEnter(semanticContext, parsed.content.trim().length === 0);
 
-  if (parsed.content.trim().length === 0 && shouldExitEmptyListItem(activeList, currentItemIndex)) {
+    if (orderedEdit) {
+      applyListEdit(view, orderedEdit);
+      return true;
+    }
+  }
+
+  if (parsed.content.trim().length === 0) {
     const deleteTo =
       line.to < view.state.doc.length && view.state.doc.sliceString(line.to, line.to + 1) === "\n"
         ? line.to + 1
@@ -46,46 +59,12 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
   const insertAt = selection.head;
   const nextAnchor = insertAt + 1 + continuationPrefix.length;
 
-  const changes: ChangeSpec[] = [
-    { from: insertAt, to: insertAt, insert: `\n${continuationPrefix}` }
-  ];
-
-  const orderedMarkerMatch = /^(\d+)([.)])$/.exec(parsed.marker);
-  if (
-    orderedMarkerMatch &&
-    activeList &&
-    activeList.ordered
-  ) {
-    const list = activeList;
-    const currentIndent = parsed.indent.length;
-    const delimiter = orderedMarkerMatch[2] ?? ".";
-    const insertedNumber = Number.parseInt(orderedMarkerMatch[1] ?? "1", 10) + 1;
-
-    if (currentItemIndex >= 0) {
-      let nextNumber = insertedNumber + 1;
-      for (let index = currentItemIndex + 1; index < list.items.length; index += 1) {
-        const item = list.items[index]!;
-        if (item.indent < currentIndent) {
-          break;
-        }
-        if (item.indent !== currentIndent) {
-          continue;
-        }
-        if (!/^\d+[.)]$/.test(item.marker)) {
-          break;
-        }
-        changes.push({
-          from: item.markerStart,
-          to: item.markerEnd,
-          insert: `${nextNumber}${delimiter}`
-        });
-        nextNumber += 1;
-      }
-    }
-  }
-
   view.dispatch({
-    changes,
+    changes: {
+      from: insertAt,
+      to: insertAt,
+      insert: `\n${continuationPrefix}`
+    },
     selection: {
       anchor: nextAnchor,
       head: nextAnchor
@@ -94,133 +73,26 @@ export function runListEnter(view: EditorView, activeState: ActiveBlockState): b
 
   return true;
 }
-
-export function runListBackspace(view: EditorView, activeState: ActiveBlockState): boolean {
-  if (!isInsideOrderedList(activeState)) {
-    return false;
-  }
-  if (!deleteCharBackward(view)) {
-    return false;
-  }
-  renumberOrderedListAtSelection(view);
-  return true;
-}
-
-function shouldExitEmptyListItem(
-  list: ActiveBlockState["activeBlock"] & { type: "list" } | null,
-  currentItemIndex: number
-): boolean {
-  if (!list || currentItemIndex < 0) {
-    return true;
-  }
-
-  const currentItem = list.items[currentItemIndex];
-  if (!currentItem) {
-    return true;
-  }
-
-  for (let index = currentItemIndex + 1; index < list.items.length; index += 1) {
-    const item = list.items[index]!;
-    if (item.indent < currentItem.indent) {
-      return true;
-    }
-    if (item.indent === currentItem.indent) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 export function runListMoveLineUp(view: EditorView, activeState: ActiveBlockState): boolean {
-  if (!isInsideOrderedList(activeState)) {
-    return false;
-  }
-  if (!moveLineUp(view)) {
-    return false;
-  }
-  renumberOrderedListAtSelection(view);
-  return true;
+  return runOrderedListEdit(view, activeState, computeMoveListItemUp);
 }
 
 export function runListMoveLineDown(view: EditorView, activeState: ActiveBlockState): boolean {
-  if (!isInsideOrderedList(activeState)) {
-    return false;
-  }
-  if (!moveLineDown(view)) {
-    return false;
-  }
-  renumberOrderedListAtSelection(view);
-  return true;
+  return runOrderedListEdit(view, activeState, computeMoveListItemDown);
 }
 
 function isInsideOrderedList(activeState: ActiveBlockState): boolean {
   return activeState.activeBlock?.type === "list" && activeState.activeBlock.ordered;
 }
 
-function renumberOrderedListAtSelection(view: EditorView): void {
-  const source = view.state.doc.toString();
-  const document = parseMarkdownDocument(source);
-  const head = view.state.selection.main.head;
-  const list = document.blocks.find(
-    (block): block is ListBlock =>
-      block.type === "list" && head >= block.startOffset && head <= block.endOffset
-  );
-  if (!list || !list.ordered) {
-    return;
-  }
-
-  const changes = collectOrderedListRenumberChanges(list, source);
-  if (changes.length === 0) {
-    return;
-  }
-  view.dispatch({ changes });
-}
-
-function collectOrderedListRenumberChanges(
-  list: ListBlock,
-  source: string
-): ChangeSpec[] {
-  const changes: ChangeSpec[] = [];
-  const countersByIndent = new Map<number, { value: number; delimiter: string }>();
-
-  for (const item of list.items) {
-    for (const key of [...countersByIndent.keys()]) {
-      if (key > item.indent) {
-        countersByIndent.delete(key);
-      }
-    }
-
-    const orderedMatch = /^(\d+)([.)])$/.exec(item.marker);
-    if (!orderedMatch) {
-      countersByIndent.delete(item.indent);
-      continue;
-    }
-
-    const existing = countersByIndent.get(item.indent);
-    const delimiter = existing?.delimiter ?? orderedMatch[2] ?? ".";
-    const value = (existing?.value ?? 0) + 1;
-    countersByIndent.set(item.indent, { value, delimiter });
-
-    const desiredMarker = `${value}${delimiter}`;
-    const currentMarker = source.slice(item.markerStart, item.markerEnd);
-    if (currentMarker !== desiredMarker) {
-      changes.push({
-        from: item.markerStart,
-        to: item.markerEnd,
-        insert: desiredMarker
-      });
-    }
-  }
-
-  return changes;
-}
-
-
 export function runListIndentOnTab(view: EditorView, activeState: ActiveBlockState): boolean {
   const selection = view.state.selection.main;
   if (!selection.empty || activeState.activeBlock?.type !== "list") {
     return false;
+  }
+
+  if (isInsideOrderedList(activeState)) {
+    return runOrderedListEdit(view, activeState, computeIndentListItem);
   }
 
   const currentItemIndex = activeState.activeBlock.items.findIndex(
@@ -259,6 +131,10 @@ export function runListIndentOnTab(view: EditorView, activeState: ActiveBlockSta
   return true;
 }
 
+export function runListOutdentOnShiftTab(view: EditorView, activeState: ActiveBlockState): boolean {
+  return runOrderedListEdit(view, activeState, computeOutdentListItem);
+}
+
 function findPreviousSiblingIndex(
   items: readonly ListItemBlock[],
   currentItemIndex: number
@@ -292,4 +168,31 @@ function getListItemSubtreeEndOffset(
   }
 
   return subtreeEndOffset;
+}
+
+function runOrderedListEdit(
+  view: EditorView,
+  activeState: ActiveBlockState,
+  computeEdit: (ctx: ReturnType<typeof readSemanticContext>) => ListEdit | null
+): boolean {
+  if (!isInsideOrderedList(activeState)) {
+    return false;
+  }
+
+  const edit = computeEdit(readSemanticContext(view.state, activeState));
+
+  if (!edit) {
+    return false;
+  }
+
+  applyListEdit(view, edit);
+
+  return true;
+}
+
+function applyListEdit(view: EditorView, edit: ListEdit): void {
+  view.dispatch({
+    changes: edit.changes,
+    selection: edit.selection
+  });
 }
