@@ -6,7 +6,7 @@ import {
   type InlineRoot,
   type ListBlock,
   type MarkdownBlock
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 import {
   normalizeHiddenInlineSelectionAnchor,

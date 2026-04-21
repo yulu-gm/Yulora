@@ -4,7 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it, vi } from "vitest";
 
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createActiveBlockStateFromMarkdownDocument } from "../active-block";
 import { deriveTableCursorState } from "../table-cursor-state";

@@ -39,7 +39,7 @@ export {
   type TextEditingShortcut
 } from "./extensions/markdown-shortcuts";
 export {
-  createYuloraMarkdownExtensions,
+  createFishMarkMarkdownExtensions,
   refreshMarkdownDecorations,
-  type CreateYuloraMarkdownExtensionsOptions
+  type CreateFishMarkMarkdownExtensionsOptions
 } from "./extensions";

@@ -1,7 +1,7 @@
 import path from "node:path";
 
-const DEV_APP_NAME = "Yulora Dev";
-const DEV_USER_DATA_DIRNAME = "Yulora-dev";
+const DEV_APP_NAME = "FishMark Dev";
+const DEV_USER_DATA_DIRNAME = "FishMark-dev";
 
 type AppLike = {
   setName: (name: string) => void;

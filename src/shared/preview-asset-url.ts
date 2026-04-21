@@ -1,4 +1,4 @@
-export const PREVIEW_ASSET_PROTOCOL = "yulora-asset";
+export const PREVIEW_ASSET_PROTOCOL = "fishmark-asset";
 export const PREVIEW_ASSET_HOST = "preview";
 
 export function createPreviewAssetUrl(filePath: string): string {

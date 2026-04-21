@@ -41,10 +41,10 @@ type ThemePackageDescriptor = {
 };
 
 declare global {
-  const __YULORA_APP_VERSION__: string;
+  const __FISHMARK_APP_VERSION__: string;
 
   interface Window {
-    yulora: {
+    fishmark: {
       platform: NodeJS.Platform;
       runtimeMode: "editor" | "test-workbench";
       startupOpenPath: string | null;

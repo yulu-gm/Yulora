@@ -32,8 +32,8 @@ describe("normalizeThemePackageManifest", () => {
       }
     });
     expect(THEME_SEMANTIC_STYLE_SLOTS).toContain("markdown.table.border");
-    expect(THEME_RUNTIME_ENV_CSS_VARS.wordCount).toBe("--yulora-env-word-count");
-    expect(THEME_RUNTIME_THEME_MODE_ATTRIBUTE).toBe("data-yulora-theme-mode");
+    expect(THEME_RUNTIME_ENV_CSS_VARS.wordCount).toBe("--fishmark-env-word-count");
+    expect(THEME_RUNTIME_THEME_MODE_ATTRIBUTE).toBe("data-fishmark-theme-mode");
   });
 
   it("rejects manifests with missing or unsupported contract versions", () => {

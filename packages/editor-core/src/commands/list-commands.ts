@@ -1,5 +1,5 @@
 import type { EditorView } from "@codemirror/view";
-import type { ListItemBlock } from "@yulora/markdown-engine";
+import type { ListItemBlock } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import { buildContinuationPrefix, parseListLine } from "./line-parsers";

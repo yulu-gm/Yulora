@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { readFileSync } from "node:fs";
 
-const devServerPort = Number(process.env.YULORA_DEV_SERVER_PORT ?? "5173");
+const devServerPort = Number(process.env.FISHMARK_DEV_SERVER_PORT ?? "5173");
 const packageJson = JSON.parse(
   readFileSync(fileURLToPath(new URL("./package.json", import.meta.url)), "utf8")
 ) as { version: string };
@@ -11,16 +11,16 @@ const packageJson = JSON.parse(
 export default defineConfig({
   base: "./",
   define: {
-    __YULORA_APP_VERSION__: JSON.stringify(packageJson.version)
+    __FISHMARK_APP_VERSION__: JSON.stringify(packageJson.version)
   },
   plugins: [react()],
   resolve: {
     alias: {
-      "@yulora/editor-core": fileURLToPath(new URL("./packages/editor-core/src/index.ts", import.meta.url)),
-      "@yulora/markdown-engine": fileURLToPath(
+      "@fishmark/editor-core": fileURLToPath(new URL("./packages/editor-core/src/index.ts", import.meta.url)),
+      "@fishmark/markdown-engine": fileURLToPath(
         new URL("./packages/markdown-engine/src/index.ts", import.meta.url)
       ),
-      "@yulora/test-harness": fileURLToPath(
+      "@fishmark/test-harness": fileURLToPath(
         new URL("./packages/test-harness/src/index.ts", import.meta.url)
       )
     }

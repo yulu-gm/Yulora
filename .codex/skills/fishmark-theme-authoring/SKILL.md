@@ -1,11 +1,11 @@
 ---
-name: yulora-theme-authoring
-description: 用于在 Yulora 仓库中创建、修改或审查主题时，快速约束 AI 按当前 theme package 架构工作，避免依赖过期目录结构、预留字段或不完整资源，导致主题无法扫描、无法回退或进入软件后失效。
+name: fishmark-theme-authoring
+description: 用于在 FishMark 仓库中创建、修改或审查主题时，快速约束 AI 按当前 theme package 架构工作，避免依赖过期目录结构、预留字段或不完整资源，导致主题无法扫描、无法回退或进入软件后失效。
 ---
 
-# Yulora 主题编写
+# FishMark 主题编写
 
-只在做 Yulora 主题时使用这个 skill。目标不是写出“最炫”的主题，而是先保证主题包能被扫描、切换、回退，并在动态效果失效时仍可用。
+只在做 FishMark 主题时使用这个 skill。目标不是写出“最炫”的主题，而是先保证主题包能被扫描、切换、回退，并在动态效果失效时仍可用。
 
 ## 当前主题模型
 

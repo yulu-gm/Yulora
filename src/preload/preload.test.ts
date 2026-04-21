@@ -55,10 +55,10 @@ describe("preload bridge", () => {
     void api.listThemePackages();
     void api.refreshThemePackages();
 
-    expect(invoke.mock.calls).toContainEqual(["yulora:list-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:refresh-theme-packages"]);
-    expect(invoke.mock.calls).not.toContainEqual(["yulora:list-themes"]);
-    expect(invoke.mock.calls).not.toContainEqual(["yulora:refresh-themes"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:list-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:refresh-theme-packages"]);
+    expect(invoke.mock.calls).not.toContainEqual(["fishmark:list-themes"]);
+    expect(invoke.mock.calls).not.toContainEqual(["fishmark:refresh-themes"]);
   });
 
   it("exposes an openThemesDirectory bridge for the native themes folder action", async () => {
@@ -67,6 +67,6 @@ describe("preload bridge", () => {
     expect(api).toHaveProperty("openThemesDirectory");
     void api.openThemesDirectory();
 
-    expect(invoke.mock.calls).toContainEqual(["yulora:open-themes-directory"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:open-themes-directory"]);
   });
 });

@@ -35,7 +35,7 @@ export function createAppUpdateCheckRunner({
       await controller.checkForUpdates(source);
     } catch (error) {
       const message = resolveErrorMessage(error);
-      logger.error(`[yulora] failed to initialize app updater: ${message}`);
+      logger.error(`[fishmark] failed to initialize app updater: ${message}`);
 
       if (source === "manual") {
         notify({

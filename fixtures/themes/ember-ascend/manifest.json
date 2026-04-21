@@ -3,7 +3,7 @@
   "contractVersion": 2,
   "name": "Ember Ascend",
   "version": "1.0.0",
-  "author": "Yulora",
+  "author": "FishMark",
   "supports": {
     "light": false,
     "dark": true

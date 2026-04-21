@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
-const DEV_USER_DATA_DIRNAME = "Yulora-dev";
+const DEV_USER_DATA_DIRNAME = "FishMark-dev";
 const FIXTURE_THEMES_DIR = path.resolve("fixtures", "themes");
 const appDataDirectory = resolveAppDataDirectory(process.env, process.platform);
 

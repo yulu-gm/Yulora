@@ -1,7 +1,7 @@
 import { deleteCharBackward, insertNewlineAndIndent } from "@codemirror/commands";
 import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import { formatTableMarkdown, parseMarkdownDocument, splitTableLine } from "@yulora/markdown-engine";
+import { formatTableMarkdown, parseMarkdownDocument, splitTableLine } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import { resolveArrowDown, resolveArrowUp } from "../interactions";

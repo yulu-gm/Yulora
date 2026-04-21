@@ -20,6 +20,20 @@ function resolveContext(rawContext) {
   };
 }
 
+export function buildWindowsExecutablePatchOptions({ iconPath, productFilename }) {
+  const executableName = `${productFilename}.exe`;
+
+  return {
+    icon: iconPath,
+    "version-string": {
+      FileDescription: productFilename,
+      ProductName: productFilename,
+      InternalName: executableName,
+      OriginalFilename: executableName
+    }
+  };
+}
+
 async function patchWindowsExecutableIcon(rawContext) {
   const context = resolveContext(rawContext);
 
@@ -47,9 +61,13 @@ async function patchWindowsExecutableIcon(rawContext) {
 
   for (let attempt = 1; attempt <= ICON_PATCH_MAX_ATTEMPTS; attempt += 1) {
     try {
-      await rcedit(executablePath, {
-        icon: iconPath
-      });
+      await rcedit(
+        executablePath,
+        buildWindowsExecutablePatchOptions({
+          iconPath,
+          productFilename: context.productFilename
+        })
+      );
       console.log(`Patched Windows executable icon: ${executablePath}`);
       return;
     } catch (error) {

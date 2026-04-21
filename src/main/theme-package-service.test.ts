@@ -14,7 +14,7 @@ describe("createThemePackageService", () => {
     const moduleDir = path.join(
       path.parse(process.cwd()).root,
       "Applications",
-      "Yulora",
+      "FishMark",
       "resources",
       "app.asar",
       "dist-electron",
@@ -25,7 +25,7 @@ describe("createThemePackageService", () => {
       path.join(
         path.parse(process.cwd()).root,
         "Applications",
-        "Yulora",
+        "FishMark",
         "resources",
         "app.asar",
         "dist",
@@ -35,7 +35,7 @@ describe("createThemePackageService", () => {
   });
 
   it("ignores legacy css-family directories without a manifest", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-"));
     const userDataDir = path.join(root, "userdata");
     await mkdir(path.join(userDataDir, "themes", "graphite", "light"), { recursive: true });
     await mkdir(path.join(userDataDir, "themes", "graphite", "dark"), { recursive: true });
@@ -54,7 +54,7 @@ describe("createThemePackageService", () => {
   });
 
   it("skips malformed manifests and does not surface invalid packages", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-invalid-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-invalid-"));
     const userDataDir = path.join(root, "userdata");
     await mkdir(path.join(userDataDir, "themes", "broken-manifest", "light"), { recursive: true });
     await writeFile(path.join(userDataDir, "themes", "broken-manifest", "manifest.json"), "{", "utf8");
@@ -99,7 +99,7 @@ describe("createThemePackageService", () => {
   });
 
   it("skips theme packages that do not declare contractVersion 2", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-contract-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-contract-"));
     const userDataDir = path.join(root, "userdata");
     await mkdir(path.join(userDataDir, "themes", "legacy-rain"), { recursive: true });
     await writeFile(
@@ -156,7 +156,7 @@ describe("createThemePackageService", () => {
   });
 
   it("maps manifest package asset paths for a valid manifest package", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-legacy-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-legacy-"));
     const userDataDir = path.join(root, "userdata");
     await mkdir(path.join(userDataDir, "themes", "rain-glass"), { recursive: true });
     await writeFile(
@@ -213,7 +213,7 @@ describe("createThemePackageService", () => {
   });
 
   it("keeps cached results until refreshThemePackages() is called", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-cache-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-cache-"));
     const userDataDir = path.join(root, "userdata");
     await mkdir(path.join(userDataDir, "themes", "paper"), { recursive: true });
     await writeFile(path.join(userDataDir, "themes", "paper", "manifest.json"), JSON.stringify({
@@ -271,7 +271,7 @@ describe("createThemePackageService", () => {
   });
 
   it("always includes the builtin default manifest package", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "yulora-theme-packages-default-"));
+    const root = await mkdtemp(path.join(tmpdir(), "fishmark-theme-packages-default-"));
     const userDataDir = path.join(root, "userdata");
 
     const service = createThemePackageService({ userDataDir });

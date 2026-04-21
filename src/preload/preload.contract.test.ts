@@ -185,20 +185,20 @@ describe("preload contract", () => {
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_CHANNEL, saveInput]);
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput]);
     expect(invoke.mock.calls).toContainEqual([IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:open-editor-test-window"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:open-editor-test-window"]);
     expect(invoke.mock.calls).toContainEqual([START_SCENARIO_RUN_CHANNEL, startRunInput]);
     expect(invoke.mock.calls).toContainEqual([INTERRUPT_SCENARIO_RUN_CHANNEL, interruptInput]);
     expect(invoke.mock.calls).toContainEqual([COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, completeInput]);
     expect(invoke.mock.calls).toContainEqual([GET_PREFERENCES_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([UPDATE_PREFERENCES_CHANNEL, updatePreferencesInput]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:list-font-families"]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:list-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:refresh-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["yulora:open-themes-directory"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:list-font-families"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:list-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:refresh-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual(["fishmark:open-themes-directory"]);
     expect(invoke.mock.calls).toContainEqual([CHECK_FOR_APP_UPDATES_CHANNEL]);
 
-    expect(invoke.mock.calls).not.toContainEqual(["yulora:list-themes"]);
-    expect(invoke.mock.calls).not.toContainEqual(["yulora:refresh-themes"]);
+    expect(invoke.mock.calls).not.toContainEqual(["fishmark:list-themes"]);
+    expect(invoke.mock.calls).not.toContainEqual(["fishmark:refresh-themes"]);
   });
 
   it("resolves dropped file paths through Electron webUtils", async () => {

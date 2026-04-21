@@ -75,11 +75,11 @@ import {
   type AppUpdateState
 } from "../shared/app-update";
 
-const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
-const LIST_FONT_FAMILIES_CHANNEL = "yulora:list-font-families";
-const LIST_THEME_PACKAGES_CHANNEL = "yulora:list-theme-packages";
-const REFRESH_THEME_PACKAGES_CHANNEL = "yulora:refresh-theme-packages";
-const OPEN_THEMES_DIRECTORY_CHANNEL = "yulora:open-themes-directory";
+const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
+const LIST_FONT_FAMILIES_CHANNEL = "fishmark:list-font-families";
+const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
+const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
+const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
 const AUTO_UPDATE_STARTUP_DELAY_MS = 5000;
 registerPreviewAssetScheme({ protocol });
 configureMainProcessRuntime(app, process.env);
@@ -193,7 +193,7 @@ app.whenReady().then(async () => {
       // Surface the corrupt-file recovery so it shows up in launch logs
       // without crashing startup.
       const target = backupPath ?? "(rename failed)";
-      console.warn(`[yulora] preferences file was corrupt; backed up to ${target}`);
+      console.warn(`[fishmark] preferences file was corrupt; backed up to ${target}`);
     }
   });
 
@@ -209,7 +209,7 @@ app.whenReady().then(async () => {
 
   if (initialPreferences.source === "recovered-from-corrupt") {
     console.warn(
-      `[yulora] preferences reset to defaults due to corrupt file at ${initialPreferences.corruptBackupPath ?? "(unknown)"}`
+      `[fishmark] preferences reset to defaults due to corrupt file at ${initialPreferences.corruptBackupPath ?? "(unknown)"}`
     );
   }
 

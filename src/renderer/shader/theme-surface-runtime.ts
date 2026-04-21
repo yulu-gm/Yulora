@@ -218,7 +218,7 @@ export function buildFragmentShaderSource(
     .join("\n");
 
   if (/\bvoid\s+mainImage\s*\(/u.test(bodyWithoutPrecision)) {
-    return `${header}\n${bodyWithoutPrecision}\nvoid main() {\n  vec4 yuloraColor = vec4(0.0);\n  mainImage(yuloraColor, gl_FragCoord.xy);\n  gl_FragColor = yuloraColor;\n}`;
+    return `${header}\n${bodyWithoutPrecision}\nvoid main() {\n  vec4 fishmarkColor = vec4(0.0);\n  mainImage(fishmarkColor, gl_FragCoord.xy);\n  gl_FragColor = fishmarkColor;\n}`;
   }
 
   return `${header}\n${bodyWithoutPrecision}`;

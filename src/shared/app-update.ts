@@ -1,6 +1,6 @@
-export const CHECK_FOR_APP_UPDATES_CHANNEL = "yulora:check-for-app-updates";
-export const APP_UPDATE_STATE_EVENT = "yulora:app-update-state";
-export const APP_NOTIFICATION_EVENT = "yulora:app-notification";
+export const CHECK_FOR_APP_UPDATES_CHANNEL = "fishmark:check-for-app-updates";
+export const APP_UPDATE_STATE_EVENT = "fishmark:app-update-state";
+export const APP_NOTIFICATION_EVENT = "fishmark:app-notification";
 
 export type AppNotification = {
   kind: "loading" | "info" | "success" | "warning" | "error";

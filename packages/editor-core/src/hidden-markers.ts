@@ -1,4 +1,4 @@
-import type { InlineASTNode, InlineRoot } from "@yulora/markdown-engine";
+import type { InlineASTNode, InlineRoot } from "@fishmark/markdown-engine";
 
 function normalizeHiddenOpenMarkerAnchor(
   anchor: number,

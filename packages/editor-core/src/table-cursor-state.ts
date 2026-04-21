@@ -1,6 +1,6 @@
 import type { ActiveBlockSelection } from "./active-block";
 
-import type { MarkdownDocument, TableBlock, TableCell } from "@yulora/markdown-engine";
+import type { MarkdownDocument, TableBlock, TableCell } from "@fishmark/markdown-engine";
 
 export type TableCursorMode = "inside" | "adjacent-above" | "adjacent-below";
 

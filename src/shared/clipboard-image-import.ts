@@ -1,4 +1,4 @@
-export const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "yulora:import-clipboard-image";
+export const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "fishmark:import-clipboard-image";
 
 export type ImportClipboardImageInput = {
   documentPath: string;

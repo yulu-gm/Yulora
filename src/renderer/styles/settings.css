@@ -1,20 +1,20 @@
-[data-yulora-dialog="settings-drawer"] {
+[data-fishmark-dialog="settings-drawer"] {
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--yulora-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);
+  background: color-mix(in srgb, var(--fishmark-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);
 }
 
-[data-yulora-dialog="settings-drawer"][data-state="open"] {
+[data-fishmark-dialog="settings-drawer"][data-state="open"] {
   animation: settings-overlay-enter 180ms ease-out both;
 }
 
-[data-yulora-dialog="settings-drawer"][data-state="closing"] {
+[data-fishmark-dialog="settings-drawer"][data-state="closing"] {
   pointer-events: none;
   animation: settings-overlay-exit 180ms ease-in both;
 }
 
-[data-yulora-dialog="settings-drawer"] > div {
+[data-fishmark-dialog="settings-drawer"] > div {
   position: relative;
   z-index: 1;
 }
@@ -23,18 +23,18 @@
 
 .settings-shell {
   position: fixed;
-  top: var(--yulora-shell-edge);
-  bottom: var(--yulora-shell-edge);
-  left: calc(var(--yulora-shell-rail-width) + var(--yulora-shell-edge));
-  width: min(480px, calc(100vw - var(--yulora-shell-rail-width) - (var(--yulora-shell-edge) * 3)));
+  top: var(--fishmark-shell-edge);
+  bottom: var(--fishmark-shell-edge);
+  left: calc(var(--fishmark-shell-rail-width) + var(--fishmark-shell-edge));
+  width: min(480px, calc(100vw - var(--fishmark-shell-rail-width) - (var(--fishmark-shell-edge) * 3)));
   z-index: 31;
   margin: 0;
-  padding: var(--yulora-space-5) var(--yulora-space-5) var(--yulora-space-6);
-  border: 1px solid var(--yulora-panel-border, rgba(15, 23, 42, 0.12));
-  border-radius: var(--yulora-radius-2xl);
-  background: var(--yulora-panel-bg, rgba(255, 255, 255, 0.92));
-  color: var(--yulora-text-secondary, #31353d);
-  box-shadow: var(--yulora-panel-shadow, var(--yulora-shadow-3));
+  padding: var(--fishmark-space-5) var(--fishmark-space-5) var(--fishmark-space-6);
+  border: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
+  border-radius: var(--fishmark-radius-2xl);
+  background: var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92));
+  color: var(--fishmark-text-secondary, #31353d);
+  box-shadow: var(--fishmark-panel-shadow, var(--fishmark-shadow-3));
   backdrop-filter: blur(28px) saturate(1.12);
   -webkit-backdrop-filter: blur(28px) saturate(1.12);
   overflow: auto;
@@ -59,15 +59,15 @@
   background:
     linear-gradient(
       140deg,
-      color-mix(in srgb, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)) 45%, transparent) 0%,
+      color-mix(in srgb, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)) 45%, transparent) 0%,
       transparent 28%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)) 28%, transparent) 0%,
+      color-mix(in srgb, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)) 28%, transparent) 0%,
       transparent 22%,
       transparent 76%,
-      color-mix(in srgb, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)) 12%, transparent) 100%
+      color-mix(in srgb, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)) 12%, transparent) 100%
     );
   pointer-events: none;
   z-index: 0;
@@ -82,18 +82,18 @@
 
 .settings-header {
   position: sticky;
-  top: calc(var(--yulora-space-5) * -1);
+  top: calc(var(--fishmark-space-5) * -1);
   display: flex;
   align-items: center;
-  gap: var(--yulora-space-4);
-  margin: 0 calc(var(--yulora-space-5) * -1) var(--yulora-space-5);
-  padding: var(--yulora-space-5) var(--yulora-space-5) var(--yulora-space-4);
+  gap: var(--fishmark-space-4);
+  margin: 0 calc(var(--fishmark-space-5) * -1) var(--fishmark-space-5);
+  padding: var(--fishmark-space-5) var(--fishmark-space-5) var(--fishmark-space-4);
   background: color-mix(
     in srgb,
-    var(--yulora-panel-bg, rgba(255, 255, 255, 0.92)) 92%,
-    var(--yulora-control-bg, rgba(255, 255, 255, 0.9)) 8%
+    var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 92%,
+    var(--fishmark-control-bg, rgba(255, 255, 255, 0.9)) 8%
   );
-  border-bottom: 1px solid var(--yulora-panel-border, rgba(15, 23, 42, 0.12));
+  border-bottom: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 2;
@@ -118,15 +118,15 @@
 
 .settings-kicker {
   margin: 0;
-  color: var(--yulora-text-muted, #687180);
+  color: var(--fishmark-text-muted, #687180);
   font-size: 0.76rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .settings-title-block h1 {
-  margin: var(--yulora-space-1) 0 0;
-  color: var(--yulora-text-primary, #171a1f);
+  margin: var(--fishmark-space-1) 0 0;
+  color: var(--fishmark-text-primary, #171a1f);
   font-size: 1.4rem;
   font-weight: 620;
 }
@@ -135,17 +135,17 @@
 
 .settings-error {
   width: 100%;
-  margin: 0 0 var(--yulora-space-4);
+  margin: 0 0 var(--fishmark-space-4);
 }
 
 .settings-groups {
   display: grid;
-  gap: var(--yulora-space-6);
+  gap: var(--fishmark-space-6);
 }
 
 .settings-group {
-  padding-top: var(--yulora-space-5);
-  border-top: 1px solid var(--yulora-panel-border, rgba(15, 23, 42, 0.12));
+  padding-top: var(--fishmark-space-5);
+  border-top: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
 }
 
 .settings-group:first-child {
@@ -154,19 +154,19 @@
 }
 
 .settings-group-header {
-  margin-bottom: var(--yulora-space-3);
+  margin-bottom: var(--fishmark-space-3);
 }
 
 .settings-group-header h2 {
   margin: 0;
-  color: var(--yulora-text-primary, #171a1f);
+  color: var(--fishmark-text-primary, #171a1f);
   font-size: 1rem;
   font-weight: 600;
 }
 
 .settings-group-header p {
-  margin: var(--yulora-space-1) 0 0;
-  color: var(--yulora-text-muted, #687180);
+  margin: var(--fishmark-space-1) 0 0;
+  color: var(--fishmark-text-muted, #687180);
   font-size: 0.86rem;
 }
 
@@ -176,23 +176,23 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 250px);
   align-items: start;
-  gap: var(--yulora-space-4);
-  padding: var(--yulora-space-3) 0;
+  gap: var(--fishmark-space-4);
+  padding: var(--fishmark-space-3) 0;
 }
 
 .settings-row + .settings-row {
-  border-top: 1px solid color-mix(in srgb, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)) 72%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)) 72%, transparent);
 }
 
 .settings-label {
   display: grid;
   gap: 3px;
-  color: var(--yulora-text-secondary, #31353d);
+  color: var(--fishmark-text-secondary, #31353d);
   font-size: 0.94rem;
 }
 
 .settings-hint {
-  color: var(--yulora-text-muted, #687180);
+  color: var(--fishmark-text-muted, #687180);
   font-size: 0.8rem;
   font-weight: 400;
 }
@@ -208,7 +208,7 @@
 .settings-input-stack {
   width: 100%;
   display: grid;
-  gap: var(--yulora-space-2);
+  gap: var(--fishmark-space-2);
   justify-items: stretch;
 }
 
@@ -230,10 +230,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--yulora-space-4);
-  margin-top: var(--yulora-space-6);
-  padding-top: var(--yulora-space-4);
-  border-top: 1px solid var(--yulora-panel-border, rgba(15, 23, 42, 0.12));
+  gap: var(--fishmark-space-4);
+  margin-top: var(--fishmark-space-6);
+  padding-top: var(--fishmark-space-4);
+  border-top: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
 }
 
 /* ── Reset button ───────────────────────────────────────────── */
@@ -252,35 +252,35 @@
 
 .settings-save-status {
   margin: 0;
-  color: var(--yulora-text-muted, #687180);
+  color: var(--fishmark-text-muted, #687180);
   font-size: 0.82rem;
   text-align: right;
 }
 
 .settings-inline-note {
   grid-column: 2;
-  margin: calc(var(--yulora-space-2) * -1) 0 0;
-  color: var(--yulora-text-muted, #687180);
+  margin: calc(var(--fishmark-space-2) * -1) 0 0;
+  color: var(--fishmark-text-muted, #687180);
   font-size: 0.8rem;
   justify-self: end;
 }
 
 .settings-inline-actions {
   display: grid;
-  gap: var(--yulora-space-2);
+  gap: var(--fishmark-space-2);
   justify-items: start;
 }
 
 @media (max-width: 860px) {
   .settings-shell {
-    left: calc(var(--yulora-shell-rail-width) + 10px);
-    width: min(460px, calc(100vw - var(--yulora-shell-rail-width) - 22px));
-    padding-inline: var(--yulora-space-4);
+    left: calc(var(--fishmark-shell-rail-width) + 10px);
+    width: min(460px, calc(100vw - var(--fishmark-shell-rail-width) - 22px));
+    padding-inline: var(--fishmark-space-4);
   }
 
   .settings-header {
-    margin-inline: calc(var(--yulora-space-4) * -1);
-    padding-inline: var(--yulora-space-4);
+    margin-inline: calc(var(--fishmark-space-4) * -1);
+    padding-inline: var(--fishmark-space-4);
   }
 
   .settings-row {
@@ -309,7 +309,7 @@
     left: 12px;
     right: 12px;
     width: auto;
-    border-radius: var(--yulora-radius-xl);
+    border-radius: var(--fishmark-radius-xl);
   }
 
   .settings-title-block h1 {
@@ -381,7 +381,7 @@
 .settings-slider {
   flex: 1;
   min-width: 0;
-  accent-color: var(--yulora-focus-ring, #5da7ff);
+  accent-color: var(--fishmark-focus-ring, #5da7ff);
   cursor: pointer;
 }
 
@@ -389,7 +389,7 @@
   min-width: 3.5em;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: var(--yulora-text-secondary, #31353d);
+  color: var(--fishmark-text-secondary, #31353d);
   font-size: 0.9em;
 }
 
@@ -404,15 +404,15 @@
 .settings-toggle input[type="checkbox"] {
   width: 1.1em;
   height: 1.1em;
-  accent-color: var(--yulora-focus-ring, #5da7ff);
+  accent-color: var(--fishmark-focus-ring, #5da7ff);
   cursor: pointer;
 }
 
 .settings-toggle-label {
-  color: var(--yulora-text-secondary, #31353d);
+  color: var(--fishmark-text-secondary, #31353d);
   font-size: 0.9em;
 }
 
-[data-yulora-panel="theme-parameters"] .settings-group-header h2 {
+[data-fishmark-panel="theme-parameters"] .settings-group-header h2 {
   font-size: 1rem;
 }

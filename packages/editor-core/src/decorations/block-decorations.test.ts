@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBlockMap, parseMarkdownDocument } from "@yulora/markdown-engine";
+import { parseBlockMap, parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createActiveBlockStateFromBlockMap } from "../active-block";
 import { createBlockDecorations } from "./block-decorations";
@@ -231,16 +231,16 @@ describe("createBlockDecorations", () => {
     const source = "你好世界";
     const ranges = createInactiveInlineDecorations(source);
 
-    expectCoveredRangeClasses(ranges, 0, source.length, ["cm-yulora-cjk-font"]);
+    expectCoveredRangeClasses(ranges, 0, source.length, ["cm-fishmark-cjk-font"]);
     expect(
-      ranges.filter((range) => range.className === "cm-yulora-cjk-font")
+      ranges.filter((range) => range.className === "cm-fishmark-cjk-font")
     ).toHaveLength(1);
   });
 
   it("splits mixed Latin and CJK content into separate CJK ranges", () => {
     const source = "Hello 中文 world 测试";
     const ranges = createInactiveInlineDecorations(source);
-    const cjkRanges = ranges.filter((range) => range.className === "cm-yulora-cjk-font");
+    const cjkRanges = ranges.filter((range) => range.className === "cm-fishmark-cjk-font");
     const firstStart = source.indexOf("中文");
     const secondStart = source.indexOf("测试");
 
@@ -248,13 +248,13 @@ describe("createBlockDecorations", () => {
       {
         from: firstStart,
         to: firstStart + "中文".length,
-        className: "cm-yulora-cjk-font",
+        className: "cm-fishmark-cjk-font",
         text: "中文"
       },
       {
         from: secondStart,
         to: secondStart + "测试".length,
-        className: "cm-yulora-cjk-font",
+        className: "cm-fishmark-cjk-font",
         text: "测试"
       }
     ]);
@@ -265,10 +265,10 @@ describe("createBlockDecorations", () => {
     const ranges = createInactiveInlineDecorations(source);
 
     expect(
-      ranges.some((range) => range.className === "cm-yulora-cjk-font" && range.text === "中文")
+      ranges.some((range) => range.className === "cm-fishmark-cjk-font" && range.text === "中文")
     ).toBe(false);
     expect(
-      ranges.some((range) => range.className === "cm-yulora-cjk-font" && range.text === "普通")
+      ranges.some((range) => range.className === "cm-fishmark-cjk-font" && range.text === "普通")
     ).toBe(true);
   });
 
@@ -620,7 +620,7 @@ describe("createBlockDecorations", () => {
     );
 
     expect(
-      ranges.some((range) => range.className === "cm-yulora-cjk-font" && range.text === "中文")
+      ranges.some((range) => range.className === "cm-fishmark-cjk-font" && range.text === "中文")
     ).toBe(true);
   });
 
@@ -641,7 +641,7 @@ describe("createBlockDecorations", () => {
       }).decorationSet
     );
 
-    expect(ranges.some((range) => range.className === "cm-yulora-cjk-font")).toBe(false);
+    expect(ranges.some((range) => range.className === "cm-fishmark-cjk-font")).toBe(false);
   });
 });
 

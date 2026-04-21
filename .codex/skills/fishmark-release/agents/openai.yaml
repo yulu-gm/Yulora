@@ -1,0 +1,4 @@
+interface:
+  display_name: "FishMark 正式发版"
+  short_description: "指导 agent 完成 FishMark 的正式 release 流程。"
+  default_prompt: "使用 $fishmark-release 在 FishMark 仓库中完成一次正式 release，包括版本号更新、Release 正文整理、Windows 发版与发布后核对。"

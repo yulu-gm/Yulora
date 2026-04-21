@@ -1,6 +1,6 @@
 import { formatStartupOpenPathArgument } from "./launch-open-path";
 
-export const RUNTIME_MODE_ARGUMENT_PREFIX = "--yulora-runtime-mode=";
+export const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
 export { formatStartupOpenPathArgument } from "./launch-open-path";
 
 export type RuntimeMode = "editor" | "test-workbench";
@@ -33,7 +33,7 @@ type CreateWindowInput = {
 };
 
 export function resolveAppRuntimeMode(env: NodeJS.ProcessEnv): RuntimeMode {
-  return env.YULORA_START_MODE === "test-workbench" ? "test-workbench" : "editor";
+  return env.FISHMARK_START_MODE === "test-workbench" ? "test-workbench" : "editor";
 }
 
 export function resolveWindowRuntimeMode(argv: string[]): RuntimeMode {
@@ -89,14 +89,14 @@ export function createRuntimeWindowManager<TWindow extends WindowLike>(input: {
     const window = createWindow({
       ...(nextRuntimeMode === "test-workbench"
         ? {
-            title: "Yulora Test Workbench",
+            title: "FishMark Test Workbench",
             width: 1400,
             height: 900,
             minWidth: 1100,
             minHeight: 700
           }
         : {
-            title: "Yulora",
+            title: "FishMark",
             width: 1200,
             height: 800,
             minWidth: 900,

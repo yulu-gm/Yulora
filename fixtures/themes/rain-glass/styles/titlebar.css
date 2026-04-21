@@ -1,10 +1,10 @@
 .app-titlebar {
-  border-bottom-color: color-mix(in srgb, var(--yulora-border-faint) 72%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--fishmark-border-faint) 72%, transparent);
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-surface-raised-bg) 92%, transparent),
-      color-mix(in srgb, var(--yulora-surface-bg) 88%, transparent)
+      color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-bg) 88%, transparent)
     );
 }
 
@@ -12,6 +12,6 @@
   opacity: 0.92;
 }
 
-.app-titlebar-slot[data-yulora-drag-region="true"] {
+.app-titlebar-slot[data-fishmark-drag-region="true"] {
   backdrop-filter: blur(18px) saturate(1.15);
 }

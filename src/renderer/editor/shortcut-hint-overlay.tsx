@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
-import { formatShortcutHintKey, type ShortcutGroup } from "@yulora/editor-core";
+import { formatShortcutHintKey, type ShortcutGroup } from "@fishmark/editor-core";
 
 const CONTAINER_FADE_DURATION_MS = 105;
 const ITEM_STAGGER_DURATION_MS = 18;
@@ -100,7 +100,7 @@ export function ShortcutHintOverlay({ visible, platform, group }: ShortcutHintOv
   return (
     <div
       className="shortcut-hint-overlay"
-      data-yulora-region="shortcut-hint-overlay"
+      data-fishmark-region="shortcut-hint-overlay"
       data-state={state}
       data-shortcut-group={group.id}
       aria-hidden="true"

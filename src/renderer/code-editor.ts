@@ -2,7 +2,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
 import {
-  createYuloraMarkdownExtensions,
+  createFishMarkMarkdownExtensions,
   refreshMarkdownDecorations,
   runTableDelete,
   runTableDeleteColumn,
@@ -14,8 +14,8 @@ import {
   runTableSelectCell,
   runTableUpdateCell,
   type ActiveBlockState
-} from "@yulora/editor-core";
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+} from "@fishmark/editor-core";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createPreviewAssetUrl } from "../shared/preview-asset-url";
 
@@ -73,7 +73,7 @@ export function createCodeEditorController(
   const createState = (content: string) =>
     EditorState.create({
       doc: content,
-      extensions: createYuloraMarkdownExtensions({
+      extensions: createFishMarkMarkdownExtensions({
         parseMarkdownDocument,
         onContentChange: options.onChange,
         onActiveBlockChange: (nextState) => {

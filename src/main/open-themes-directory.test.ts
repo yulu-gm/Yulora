@@ -8,7 +8,7 @@ describe("openThemesDirectory", () => {
   it("creates the themes directory and opens it", async () => {
     const mkdir = vi.fn().mockResolvedValue(undefined);
     const openPath = vi.fn().mockResolvedValue("");
-    const userDataDir = "C:/Users/chenglinwu/AppData/Roaming/Yulora";
+    const userDataDir = "C:/Users/chenglinwu/AppData/Roaming/FishMark";
     const themesDirectory = path.join(userDataDir, "themes");
 
     await openThemesDirectory(userDataDir, {
@@ -24,7 +24,7 @@ describe("openThemesDirectory", () => {
 
   it("throws when the shell reports a failure message", async () => {
     await expect(
-      openThemesDirectory("C:/Users/chenglinwu/AppData/Roaming/Yulora", {
+      openThemesDirectory("C:/Users/chenglinwu/AppData/Roaming/FishMark", {
         mkdir: vi.fn().mockResolvedValue(undefined),
         openPath: vi.fn().mockResolvedValue("permission denied")
       })

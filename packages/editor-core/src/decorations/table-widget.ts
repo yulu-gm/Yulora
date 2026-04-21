@@ -1,7 +1,7 @@
 import { Decoration, WidgetType } from "@codemirror/view";
 import type { Range } from "@codemirror/state";
 
-import type { TableBlock } from "@yulora/markdown-engine";
+import type { TableBlock } from "@fishmark/markdown-engine";
 
 import type { TablePosition } from "../commands/table-context";
 

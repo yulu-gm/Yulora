@@ -9,7 +9,7 @@ const WorkbenchApp = canRenderWorkbench ? lazy(() => import("./workbench/App")) 
 export default function App() {
   const runtimeMode = resolveRuntimeMode({
     search: window.location.search,
-    bridgeMode: window.yulora?.runtimeMode
+    bridgeMode: window.fishmark?.runtimeMode
   });
   const shouldRenderWorkbench =
     canRenderWorkbench && runtimeMode === "test-workbench" && WorkbenchApp;

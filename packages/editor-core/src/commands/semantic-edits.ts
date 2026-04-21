@@ -9,7 +9,7 @@ import type {
   InlineRoot,
   InlineStrikethrough,
   InlineStrong
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 import type { SemanticContext } from "./semantic-context";
 

@@ -1,4 +1,4 @@
-type ThemeCatalogEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
+type ThemeCatalogEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
 
 export function resolveThemeCatalogEntry(
   catalog: ThemeCatalogEntry[],

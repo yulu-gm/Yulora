@@ -2,7 +2,7 @@ import {
   formatTableMarkdownWithOffsets,
   type CanonicalTableModel,
   type FormattedTableWithOffsets
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 import type { TableContext, TablePosition } from "./table-context";
 

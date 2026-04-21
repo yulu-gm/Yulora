@@ -215,7 +215,7 @@ describe("runCli", () => {
 
     const outcome = await runCli({
       argv: ["--id", "cwd-aware", "--no-artifacts"],
-      cwd: "D:/MyAgent/Yulora/Yulora",
+      cwd: "D:/MyAgent/FishMark/FishMark",
       io,
       registry,
       buildHandlers: ({ cwd }) => {
@@ -225,6 +225,6 @@ describe("runCli", () => {
     });
 
     expect(outcome.exitCode).toBe(CLI_EXIT_CODES.passed);
-    expect(receivedCwd).toBe("D:/MyAgent/Yulora/Yulora");
+    expect(receivedCwd).toBe("D:/MyAgent/FishMark/FishMark");
   });
 });

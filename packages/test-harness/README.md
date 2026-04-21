@@ -1,6 +1,6 @@
-# @yulora/test-harness
+# @fishmark/test-harness
 
-Static scenario registry and (eventually) runner for the Yulora test workbench.
+Static scenario registry and (eventually) runner for the FishMark test workbench.
 
 ## Scope
 

@@ -3,7 +3,7 @@ import {
   type BlockMap,
   type MarkdownBlock,
   type MarkdownDocument
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 import type { TableCursorState } from "./table-cursor-state";
 
 export type ActiveBlockSelection = {

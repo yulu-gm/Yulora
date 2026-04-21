@@ -270,7 +270,7 @@ describe("createAppUpdater", () => {
         message: "检查更新失败：feed unavailable"
       }
     ]);
-    expect(logger.error).toHaveBeenCalledWith("[yulora] auto update failed: feed unavailable");
+    expect(logger.error).toHaveBeenCalledWith("[fishmark] auto update failed: feed unavailable");
     expect(updater.getState()).toEqual({ kind: "error", message: "feed unavailable" });
   });
 });

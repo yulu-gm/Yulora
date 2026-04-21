@@ -27,7 +27,7 @@ describe("resolveAppRuntimeMode", () => {
   });
 
   it("starts the test workbench when requested by env", () => {
-    expect(resolveAppRuntimeMode({ YULORA_START_MODE: "test-workbench" })).toBe("test-workbench");
+    expect(resolveAppRuntimeMode({ FISHMARK_START_MODE: "test-workbench" })).toBe("test-workbench");
   });
 });
 
@@ -40,7 +40,7 @@ describe("createRuntimeWindowManager", () => {
     expect(harness.createWindow).toHaveBeenCalledTimes(1);
     expect(harness.createWindow).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "Yulora Test Workbench",
+        title: "FishMark Test Workbench",
         width: 1400,
         height: 900,
         minWidth: 1100,
@@ -58,14 +58,14 @@ describe("createRuntimeWindowManager", () => {
 
   it("passes the configured window icon path into BrowserWindow creation", () => {
     const harness = createWindowHarness("editor", {
-      windowIconPath: "C:/Program Files/Yulora/resources/icons/icon.ico"
+      windowIconPath: "C:/Program Files/FishMark/resources/icons/icon.ico"
     });
 
     harness.manager.openPrimaryWindow();
 
     expect(harness.createWindow).toHaveBeenCalledWith(
       expect.objectContaining({
-        icon: "C:/Program Files/Yulora/resources/icons/icon.ico"
+        icon: "C:/Program Files/FishMark/resources/icons/icon.ico"
       })
     );
   });
@@ -97,7 +97,7 @@ describe("createRuntimeWindowManager", () => {
     expect(harness.createWindow).toHaveBeenCalledTimes(1);
     expect(harness.createWindow).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "Yulora",
+        title: "FishMark",
         width: 1200,
         height: 800,
         minWidth: 900,
@@ -133,7 +133,7 @@ describe("createRuntimeWindowManager", () => {
 
     expect(harness.createWindow).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "Yulora",
+        title: "FishMark",
         width: 1200,
         height: 800
       })

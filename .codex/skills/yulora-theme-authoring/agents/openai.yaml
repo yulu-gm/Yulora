@@ -1,4 +1,0 @@
-interface:
-  display_name: "Yulora 主题编写"
-  short_description: "给 AI 的 Yulora 主题包极简边界与验收规则。"
-  default_prompt: "使用 $yulora-theme-authoring，按当前 Yulora theme package 架构创建、修改或审查一个可运行的主题包。"

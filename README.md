@@ -1,9 +1,9 @@
-<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />
+<img src="assets/branding/fishmark_logo_light.svg" alt="FishMark logo" style="zoom:25%;" />
 
 
-# Yulora
+# FishMark
 
-Yulora 是一个面向 macOS 和 Windows 的本地优先 Markdown 桌面编辑器，目标是提供类似 Typora 的单栏写作体验，同时保持 Markdown 文本作为唯一事实来源。
+FishMark 是一个面向 macOS 和 Windows 的本地优先 Markdown 桌面编辑器，目标是提供类似 Typora 的单栏写作体验，同时保持 Markdown 文本作为唯一事实来源。
 
 当前仓库处于 MVP 推进阶段，重点放在稳定的编辑体验而不是功能堆叠：IME、光标映射、撤销重做语义、自动保存安全性，以及 Markdown 往返保真优先于花哨能力。
 

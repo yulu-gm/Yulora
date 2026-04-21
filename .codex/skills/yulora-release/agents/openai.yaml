@@ -1,4 +1,0 @@
-interface:
-  display_name: "Yulora 正式发版"
-  short_description: "指导 agent 完成 Yulora 的正式 release 流程。"
-  default_prompt: "使用 $yulora-release 在 Yulora 仓库中完成一次正式 release，包括版本号更新、Release 正文整理、Windows 发版与发布后核对。"

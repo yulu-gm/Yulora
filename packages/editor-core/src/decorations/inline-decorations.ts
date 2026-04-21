@@ -1,10 +1,10 @@
 import { Decoration } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 
-import type { InlineASTNode, InlineRoot } from "@yulora/markdown-engine";
+import type { InlineASTNode, InlineRoot } from "@fishmark/markdown-engine";
 import { createInactiveImagePreviewDecoration } from "./image-widgets";
 
-const CJK_TEXT_CLASS = "cm-yulora-cjk-font";
+const CJK_TEXT_CLASS = "cm-fishmark-cjk-font";
 const INACTIVE_INLINE_MARKER_CLASS = "cm-inactive-inline-marker";
 const INACTIVE_INLINE_CONTENT_CLASSES = {
   strong: "cm-inactive-inline-strong",

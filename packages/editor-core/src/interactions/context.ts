@@ -1,6 +1,6 @@
 import type { EditorView } from "@codemirror/view";
 
-import type { MarkdownBlock } from "@yulora/markdown-engine";
+import type { MarkdownBlock } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import type { PointerInteractionContext, VerticalInteractionContext } from "./types";

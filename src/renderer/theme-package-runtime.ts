@@ -17,8 +17,8 @@ type ThemePackageRuntime = {
 function createThemeLink(document: Document, part: ThemeStylePart): HTMLLinkElement {
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.dataset.yuloraThemePart = part;
-  link.setAttribute("data-yulora-theme-runtime", "active");
+  link.dataset.fishmarkThemePart = part;
+  link.setAttribute("data-fishmark-theme-runtime", "active");
   return link;
 }
 

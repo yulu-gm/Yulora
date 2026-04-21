@@ -31,7 +31,7 @@ describe("createPreviewAssetResponse", () => {
   });
 
   it("returns 404 when the preview asset request omits the local file path", async () => {
-    const response = await createPreviewAssetResponse("yulora-asset://preview", {
+    const response = await createPreviewAssetResponse("fishmark-asset://preview", {
       readFile: vi.fn()
     });
 

@@ -6,7 +6,7 @@ import type {
   ListBlock,
   ListItemBlock,
   MarkdownBlock
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 type InlineCapable = {
   inline?: InlineRoot;

@@ -4,7 +4,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TestScenario } from "@yulora/test-harness";
+import type { TestScenario } from "@fishmark/test-harness";
 import type {
   RunnerEventEnvelope,
   ScenarioRunTerminal,
@@ -60,10 +60,10 @@ const { registry } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@yulora/test-harness", async () => {
+vi.mock("@fishmark/test-harness", async () => {
   const actual =
-    await vi.importActual<typeof import("@yulora/test-harness")>(
-      "@yulora/test-harness"
+    await vi.importActual<typeof import("@fishmark/test-harness")>(
+      "@fishmark/test-harness"
     );
 
   return {
@@ -97,7 +97,7 @@ describe("Test workbench shell", () => {
     scenarioRunEventListener = null;
     scenarioRunTerminalListener = null;
 
-    window.yulora = {
+    window.fishmark = {
       platform: "win32",
       runtimeMode: "test-workbench",
       startupOpenPath: null,
@@ -138,7 +138,7 @@ describe("Test workbench shell", () => {
       onPreferencesChanged: vi.fn(() => () => {}),
       onAppUpdateState: vi.fn(() => () => {}),
       onAppNotification: vi.fn(() => () => {})
-    } as Window["yulora"];
+    } as Window["fishmark"];
   });
 
   afterEach(async () => {
@@ -167,7 +167,7 @@ describe("Test workbench shell", () => {
   it("renders the test workbench panels instead of the editor shell", async () => {
     await renderApp();
 
-    expect(container.textContent).toContain("Yulora Test Workbench");
+    expect(container.textContent).toContain("FishMark Test Workbench");
     expect(container.textContent).toContain("Scenario Catalog");
     expect(container.textContent).toContain("Debug Stream");
     expect(container.textContent).toContain("Test Process");
@@ -331,11 +331,11 @@ describe("Test workbench shell", () => {
 
   it("shows a diagnostic banner instead of crashing when the bridge is unavailable", async () => {
     // @ts-expect-error test intentionally removes the preload bridge
-    delete window.yulora;
+    delete window.fishmark;
 
     await renderApp();
 
-    expect(container.textContent).toContain("Yulora Test Workbench");
+    expect(container.textContent).toContain("FishMark Test Workbench");
     expect(container.textContent).toContain("bridge unavailable");
   });
 });

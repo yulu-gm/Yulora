@@ -1,33 +1,33 @@
 :root {
-  --yulora-editor-font-family: "Aptos", "Charter", "Georgia", serif;
-  --yulora-editor-font-size: 1.05rem;
-  --yulora-editor-caret: var(--yulora-caret-color);
+  --fishmark-editor-font-family: "Aptos", "Charter", "Georgia", serif;
+  --fishmark-editor-font-size: 1.05rem;
+  --fishmark-editor-caret: var(--fishmark-caret-color);
 }
 
 .document-editor .cm-editor {
-  background: var(--yulora-editor-bg);
-  color: var(--yulora-editor-fg);
+  background: var(--fishmark-editor-bg);
+  color: var(--fishmark-editor-fg);
 }
 
 .document-editor .cm-content {
-  caret-color: var(--yulora-caret-color);
+  caret-color: var(--fishmark-caret-color);
 }
 
 .document-editor .cm-content ::selection,
 .document-editor .cm-line::selection,
 .document-editor .cm-selectionLayer .cm-selectionBackground,
 .document-editor .cm-selectionBackground {
-  background: var(--yulora-selection-bg);
-  color: var(--yulora-selection-fg);
+  background: var(--fishmark-selection-bg);
+  color: var(--fishmark-selection-fg);
 }
 
 .document-editor .cm-activeLine {
-  background: var(--yulora-current-line-bg);
+  background: var(--fishmark-current-line-bg);
 }
 
 .document-editor .cm-gutters,
 .document-editor .cm-gutterElement {
-  color: var(--yulora-gutter-fg);
+  color: var(--fishmark-gutter-fg);
 }
 
 .document-editor .cm-gutters {

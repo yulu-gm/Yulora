@@ -1,5 +1,5 @@
-export const EDITOR_TEST_COMMAND_EVENT = "yulora:editor-test-command";
-export const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "yulora:complete-editor-test-command";
+export const EDITOR_TEST_COMMAND_EVENT = "fishmark:editor-test-command";
+export const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "fishmark:complete-editor-test-command";
 
 export type EditorTestCommand =
   | { type: "wait-for-editor-ready" }

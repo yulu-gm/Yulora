@@ -39,7 +39,7 @@ describe("theme package runtime", () => {
     );
 
     expect(
-      Array.from(document.head.querySelectorAll("link[data-yulora-theme-part]")).map((node) =>
+      Array.from(document.head.querySelectorAll("link[data-fishmark-theme-part]")).map((node) =>
         node.getAttribute("href")
       )
     ).toEqual([
@@ -79,7 +79,7 @@ describe("theme package runtime", () => {
       "LINK"
     ]);
     expect(
-      Array.from(document.head.querySelectorAll("link[data-yulora-theme-part]")).map((node) =>
+      Array.from(document.head.querySelectorAll("link[data-fishmark-theme-part]")).map((node) =>
         node.getAttribute("href")
       )
     ).toEqual([

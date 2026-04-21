@@ -1,7 +1,7 @@
 import { type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 
-import type { HtmlImageBlock, InlineImage, InlineNode, InlineRoot } from "@yulora/markdown-engine";
+import type { HtmlImageBlock, InlineImage, InlineNode, InlineRoot } from "@fishmark/markdown-engine";
 
 type ImagePreviewMode = "active" | "inactive";
 type ImagePreviewResolver = ((href: string | null) => string | null) | undefined;

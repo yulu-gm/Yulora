@@ -1,7 +1,7 @@
 import type { ThemePackageManifest, ThemeParameterDescriptor } from "../shared/theme-package";
 
-const THEME_PARAMETER_CSS_VARIABLES_ATTRIBUTE = "data-yulora-theme-parameter-css-variables";
-const THEME_PARAMETER_CSS_VAR_PREFIX = "--yulora-theme-parameter-";
+const THEME_PARAMETER_CSS_VARIABLES_ATTRIBUTE = "data-fishmark-theme-parameter-css-variables";
+const THEME_PARAMETER_CSS_VAR_PREFIX = "--fishmark-theme-parameter-";
 
 export function clearThemeParameterCssVariables(root: HTMLElement): void {
   const variables = root.getAttribute(THEME_PARAMETER_CSS_VARIABLES_ATTRIBUTE);

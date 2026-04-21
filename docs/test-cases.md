@@ -1,4 +1,4 @@
-﻿# Yulora 测试用例
+# FishMark 测试用例
 
 本文用于开发自检、评审验收和回归覆盖。
 
@@ -361,10 +361,10 @@
 - 光标移到其他段落后，图片语法会折叠为稳定预览
 
 补充回归：
-1. 在已保存文档中输入单行 HTML 图片，例如 `<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />`。
+1. 在已保存文档中输入单行 HTML 图片，例如 `<img src="assets/branding/fishmark_logo_light.svg" alt="FishMark logo" style="zoom:25%;" />`。
 2. 再输入包裹式 HTML 图片，例如：
    `<p align="center">`
-   `<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" width="160">`
+   `<img src="assets/branding/fishmark_logo_light.svg" alt="FishMark logo" width="160">`
    `</p>`
 3. 分别把光标留在图片源码内，以及移到其他普通段落。
 
@@ -451,7 +451,7 @@
 步骤：
 1. 运行 `npm run dev:test-workbench`。
 2. 等待 Electron 窗口启动。
-3. 检查首页是否显示 `Yulora Test Workbench`、`Scenario Catalog`、`Debug Stream`、`Test Process`。
+3. 检查首页是否显示 `FishMark Test Workbench`、`Scenario Catalog`、`Debug Stream`、`Test Process`。
 
 预期：
 - 首个窗口是独立测试工作台，而不是普通编辑器壳
@@ -516,8 +516,8 @@
 - 应用 UI 字体预设存在，且为下拉框
 - 应用 UI 字体变化后，按钮和标题等非编辑内容优先使用所选字体
 - 应用 UI 字号变化后，按钮和标题等非编辑内容的字体大小同步变化
-- `--yulora-ui-font-family` 在 `documentElement` 上被更新为对应值
-- `--yulora-ui-font-size` 在 `documentElement` 上被更新为对应值（可在控制台用 `getComputedStyle(document.documentElement).getPropertyValue('--yulora-ui-font-size')` 验证）
+- `--fishmark-ui-font-family` 在 `documentElement` 上被更新为对应值
+- `--fishmark-ui-font-size` 在 `documentElement` 上被更新为对应值（可在控制台用 `getComputedStyle(document.documentElement).getPropertyValue('--fishmark-ui-font-size')` 验证）
 - 重启后字体与字号值仍保留
 
 ### TC-091 文档字号
@@ -542,7 +542,7 @@
 6. 如系统中存在一个会话前可见、会话后不可用的字体名，可验证缺失字体时不弹错并保持界面可用。
 
 预期：
-- `--yulora-document-font-family` 与 `--yulora-document-cjk-font-family` 会按设置更新
+- `--fishmark-document-font-family` 与 `--fishmark-document-cjk-font-family` 会按设置更新
 - 正文中的西文、数字等保持使用文档主字体
 - 正文中的中文字符优先使用“中文字体预设”指定字体
 - 行内代码与代码块继续使用现有等宽字体，不受中文字体预设影响
@@ -570,16 +570,16 @@
 ### TC-094 主题切换生效
 
 步骤：
-1. 打开设置页并确认已加载至少一个主题包（含 `Yulora 默认` 或社区主题）。
+1. 打开设置页并确认已加载至少一个主题包（含 `FishMark 默认` 或社区主题）。
 2. 选择不同主题包，等待界面稳定 1~2 秒。
-3. 再切回其他主题包（例如 `Yulora 默认`）。
+3. 再切回其他主题包（例如 `FishMark 默认`）。
 4. 若某个主题包只支持 `dark` 或 `light`，切换到其不支持的颜色模式。
 
 预期：
 - 切换主题时，当前样式与背景/控件配色与旧主题有区别，并在切回后恢复
-- 控制台中 `document.querySelectorAll('link[data-yulora-theme-runtime=\"active\"]')` 的数量始终在 `1~5` 之间，且切换后样式链接指向新主题路径
+- 控制台中 `document.querySelectorAll('link[data-fishmark-theme-runtime=\"active\"]')` 的数量始终在 `1~5` 之间，且切换后样式链接指向新主题路径
 - 主题缺失的 part 不会报错或持久留存旧样式
-- 当前主题包不支持所选颜色模式时，界面回退到 `Yulora 默认`，并提示“该主题不支持浅色/深色模式”
+- 当前主题包不支持所选颜色模式时，界面回退到 `FishMark 默认`，并提示“该主题不支持浅色/深色模式”
 
 ### TC-095 打开主题目录
 

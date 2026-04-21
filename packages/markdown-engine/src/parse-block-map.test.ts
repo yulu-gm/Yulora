@@ -399,7 +399,7 @@ describe("parseBlockMap", () => {
   });
 
   it("recognizes top-level HTML image flow blocks and preserves image attributes", () => {
-    const source = '<img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" style="zoom:25%;" />';
+    const source = '<img src="assets/branding/fishmark_logo_light.svg" alt="FishMark logo" style="zoom:25%;" />';
 
     const result = parseBlockMap(source);
 
@@ -411,8 +411,8 @@ describe("parseBlockMap", () => {
         endOffset: source.length,
         startLine: 1,
         endLine: 1,
-        src: "assets/branding/yulora_logo_light.svg",
-        alt: "Yulora logo",
+        src: "assets/branding/fishmark_logo_light.svg",
+        alt: "FishMark logo",
         width: null,
         height: null,
         zoom: "25%",
@@ -626,7 +626,7 @@ describe("parseBlockMap", () => {
     );
   });
 
-  it("captures thematic breaks for both CommonMark dashes and Yulora plus separators", () => {
+  it("captures thematic breaks for both CommonMark dashes and FishMark plus separators", () => {
     const source = ["Paragraph", "", "---", "", "+++", "", "After"].join("\n");
     const result = parseBlockMap(source);
 
@@ -730,7 +730,7 @@ describe("parseBlockMap", () => {
   it("treats the closing frontmatter-style dash fence as a thematic break instead of a setext underline", () => {
     const source = [
       "---",
-      "name: yulora-task-intake",
+      "name: fishmark-task-intake",
       "description: skill metadata",
       "---",
       "",
@@ -749,27 +749,27 @@ describe("parseBlockMap", () => {
         marker: "-"
       },
       {
-        id: "paragraph:4-56",
+        id: "paragraph:4-58",
         type: "paragraph",
         startOffset: 4,
-        endOffset: 56,
+        endOffset: 58,
         startLine: 2,
         endLine: 3
       },
       {
-        id: "thematicBreak:57-60",
+        id: "thematicBreak:59-62",
         type: "thematicBreak",
-        startOffset: 57,
-        endOffset: 60,
+        startOffset: 59,
+        endOffset: 62,
         startLine: 4,
         endLine: 4,
         marker: "-"
       },
       {
-        id: "heading:62-71",
+        id: "heading:64-73",
         type: "heading",
-        startOffset: 62,
-        endOffset: 71,
+        startOffset: 64,
+        endOffset: 73,
         startLine: 6,
         endLine: 6,
         depth: 1
@@ -1010,7 +1010,7 @@ describe("parseBlockMap", () => {
   it("keeps wrapped HTML image blocks rich under MarkdownDocument parsing", () => {
     const source = [
       '<p align="center">',
-      '  <img src="assets/branding/yulora_logo_light.svg" alt="Yulora logo" width="160">',
+      '  <img src="assets/branding/fishmark_logo_light.svg" alt="FishMark logo" width="160">',
       "</p>"
     ].join("\n");
     const result = parseMarkdownDocument(source);
@@ -1019,8 +1019,8 @@ describe("parseBlockMap", () => {
 
     expect(htmlImage).toMatchObject({
       type: "htmlImage",
-      src: "assets/branding/yulora_logo_light.svg",
-      alt: "Yulora logo",
+      src: "assets/branding/fishmark_logo_light.svg",
+      alt: "FishMark logo",
       width: "160",
       height: null,
       zoom: null,

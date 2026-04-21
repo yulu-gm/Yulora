@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
 
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createActiveBlockStateFromMarkdownDocument } from "../active-block";
 import type { SemanticContext } from "./semantic-context";

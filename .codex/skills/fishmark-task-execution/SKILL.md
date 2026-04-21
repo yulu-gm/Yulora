@@ -1,9 +1,9 @@
-﻿---
-name: yulora-task-execution
-description: 用于执行已经定界完成的 Yulora task，适合开始实现 backlog task、继续编码、补测试、补文档落地；仅在范围已明确、可以直接动代码或文档时使用。
+---
+name: fishmark-task-execution
+description: 用于执行已经定界完成的 FishMark task，适合开始实现 backlog task、继续编码、补测试、补文档落地；仅在范围已明确、可以直接动代码或文档时使用。
 ---
 
-# Yulora 任务执行
+# FishMark 任务执行
 
 ## 职责边界
 
@@ -13,7 +13,7 @@ description: 用于执行已经定界完成的 Yulora task，适合开始实现 
 - 补测试
 - 按计划落地
 
-不负责最终 `PASS / FAIL` 结论，不负责最终收尾总结。那些属于 `$yulora-task-acceptance`。
+不负责最终 `PASS / FAIL` 结论，不负责最终收尾总结。那些属于 `$fishmark-task-acceptance`。
 
 ## 执行流程
 
@@ -26,7 +26,7 @@ description: 用于执行已经定界完成的 Yulora task，适合开始实现 
 
 如果没有 intake handoff，先按 `AGENTS.md`、`MVP_BACKLOG.md`、`docs/acceptance.md` 做最小重建，并补一份简短 intake 到 `docs/plans/`，避免后续阶段再反推。
 
-### 2. 在 Yulora 约束内实现
+### 2. 在 FishMark 约束内实现
 
 严格遵守 `AGENTS.md`：
 - 一次只做一个 task
@@ -64,11 +64,11 @@ description: 用于执行已经定界完成的 Yulora task，适合开始实现 
 - `docs/progress.md`
 - `reports/task-summaries/TASK-xxx.md`
 
-如果 task 状态、执行切片或“本轮完成内容”互相矛盾，要先同步文档，再交给验收；不要把状态对齐问题推给 `$yulora-task-acceptance`。
+如果 task 状态、执行切片或“本轮完成内容”互相矛盾，要先同步文档，再交给验收；不要把状态对齐问题推给 `$fishmark-task-acceptance`。
 
 ### 6. 交给验收
 
-实现完成后，交给 `$yulora-task-acceptance`。
+实现完成后，交给 `$fishmark-task-acceptance`。
 
 ## 结束条件
 
@@ -78,4 +78,4 @@ description: 用于执行已经定界完成的 Yulora task，适合开始实现 
 - execution handoff 已写
 - backlog 对应执行切片已同步更新
 - `MVP_BACKLOG.md`、`docs/progress.md`、`reports/task-summaries/TASK-xxx.md` 在 task 状态上没有明显矛盾
-- 已准备好交给 `$yulora-task-acceptance`
+- 已准备好交给 `$fishmark-task-acceptance`

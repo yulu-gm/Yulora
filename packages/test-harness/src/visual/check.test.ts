@@ -19,7 +19,7 @@ describe("runVisualCheck", () => {
   let artifactDir: string;
 
   beforeEach(() => {
-    workspace = mkdtempSync(join(tmpdir(), "yulora-visual-"));
+    workspace = mkdtempSync(join(tmpdir(), "fishmark-visual-"));
     baselineRoot = join(workspace, "baselines");
     artifactDir = join(workspace, "run");
   });

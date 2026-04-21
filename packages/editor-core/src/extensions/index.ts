@@ -1,7 +1,7 @@
 export {
-  createYuloraMarkdownExtensions,
+  createFishMarkMarkdownExtensions,
   refreshMarkdownDecorations,
-  type CreateYuloraMarkdownExtensionsOptions
+  type CreateFishMarkMarkdownExtensionsOptions
 } from "./markdown";
 export {
   createTextEditingShortcutKeymap,

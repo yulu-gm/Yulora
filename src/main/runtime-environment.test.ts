@@ -46,11 +46,11 @@ describe("configureMainProcessRuntime", () => {
       VITE_DEV_SERVER_URL: "http://localhost:5173"
     });
 
-    expect(app.setName).toHaveBeenCalledWith("Yulora Dev");
+    expect(app.setName).toHaveBeenCalledWith("FishMark Dev");
     expect(app.getPath).toHaveBeenCalledWith("appData");
     expect(app.setPath).toHaveBeenCalledWith(
       "userData",
-      path.join("C:/Users/demo/AppData/Roaming", "Yulora-dev")
+      path.join("C:/Users/demo/AppData/Roaming", "FishMark-dev")
     );
   });
 });

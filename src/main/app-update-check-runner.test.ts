@@ -17,7 +17,7 @@ describe("createAppUpdateCheckRunner", () => {
     await expect(runCheck("manual")).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalledWith(
-      "[yulora] failed to initialize app updater: bootstrap failed"
+      "[fishmark] failed to initialize app updater: bootstrap failed"
     );
     expect(notify).toHaveBeenCalledWith({
       kind: "error",
@@ -39,7 +39,7 @@ describe("createAppUpdateCheckRunner", () => {
     await expect(runCheck("auto")).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalledWith(
-      "[yulora] failed to initialize app updater: bootstrap failed"
+      "[fishmark] failed to initialize app updater: bootstrap failed"
     );
     expect(notify).not.toHaveBeenCalled();
   });

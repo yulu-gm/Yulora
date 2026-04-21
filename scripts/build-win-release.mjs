@@ -18,7 +18,7 @@ const RELEASE_NOTES_FILE = "release-notes.json";
 const RELEASE_ASSET_CONTENT_TYPE = "application/octet-stream";
 
 function resolveOutputDirectory() {
-  return process.env.YULORA_RELEASE_DIR?.trim() || OUTPUT_DIRECTORY;
+  return process.env.FISHMARK_RELEASE_DIR?.trim() || OUTPUT_DIRECTORY;
 }
 
 function toYamlScalar(value) {
@@ -171,7 +171,7 @@ export async function getReleaseByTag({ owner, repo, tagName, token }) {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "Yulora-Windows-Release"
+      "User-Agent": "FishMark-Windows-Release"
     }
   });
 
@@ -216,7 +216,7 @@ export async function ensureRelease({ owner, repo, version, token, releaseNotes 
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "Yulora-Windows-Release"
+        "User-Agent": "FishMark-Windows-Release"
       },
       body: JSON.stringify({
         name: releasePayload.name,
@@ -237,7 +237,7 @@ export async function ensureRelease({ owner, repo, version, token, releaseNotes 
       Accept: "application/vnd.github+json",
       "Content-Type": "application/json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "Yulora-Windows-Release"
+      "User-Agent": "FishMark-Windows-Release"
     },
     body: JSON.stringify(releasePayload)
   });
@@ -259,7 +259,7 @@ export async function deleteExistingAssets({ owner, repo, release, assetNames, t
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "Yulora-Windows-Release"
+        "User-Agent": "FishMark-Windows-Release"
       }
     });
   }
@@ -270,14 +270,14 @@ export async function uploadReleaseAsset(uploadBaseUrl, assetPath, assetName, to
     "Add-Type -AssemblyName System.Net.Http",
     "$client = [System.Net.Http.HttpClient]::new()",
     "$client.Timeout = [TimeSpan]::FromMinutes(20)",
-    "$client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $env:YULORA_GH_TOKEN)",
+    "$client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer', $env:FISHMARK_GH_TOKEN)",
     "$client.DefaultRequestHeaders.Accept.Add([System.Net.Http.Headers.MediaTypeWithQualityHeaderValue]::new('application/vnd.github+json'))",
     "$client.DefaultRequestHeaders.Add('X-GitHub-Api-Version','2022-11-28')",
-    "$client.DefaultRequestHeaders.Add('User-Agent','Yulora-Windows-Release')",
-    "$bytes = [System.IO.File]::ReadAllBytes($env:YULORA_RELEASE_ASSET_PATH)",
+    "$client.DefaultRequestHeaders.Add('User-Agent','FishMark-Windows-Release')",
+    "$bytes = [System.IO.File]::ReadAllBytes($env:FISHMARK_RELEASE_ASSET_PATH)",
     "$content = [System.Net.Http.ByteArrayContent]::new($bytes)",
     `$content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new('${RELEASE_ASSET_CONTENT_TYPE}')`,
-    "$url = $env:YULORA_RELEASE_UPLOAD_URL + '?name=' + [System.Uri]::EscapeDataString($env:YULORA_RELEASE_ASSET_NAME)",
+    "$url = $env:FISHMARK_RELEASE_UPLOAD_URL + '?name=' + [System.Uri]::EscapeDataString($env:FISHMARK_RELEASE_ASSET_NAME)",
     "$response = $client.PostAsync($url, $content).GetAwaiter().GetResult()",
     "if (-not $response.IsSuccessStatusCode) {",
     "  $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()",
@@ -290,10 +290,10 @@ export async function uploadReleaseAsset(uploadBaseUrl, assetPath, assetName, to
     encoding: "utf8",
     env: {
       ...process.env,
-      YULORA_GH_TOKEN: token,
-      YULORA_RELEASE_ASSET_PATH: assetPath,
-      YULORA_RELEASE_ASSET_NAME: assetName,
-      YULORA_RELEASE_UPLOAD_URL: uploadBaseUrl
+      FISHMARK_GH_TOKEN: token,
+      FISHMARK_RELEASE_ASSET_PATH: assetPath,
+      FISHMARK_RELEASE_ASSET_NAME: assetName,
+      FISHMARK_RELEASE_UPLOAD_URL: uploadBaseUrl
     }
   });
 
@@ -318,7 +318,7 @@ export async function publishReleaseArtifacts({ projectDir, builderConfig, versi
     releaseNotes
   });
   const latestPath = path.join(projectDir, outputDirectory, "latest.yml");
-  const installerPath = path.join(projectDir, outputDirectory, `Yulora-Setup-${version}.exe`);
+  const installerPath = path.join(projectDir, outputDirectory, `FishMark-Setup-${version}.exe`);
   const blockMapPath = `${installerPath}.blockmap`;
   const assets = [
     { name: "latest.yml", filePath: latestPath },
@@ -357,7 +357,7 @@ export async function writeAppUpdateMetadata({ appOutDir, builderConfig }) {
     `repo: ${publishConfig.repo}`,
     "provider: github",
     `releaseType: ${publishConfig.releaseType ?? "release"}`,
-    "updaterCacheDirName: yulora-updater"
+    "updaterCacheDirName: fishmark-updater"
   ].join("\n");
 
   await writeFile(path.join(appOutDir, "resources", "app-update.yml"), `${appUpdateYaml}\n`, "utf8");
@@ -374,7 +374,7 @@ export async function preparePackagedWindowsApp({
     electronPlatformName: "win32",
     packager: {
       appInfo: {
-        productFilename: builderConfig.productName ?? "Yulora"
+        productFilename: builderConfig.productName ?? "FishMark"
       }
     }
   });
@@ -437,7 +437,7 @@ async function computeSha512(filePath) {
 }
 
 export async function writeLatestReleaseMetadata({ projectDir, version, outputDirectory = OUTPUT_DIRECTORY }) {
-  const installerName = `Yulora-Setup-${version}.exe`;
+  const installerName = `FishMark-Setup-${version}.exe`;
   const installerPath = path.join(projectDir, outputDirectory, installerName);
   const installerStat = await stat(installerPath);
   const sha512 = await computeSha512(installerPath);

@@ -30,7 +30,7 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["dev:test-workbench"]).toContain("npm:dev:renderer:test-workbench");
     expect(packageJson.scripts?.["dev:renderer:test-workbench"]).toContain("--port 5174");
     expect(packageJson.scripts?.["dev:electron:test-workbench"]).toContain(
-      "YULORA_START_MODE=test-workbench"
+      "FISHMARK_START_MODE=test-workbench"
     );
     expect(packageJson.scripts?.["dev:electron:test-workbench"]).toContain(
       "VITE_DEV_SERVER_URL=http://localhost:5174"
@@ -80,7 +80,7 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["dev:electron"]).toContain("cross-env VITE_DEV_SERVER_URL=http://localhost:5173");
     expect(packageJson.scripts?.["dev:electron"]).not.toContain("node ./node_modules/cross-env/");
     expect(packageJson.scripts?.["dev:electron:test-workbench"]).toContain(
-      "cross-env YULORA_START_MODE=test-workbench VITE_DEV_SERVER_URL=http://localhost:5174"
+      "cross-env FISHMARK_START_MODE=test-workbench VITE_DEV_SERVER_URL=http://localhost:5174"
     );
     expect(packageJson.scripts?.["dev:electron:test-workbench"]).not.toContain(
       "node ./node_modules/cross-env/"
@@ -91,7 +91,7 @@ describe("package scripts", () => {
     const viteConfigPath = path.join(process.cwd(), "vite.config.ts");
     const viteConfigSource = readFileSync(viteConfigPath, "utf8");
 
-    expect(viteConfigSource).toContain("YULORA_DEV_SERVER_PORT");
+    expect(viteConfigSource).toContain("FISHMARK_DEV_SERVER_PORT");
   });
 
   it("copies builtin theme packages into the renderer build output", () => {
@@ -204,15 +204,15 @@ describe("package scripts", () => {
       };
     };
 
-    expect(config.appId).toBe("com.yulora.app");
+    expect(config.appId).toBe("com.fishmark.app");
     expect(config.electronVersion).toBe("41.2.0");
     expect(config.electronLanguages).toEqual(["en-US", "zh-CN", "zh-TW"]);
-    expect(config.productName).toBe("Yulora");
+    expect(config.productName).toBe("FishMark");
     expect(config.publish).toEqual([
       {
         provider: "github",
         owner: "yulu-gm",
-        repo: "Yulora",
+        repo: "FishMark",
         releaseType: "release"
       }
     ]);
@@ -365,7 +365,7 @@ describe("package scripts", () => {
     expect(batchSource).toContain('cd /d "%~dp0\\.."');
     expect(batchSource).toContain("node scripts/sync-dev-themes.mjs");
     expect(batchSource).toContain("call npm run dev");
-    expect(syncScriptSource).toContain("Yulora-dev");
+    expect(syncScriptSource).toContain("FishMark-dev");
     expect(syncScriptSource).toContain("fixtures");
     expect(syncScriptSource).toContain("themes");
     expect(existsSync(legacyRootPath)).toBe(false);
@@ -386,7 +386,7 @@ describe("package scripts", () => {
   });
 
   it("skips syncing dev themes when the fixture themes directory is missing", () => {
-    const tempRoot = mkdtempSync(path.join(os.tmpdir(), "yulora-sync-dev-themes-"));
+    const tempRoot = mkdtempSync(path.join(os.tmpdir(), "fishmark-sync-dev-themes-"));
 
     try {
       const scriptsDirectory = path.join(tempRoot, "scripts");
@@ -396,7 +396,7 @@ describe("package scripts", () => {
           : process.platform === "darwin"
             ? path.join(tempRoot, "home", "Library", "Application Support")
             : path.join(tempRoot, "xdg-config");
-      const targetThemesDirectory = path.join(appDataDirectory, "Yulora-dev", "themes");
+      const targetThemesDirectory = path.join(appDataDirectory, "FishMark-dev", "themes");
       const scriptSourcePath = path.join(process.cwd(), "scripts", "sync-dev-themes.mjs");
       const tempScriptPath = path.join(scriptsDirectory, "sync-dev-themes.mjs");
       const env = { ...process.env };

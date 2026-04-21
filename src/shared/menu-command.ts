@@ -1,4 +1,4 @@
-export const APP_MENU_COMMAND_EVENT = "yulora:app-menu-command";
+export const APP_MENU_COMMAND_EVENT = "fishmark:app-menu-command";
 
 export const APP_MENU_COMMANDS = [
   "new-markdown-document",

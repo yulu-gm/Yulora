@@ -1,37 +1,37 @@
 :root {
-  --yulora-page-bg: var(--yulora-app-bg);
-  --yulora-surface-bg: var(--yulora-workspace-bg);
-  --yulora-surface-raised-bg: color-mix(in srgb, var(--yulora-panel-bg) 92%, var(--yulora-workspace-bg));
-  --yulora-surface-muted-bg: color-mix(in srgb, var(--yulora-control-bg-active) 58%, var(--yulora-workspace-bg));
-  --yulora-surface-subtle-bg: color-mix(in srgb, var(--yulora-panel-border) 16%, var(--yulora-workspace-bg));
-  --yulora-surface-blockquote-bg: color-mix(
+  --fishmark-page-bg: var(--fishmark-app-bg);
+  --fishmark-surface-bg: var(--fishmark-workspace-bg);
+  --fishmark-surface-raised-bg: color-mix(in srgb, var(--fishmark-panel-bg) 92%, var(--fishmark-workspace-bg));
+  --fishmark-surface-muted-bg: color-mix(in srgb, var(--fishmark-control-bg-active) 58%, var(--fishmark-workspace-bg));
+  --fishmark-surface-subtle-bg: color-mix(in srgb, var(--fishmark-panel-border) 16%, var(--fishmark-workspace-bg));
+  --fishmark-surface-blockquote-bg: color-mix(
     in srgb,
-    var(--yulora-markdown-quote-border) 10%,
-    var(--yulora-workspace-bg)
+    var(--fishmark-markdown-quote-border) 10%,
+    var(--fishmark-workspace-bg)
   );
-  --yulora-border-strong: var(--yulora-panel-border);
-  --yulora-border-muted: color-mix(in srgb, var(--yulora-panel-border) 88%, transparent);
-  --yulora-border-subtle: color-mix(in srgb, var(--yulora-panel-border) 72%, transparent);
-  --yulora-border-faint: color-mix(in srgb, var(--yulora-panel-border) 52%, transparent);
-  --yulora-text-strong: var(--yulora-text-primary);
-  --yulora-text-body: var(--yulora-editor-fg);
-  --yulora-text-subtle: color-mix(in srgb, var(--yulora-text-muted) 76%, var(--yulora-workspace-bg));
-  --yulora-dirty-text: color-mix(in srgb, var(--yulora-banner-warning-bg) 52%, #9a6700);
-  --yulora-clean-text: var(--yulora-text-accent);
-  --yulora-danger-bg: var(--yulora-banner-error-bg);
-  --yulora-danger-border: color-mix(in srgb, var(--yulora-text-danger) 24%, var(--yulora-panel-border));
-  --yulora-danger-text: var(--yulora-text-danger);
-  --yulora-welcome-heading: var(--yulora-text-strong);
-  --yulora-welcome-kicker: var(--yulora-text-subtle);
-  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-muted) 88%, var(--yulora-workspace-bg));
-  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-panel-bg) 72%, transparent);
-  --yulora-welcome-meta-border: var(--yulora-border-subtle);
-  --yulora-welcome-meta-text: var(--yulora-text-subtle);
-  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 94%, transparent);
-  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 96%, transparent);
-  --yulora-rail-control-border: var(--yulora-border-subtle);
-  --yulora-rail-control-border-hover: var(--yulora-border-muted);
-  --yulora-rail-control-fg: var(--yulora-text-secondary);
-  --yulora-rail-control-fg-hover: var(--yulora-text-strong);
-  --yulora-rail-control-shadow: var(--yulora-shadow-1);
+  --fishmark-border-strong: var(--fishmark-panel-border);
+  --fishmark-border-muted: color-mix(in srgb, var(--fishmark-panel-border) 88%, transparent);
+  --fishmark-border-subtle: color-mix(in srgb, var(--fishmark-panel-border) 72%, transparent);
+  --fishmark-border-faint: color-mix(in srgb, var(--fishmark-panel-border) 52%, transparent);
+  --fishmark-text-strong: var(--fishmark-text-primary);
+  --fishmark-text-body: var(--fishmark-editor-fg);
+  --fishmark-text-subtle: color-mix(in srgb, var(--fishmark-text-muted) 76%, var(--fishmark-workspace-bg));
+  --fishmark-dirty-text: color-mix(in srgb, var(--fishmark-banner-warning-bg) 52%, #9a6700);
+  --fishmark-clean-text: var(--fishmark-text-accent);
+  --fishmark-danger-bg: var(--fishmark-banner-error-bg);
+  --fishmark-danger-border: color-mix(in srgb, var(--fishmark-text-danger) 24%, var(--fishmark-panel-border));
+  --fishmark-danger-text: var(--fishmark-text-danger);
+  --fishmark-welcome-heading: var(--fishmark-text-strong);
+  --fishmark-welcome-kicker: var(--fishmark-text-subtle);
+  --fishmark-welcome-copy: color-mix(in srgb, var(--fishmark-text-muted) 88%, var(--fishmark-workspace-bg));
+  --fishmark-welcome-meta-bg: color-mix(in srgb, var(--fishmark-panel-bg) 72%, transparent);
+  --fishmark-welcome-meta-border: var(--fishmark-border-subtle);
+  --fishmark-welcome-meta-text: var(--fishmark-text-subtle);
+  --fishmark-rail-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 94%, transparent);
+  --fishmark-rail-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 96%, transparent);
+  --fishmark-rail-control-border: var(--fishmark-border-subtle);
+  --fishmark-rail-control-border-hover: var(--fishmark-border-muted);
+  --fishmark-rail-control-fg: var(--fishmark-text-secondary);
+  --fishmark-rail-control-fg-hover: var(--fishmark-text-strong);
+  --fishmark-rail-control-shadow: var(--fishmark-shadow-1);
 }

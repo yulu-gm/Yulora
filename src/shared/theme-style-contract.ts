@@ -1,12 +1,12 @@
 export const THEME_CONTRACT_VERSION = 2 as const;
 
-export const THEME_RUNTIME_THEME_MODE_ATTRIBUTE = "data-yulora-theme-mode";
+export const THEME_RUNTIME_THEME_MODE_ATTRIBUTE = "data-fishmark-theme-mode";
 
 export const THEME_RUNTIME_ENV_CSS_VARS = {
-  wordCount: "--yulora-env-word-count",
-  readingMode: "--yulora-env-reading-mode",
-  viewportWidth: "--yulora-env-viewport-width",
-  viewportHeight: "--yulora-env-viewport-height"
+  wordCount: "--fishmark-env-word-count",
+  readingMode: "--fishmark-env-reading-mode",
+  viewportWidth: "--fishmark-env-viewport-width",
+  viewportHeight: "--fishmark-env-viewport-height"
 } as const;
 
 export const THEME_SEMANTIC_STYLE_SLOTS = [

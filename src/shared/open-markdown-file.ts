@@ -37,9 +37,9 @@ export type HandleDroppedMarkdownFileResult = {
   disposition: "open-in-place" | "opened-in-new-window";
 };
 
-export const OPEN_MARKDOWN_FILE_CHANNEL = "yulora:open-markdown-file";
-export const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "yulora:open-markdown-file-from-path";
-export const HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL = "yulora:handle-dropped-markdown-file";
+export const OPEN_MARKDOWN_FILE_CHANNEL = "fishmark:open-markdown-file";
+export const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "fishmark:open-markdown-file-from-path";
+export const HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL = "fishmark:handle-dropped-markdown-file";
 
 export const OPEN_MARKDOWN_FILE_ERROR_MESSAGES: Record<OpenMarkdownFileErrorCode, string> = {
   "dialog-failed": "The file picker could not be opened.",

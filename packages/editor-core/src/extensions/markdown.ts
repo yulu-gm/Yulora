@@ -21,7 +21,7 @@ import {
 
 import type {
   MarkdownDocument
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 import {
   createActiveBlockStateFromMarkdownDocument,
@@ -64,7 +64,7 @@ import { resolvePointerSelectionAnchor as resolveBlockPointerSelectionAnchor } f
 
 export type ParseMarkdownDocument = (source: string) => MarkdownDocument;
 
-export type CreateYuloraMarkdownExtensionsOptions = {
+export type CreateFishMarkMarkdownExtensionsOptions = {
   parseBlockMap?: ParseMarkdownDocument;
   parseMarkdownDocument?: ParseMarkdownDocument;
   onContentChange: (doc: string) => void;
@@ -90,14 +90,14 @@ const forceRefreshMarkdownDecorationsEffect = StateEffect.define<null>();
 const orderedListNormalizationAnnotation = Annotation.define<boolean>();
 const hiddenSelectionNormalizationAnnotation = Annotation.define<boolean>();
 
-export function createYuloraMarkdownExtensions(
-  options: CreateYuloraMarkdownExtensionsOptions
+export function createFishMarkMarkdownExtensions(
+  options: CreateFishMarkMarkdownExtensionsOptions
 ): Extension[] {
   const parseMarkdownDocument = options.parseMarkdownDocument ?? options.parseBlockMap;
 
   if (!parseMarkdownDocument) {
     throw new Error(
-      "createYuloraMarkdownExtensions requires parseBlockMap or parseMarkdownDocument"
+      "createFishMarkMarkdownExtensions requires parseBlockMap or parseMarkdownDocument"
     );
   }
 

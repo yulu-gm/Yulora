@@ -11,7 +11,7 @@ describe("resolveMarkdownLaunchPathFromArgv", () => {
   it("returns the markdown file path passed to the app on startup", () => {
     expect(
       resolveMarkdownLaunchPathFromArgv([
-        "C:/Program Files/Yulora/Yulora.exe",
+        "C:/Program Files/FishMark/FishMark.exe",
         "C:/notes/daily.md"
       ])
     ).toBe("C:/notes/daily.md");
@@ -20,7 +20,7 @@ describe("resolveMarkdownLaunchPathFromArgv", () => {
   it("ignores flags and non-markdown paths", () => {
     expect(
       resolveMarkdownLaunchPathFromArgv([
-        "C:/Program Files/Yulora/Yulora.exe",
+        "C:/Program Files/FishMark/FishMark.exe",
         "--flag",
         "C:/notes/daily.txt"
       ])

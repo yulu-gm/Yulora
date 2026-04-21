@@ -27,7 +27,7 @@ function createDependencies(overrides: {
 
 describe("resolvePreferencesFilePath", () => {
   it("appends the preferences file name to the userData directory", () => {
-    const userDataDir = path.join("C:/Users/demo/AppData/Roaming", "yulora");
+    const userDataDir = path.join("C:/Users/demo/AppData/Roaming", "fishmark");
     const resolved = resolvePreferencesFilePath(userDataDir);
 
     expect(resolved).toBe(path.join(userDataDir, "preferences.json"));

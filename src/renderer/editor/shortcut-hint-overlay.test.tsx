@@ -8,7 +8,7 @@ import { act } from "react";
 import {
   DEFAULT_TEXT_SHORTCUT_GROUP,
   TABLE_EDITING_SHORTCUT_GROUP
-} from "@yulora/editor-core";
+} from "@fishmark/editor-core";
 
 import { ShortcutHintOverlay } from "./shortcut-hint-overlay";
 
@@ -44,7 +44,7 @@ describe("ShortcutHintOverlay", () => {
     });
 
     expect(
-      container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')
+      container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')
     )?.not.toBeNull();
     expect(container.textContent).toContain("Ctrl+B");
     expect(container.textContent).toContain("Bold");
@@ -90,7 +90,7 @@ describe("ShortcutHintOverlay", () => {
     });
 
     expect(
-      container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')
+      container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')
     ).toBeNull();
   });
 
@@ -118,7 +118,7 @@ describe("ShortcutHintOverlay", () => {
       );
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
 
     expect(overlay).not.toBeNull();
     expect(overlay?.getAttribute("data-state")).toBe("closing");
@@ -127,13 +127,13 @@ describe("ShortcutHintOverlay", () => {
       vi.advanceTimersByTime(TOTAL_CLOSE_DURATION_MS - 1);
     });
 
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).not.toBeNull();
 
     await act(async () => {
       vi.advanceTimersByTime(1);
     });
 
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
   });
 
   it("cancels fade-out if the overlay becomes visible again", async () => {
@@ -170,7 +170,7 @@ describe("ShortcutHintOverlay", () => {
       );
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
 
     expect(overlay).not.toBeNull();
     expect(overlay?.getAttribute("data-state")).toBe("open");
@@ -181,7 +181,7 @@ describe("ShortcutHintOverlay", () => {
     });
 
     const overlayAfterOriginalHideTimeout = container.querySelector(
-      '[data-yulora-region="shortcut-hint-overlay"]'
+      '[data-fishmark-region="shortcut-hint-overlay"]'
     );
 
     expect(overlayAfterOriginalHideTimeout).not.toBeNull();
@@ -214,7 +214,7 @@ describe("ShortcutHintOverlay", () => {
       );
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
 
     expect(overlay?.getAttribute("data-shortcut-group")).toBe("table-editing");
     expect(container.textContent).toContain("Next Cell");

@@ -3,8 +3,8 @@ import { spawn, type SpawnOptions } from "node:child_process";
 import type { RunnerEventEnvelope, ScenarioRunTerminal } from "../shared/test-run-session";
 import type { EditorTestCommand, EditorTestCommandResult } from "../shared/editor-test-command";
 
-const EVENT_PREFIX = "__YULORA_EVENT__";
-const TERMINAL_PREFIX = "__YULORA_TERMINAL__";
+const EVENT_PREFIX = "__FISHMARK_EVENT__";
+const TERMINAL_PREFIX = "__FISHMARK_TERMINAL__";
 
 type StartRunArgs = {
   runId: string;
@@ -55,9 +55,9 @@ export function createCliProcessRunner(input: {
           stdio: ["ignore", "pipe", "ignore", "ipc"],
           env: {
             ...process.env,
-            YULORA_CLI_STREAM_EVENTS: "1",
-            YULORA_RUN_ID: args.runId,
-            ...(editorSession ? { YULORA_EDITOR_SESSION_ID: editorSession.sessionId } : {})
+            FISHMARK_CLI_STREAM_EVENTS: "1",
+            FISHMARK_RUN_ID: args.runId,
+            ...(editorSession ? { FISHMARK_EDITOR_SESSION_ID: editorSession.sessionId } : {})
           }
         }
       );

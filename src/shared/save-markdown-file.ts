@@ -30,8 +30,8 @@ export type SaveMarkdownFileResult =
       };
     };
 
-export const SAVE_MARKDOWN_FILE_CHANNEL = "yulora:save-markdown-file";
-export const SAVE_MARKDOWN_FILE_AS_CHANNEL = "yulora:save-markdown-file-as";
+export const SAVE_MARKDOWN_FILE_CHANNEL = "fishmark:save-markdown-file";
+export const SAVE_MARKDOWN_FILE_AS_CHANNEL = "fishmark:save-markdown-file-as";
 
 export const SAVE_MARKDOWN_FILE_ERROR_MESSAGES: Record<SaveMarkdownFileErrorCode, string> = {
   "dialog-failed": "The save dialog could not be opened.",

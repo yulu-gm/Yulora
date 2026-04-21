@@ -1,7 +1,7 @@
 import type { EditorState } from "@codemirror/state";
 
-import type { TableBlock, TableCell } from "@yulora/markdown-engine";
-import { tableBlockToCanonicalModel, type CanonicalTableModel } from "@yulora/markdown-engine";
+import type { TableBlock, TableCell } from "@fishmark/markdown-engine";
+import { tableBlockToCanonicalModel, type CanonicalTableModel } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 

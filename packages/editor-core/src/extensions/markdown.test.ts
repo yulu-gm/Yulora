@@ -4,9 +4,9 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it, vi } from "vitest";
 
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
-import { createYuloraMarkdownExtensions } from "./markdown";
+import { createFishMarkMarkdownExtensions } from "./markdown";
 import {
   TABLE_EDITING_SHORTCUT_GROUP,
   TEXT_EDITING_SHORTCUTS
@@ -38,7 +38,7 @@ const createHarness = (options: HarnessOptions) => {
   const view = new EditorView({
     state: EditorState.create({
       doc: options.source,
-      extensions: createYuloraMarkdownExtensions({
+      extensions: createFishMarkMarkdownExtensions({
         parseMarkdownDocument,
         onContentChange: options.onContentChange ?? vi.fn(),
         onActiveBlockChange: (state) => {
@@ -60,7 +60,7 @@ const createHarness = (options: HarnessOptions) => {
   };
 };
 
-describe("createYuloraMarkdownExtensions", () => {
+describe("createFishMarkMarkdownExtensions", () => {
   it("calls onContentChange when the document changes", () => {
     const onContentChange = vi.fn();
     const { view, destroy } = createHarness({
@@ -382,7 +382,7 @@ describe("createYuloraMarkdownExtensions", () => {
     const view = new EditorView({
       state: EditorState.create({
         doc: source,
-        extensions: createYuloraMarkdownExtensions({
+        extensions: createFishMarkMarkdownExtensions({
           parseMarkdownDocument,
           onContentChange: vi.fn()
         })

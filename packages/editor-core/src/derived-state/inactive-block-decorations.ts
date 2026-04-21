@@ -1,4 +1,4 @@
-import type { MarkdownDocument } from "@yulora/markdown-engine";
+import type { MarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createBlockDecorations } from "../decorations";
 import type { TableWidgetCallbacks } from "../decorations";

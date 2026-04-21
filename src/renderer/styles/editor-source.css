@@ -1,8 +1,8 @@
 .document-editor .cm-editor {
   height: 100%;
   min-height: 0;
-  background: var(--yulora-editor-bg, transparent);
-  color: var(--yulora-editor-fg, #31353d);
+  background: var(--fishmark-editor-bg, transparent);
+  color: var(--fishmark-editor-fg, #31353d);
 }
 
 .document-editor .cm-scroller {
@@ -13,8 +13,8 @@
 
 .document-editor .cm-content,
 .document-editor .cm-line {
-  font-family: var(--yulora-document-font-family, var(--yulora-editor-font-family));
-  font-size: var(--yulora-document-font-size, var(--yulora-editor-font-size));
+  font-family: var(--fishmark-document-font-family, var(--fishmark-editor-font-family));
+  font-size: var(--fishmark-document-font-size, var(--fishmark-editor-font-size));
   font-weight: 400;
   line-height: 1.85;
   color: inherit;
@@ -24,7 +24,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 40px clamp(64px, 12vw, 220px) 56px;
-  caret-color: var(--yulora-caret-color);
+  caret-color: var(--fishmark-caret-color);
 }
 
 .document-editor .cm-focused {
@@ -34,24 +34,24 @@
 .document-editor .cm-selectionBackground,
 .document-editor .cm-focused .cm-selectionBackground,
 .document-editor .cm-content ::selection {
-  background: var(--yulora-selection-bg, rgba(79, 124, 255, 0.24));
-  color: var(--yulora-selection-fg, inherit);
+  background: var(--fishmark-selection-bg, rgba(79, 124, 255, 0.24));
+  color: var(--fishmark-selection-fg, inherit);
 }
 
 .document-editor .cm-cursor,
 .document-editor .cm-dropCursor {
-  border-left-color: var(--yulora-caret-color);
+  border-left-color: var(--fishmark-caret-color);
 }
 
 .document-editor .cm-activeLine,
 .document-editor .cm-activeLineGutter {
-  background: var(--yulora-current-line-bg, transparent);
+  background: var(--fishmark-current-line-bg, transparent);
 }
 
 .document-editor .cm-gutters {
   border: none;
   background: transparent;
-  color: var(--yulora-gutter-fg, var(--yulora-editor-muted, #687180));
+  color: var(--fishmark-gutter-fg, var(--fishmark-editor-muted, #687180));
 }
 
 @media (max-width: 860px) {

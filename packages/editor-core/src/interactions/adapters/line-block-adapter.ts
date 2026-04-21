@@ -5,7 +5,7 @@ import type {
   ListBlock,
   ListItemBlock,
   ThematicBreakBlock
-} from "@yulora/markdown-engine";
+} from "@fishmark/markdown-engine";
 
 import {
   anchorForVisibleLineColumn,

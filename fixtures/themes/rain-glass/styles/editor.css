@@ -1,40 +1,40 @@
 :root {
-  --yulora-editor-font-family: "Aptos", "Inter", "Segoe UI", sans-serif;
-  --yulora-editor-font-size: 1.04rem;
-  --yulora-editor-caret: var(--yulora-caret-color);
+  --fishmark-editor-font-family: "Aptos", "Inter", "Segoe UI", sans-serif;
+  --fishmark-editor-font-size: 1.04rem;
+  --fishmark-editor-caret: var(--fishmark-caret-color);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-editor,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-scroller {
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-editor,
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-scroller {
   background: transparent;
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-editor {
-  color: var(--yulora-editor-fg);
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-editor {
+  color: var(--fishmark-editor-fg);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-content {
-  caret-color: var(--yulora-caret-color);
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-content {
+  caret-color: var(--fishmark-caret-color);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-content ::selection,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-line::selection,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-selectionLayer .cm-selectionBackground,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-selectionBackground {
-  background: var(--yulora-selection-bg);
-  color: var(--yulora-selection-fg);
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-content ::selection,
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-line::selection,
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-selectionLayer .cm-selectionBackground,
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-selectionBackground {
+  background: var(--fishmark-selection-bg);
+  color: var(--fishmark-selection-fg);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-activeLine {
-  background: var(--yulora-current-line-bg);
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-activeLine {
+  background: var(--fishmark-current-line-bg);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-gutters,
-[data-yulora-region="workspace-canvas"] .document-editor .cm-gutterElement {
-  color: var(--yulora-gutter-fg);
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-gutters,
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-gutterElement {
+  color: var(--fishmark-gutter-fg);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor .cm-gutters {
+[data-fishmark-region="workspace-canvas"] .document-editor .cm-gutters {
   background: transparent;
   border-right: 0;
 }

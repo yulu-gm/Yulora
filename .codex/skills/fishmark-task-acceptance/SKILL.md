@@ -1,9 +1,9 @@
-﻿---
-name: yulora-task-acceptance
-description: 用于对已经实现完成的 Yulora task 做验收、跑质量门禁、判断 PASS 或 FAIL、更新项目记录，并输出人工验收步骤；仅在实现已落地、需要收尾和对外总结时使用。
+---
+name: fishmark-task-acceptance
+description: 用于对已经实现完成的 FishMark task 做验收、跑质量门禁、判断 PASS 或 FAIL、更新项目记录，并输出人工验收步骤；仅在实现已落地、需要收尾和对外总结时使用。
 ---
 
-# Yulora 任务验收
+# FishMark 任务验收
 
 ## 职责边界
 
@@ -13,7 +13,7 @@ description: 用于对已经实现完成的 Yulora task 做验收、跑质量门
 3. 同步项目记录
 4. 输出最终总结，且必须包含人工验收步骤
 
-不写实现代码，不补主体功能。验收中如果发现需要改实现，退回 `$yulora-task-execution`。
+不写实现代码，不补主体功能。验收中如果发现需要改实现，退回 `$fishmark-task-execution`。
 
 ## 验收流程
 

@@ -1,4 +1,4 @@
-import type { ScenarioRegistry, TestScenario } from "@yulora/test-harness";
+import type { ScenarioRegistry, TestScenario } from "@fishmark/test-harness";
 
 type ScenarioCatalogProps = {
   readonly registry: ScenarioRegistry;

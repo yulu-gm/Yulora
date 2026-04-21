@@ -63,12 +63,12 @@ afterAll(() => {
 
 function createBuilderConfig() {
   return {
-    productName: "Yulora",
+    productName: "FishMark",
     publish: [
       {
         provider: "github",
         owner: "yulu-gm",
-        repo: "Yulora",
+        repo: "FishMark",
         releaseType: "release"
       }
     ]
@@ -77,7 +77,7 @@ function createBuilderConfig() {
 
 describe("build-win-release", () => {
   it("loads release notes from project metadata for the target version", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
     const metadataDirectory = path.join(tempDirectory, "release-metadata");
 
     createdDirectories.push(tempDirectory);
@@ -87,7 +87,7 @@ describe("build-win-release", () => {
       JSON.stringify(
         {
           version: "0.1.2",
-          title: "Yulora 0.1.2 Release",
+          title: "FishMark 0.1.2 Release",
           body: "### 本次更新\n\n- 改进发布流程。"
         },
         null,
@@ -97,13 +97,13 @@ describe("build-win-release", () => {
 
     await expect(loadReleaseNotes({ projectDir: tempDirectory, version: "0.1.2" })).resolves.toEqual({
       version: "0.1.2",
-      title: "Yulora 0.1.2 Release",
+      title: "FishMark 0.1.2 Release",
       body: "### 本次更新\n\n- 改进发布流程。"
     });
   });
 
   it("fails when release notes metadata is missing", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
 
     createdDirectories.push(tempDirectory);
 
@@ -113,7 +113,7 @@ describe("build-win-release", () => {
   });
 
   it("fails when release notes metadata version does not match package.json", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
     const metadataDirectory = path.join(tempDirectory, "release-metadata");
 
     createdDirectories.push(tempDirectory);
@@ -123,7 +123,7 @@ describe("build-win-release", () => {
       JSON.stringify(
         {
           version: "0.1.1",
-          title: "Yulora 0.1.1 Release",
+          title: "FishMark 0.1.1 Release",
           body: "### 本次更新\n\n- 旧版本说明。"
         },
         null,
@@ -137,7 +137,7 @@ describe("build-win-release", () => {
   });
 
   it("writes app-update metadata into the packaged resources directory", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
     const appOutDirectory = path.join(tempDirectory, "win-unpacked");
     const resourcesDirectory = path.join(appOutDirectory, "resources");
 
@@ -152,12 +152,12 @@ describe("build-win-release", () => {
     const metadata = readFileSync(path.join(resourcesDirectory, "app-update.yml"), "utf8");
 
     expect(metadata).toContain("owner: yulu-gm");
-    expect(metadata).toContain("repo: Yulora");
+    expect(metadata).toContain("repo: FishMark");
     expect(metadata).toContain("provider: github");
   });
 
   it("prepares the packaged app by writing updater metadata before patching the executable icon", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
     const appOutDirectory = path.join(tempDirectory, "win-unpacked");
     const resourcesDirectory = path.join(appOutDirectory, "resources");
     const steps: string[] = [];
@@ -179,9 +179,9 @@ describe("build-win-release", () => {
   });
 
   it("writes latest.yml after the installer exists", async () => {
-    const tempDirectory = mkdtempSync(path.join(tmpdir(), "yulora-build-win-release-"));
+    const tempDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-build-win-release-"));
     const releaseDirectory = path.join(tempDirectory, "release");
-    const installerPath = path.join(releaseDirectory, "Yulora-Setup-0.1.0.exe");
+    const installerPath = path.join(releaseDirectory, "FishMark-Setup-0.1.0.exe");
 
     createdDirectories.push(tempDirectory);
     mkdirSync(releaseDirectory, { recursive: true });
@@ -195,7 +195,7 @@ describe("build-win-release", () => {
     const latest = readFileSync(path.join(releaseDirectory, "latest.yml"), "utf8");
 
     expect(latest).toContain("version: 0.1.0");
-    expect(latest).toContain("path: Yulora-Setup-0.1.0.exe");
+    expect(latest).toContain("path: FishMark-Setup-0.1.0.exe");
   });
 
   it("prepares the packaged app before generating distributable artifacts", async () => {
@@ -254,7 +254,7 @@ describe("build-win-release", () => {
         expect(init?.method).toBe("POST");
         expect(JSON.parse(String(init?.body))).toMatchObject({
           tag_name: "v0.1.2",
-          name: "Yulora 0.1.2 Release",
+          name: "FishMark 0.1.2 Release",
           body: "### 本次更新\n\n- 改进发布流程。",
           draft: false,
           prerelease: false
@@ -274,12 +274,12 @@ describe("build-win-release", () => {
     await expect(
       ensureRelease({
         owner: "yulu-gm",
-        repo: "Yulora",
+        repo: "FishMark",
         version: "0.1.2",
         token: "token",
         releaseNotes: {
           version: "0.1.2",
-          title: "Yulora 0.1.2 Release",
+          title: "FishMark 0.1.2 Release",
           body: "### 本次更新\n\n- 改进发布流程。"
         }
       })

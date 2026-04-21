@@ -16,7 +16,7 @@ type UpdatePreferencesResult =
       preferences: Preferences;
     };
 
-type ThemePackageEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
+type ThemePackageEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
 
 type SettingsViewProps = {
   surfaceState: "open" | "closing";
@@ -239,7 +239,7 @@ export function SettingsView({
 
   async function handleOpenThemesDirectory(): Promise<void> {
     try {
-      await window.yulora.openThemesDirectory();
+      await window.fishmark.openThemesDirectory();
       setErrorMessage(null);
     } catch {
       setErrorMessage("无法打开主题目录。");
@@ -438,8 +438,8 @@ export function SettingsView({
   return (
     <section
       className="settings-shell"
-      data-yulora-panel="settings-drawer"
-      data-yulora-surface="floating-drawer"
+      data-fishmark-panel="settings-drawer"
+      data-fishmark-surface="floating-drawer"
       data-state={surfaceState}
       role="dialog"
       aria-modal="true"
@@ -533,7 +533,7 @@ export function SettingsView({
                 style={{
                   display: "flex",
                   alignItems: "stretch",
-                  gap: "var(--yulora-space-2)"
+                  gap: "var(--fishmark-space-2)"
                 }}
               >
                 <select
@@ -543,7 +543,7 @@ export function SettingsView({
                   value={resolvedThemeSelectionValue ?? "default"}
                   onChange={(event) => handleThemePackageChange(event.target.value)}
                 >
-                  <option value="default">Yulora 默认</option>
+                  <option value="default">FishMark 默认</option>
                   {communityThemePackages.map((themePackage) => (
                     <option
                       key={themePackage.id}
@@ -609,8 +609,8 @@ export function SettingsView({
         {activeThemePackage && activeThemeParameters.length > 0 ? (
           <section
             className="settings-group"
-            data-yulora-panel="theme-parameters"
-            data-yulora-theme-id={activeThemePackage.id}
+            data-fishmark-panel="theme-parameters"
+            data-fishmark-theme-id={activeThemePackage.id}
           >
             <header className="settings-group-header">
               <h2>{activeThemePackage.manifest.name}：参数</h2>

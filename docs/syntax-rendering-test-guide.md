@@ -6,7 +6,7 @@
 
 ## 1. 目的
 
-本文总结 Yulora 在实现 fenced code block 渲染时暴露出的测试经验，作为后续所有 Markdown 语法渲染能力的统一测试指南。
+本文总结 FishMark 在实现 fenced code block 渲染时暴露出的测试经验，作为后续所有 Markdown 语法渲染能力的统一测试指南。
 
 适用范围包括但不限于：
 - 标题

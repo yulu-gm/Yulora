@@ -1,4 +1,4 @@
-# Yulora 任务文档地图
+# FishMark 任务文档地图
 
 ## 核心文档
 
@@ -51,14 +51,14 @@ Acceptance: 满足什么算 PASS
 Verification: 要跑哪些命令、做哪些人工检查
 Risks: 是否涉及 IME / 光标 / undo redo / autosave / round-trip / 跨平台
 Doc updates: 预期会更新哪些设计、backlog、进度、决策、测试或总结文档
-Next skill: $yulora-task-execution / $yulora-task-acceptance
+Next skill: $fishmark-task-execution / $fishmark-task-acceptance
 ```
 
 默认目标是完整完成一个 task；只有在 task 明显过大时，才先回到 backlog 把它拆成更小的完整 task。
 
 接单完成后：
-- 进入实现阶段时，使用 `$yulora-task-execution`
-- 进入验收和收尾阶段时，使用 `$yulora-task-acceptance`
+- 进入实现阶段时，使用 `$fishmark-task-execution`
+- 进入验收和收尾阶段时，使用 `$fishmark-task-acceptance`
 
 ## 完成与更新矩阵
 
@@ -104,4 +104,4 @@ Next skill: $yulora-task-execution / $yulora-task-acceptance
 
 ## $skill 调用语义
 
-文档里出现的 `$yulora-task-execution` 这类写法，含义是"切换到名为 yulora-task-execution 的 Codex skill 继续工作"。它不是变量，也不是模板占位符。在 Codex CLI 中，模型应当真的调用对应 skill，而不是仅口头声明"下一步该 X"。
+文档里出现的 `$fishmark-task-execution` 这类写法，含义是"切换到名为 fishmark-task-execution 的 Codex skill 继续工作"。它不是变量，也不是模板占位符。在 Codex CLI 中，模型应当真的调用对应 skill，而不是仅口头声明"下一步该 X"。

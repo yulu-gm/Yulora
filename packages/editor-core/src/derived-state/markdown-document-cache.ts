@@ -1,4 +1,4 @@
-import type { MarkdownDocument } from "@yulora/markdown-engine";
+import type { MarkdownDocument } from "@fishmark/markdown-engine";
 
 export type ParseMarkdownDocument = (source: string) => MarkdownDocument;
 

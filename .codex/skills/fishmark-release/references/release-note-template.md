@@ -1,18 +1,18 @@
-# Yulora Release Note 模板
+# FishMark Release Note 模板
 
 `release-metadata/release-notes.json` 的推荐结构：
 
 ```json
 {
   "version": "0.1.2",
-  "title": "Yulora 0.1.2 Release",
+  "title": "FishMark 0.1.2 Release",
   "body": "### 本次更新\n\n- ...\n- ..."
 }
 ```
 
 ## 标题规则
 
-- 推荐格式：`Yulora <version> Release`
+- 推荐格式：`FishMark <version> Release`
 - 不要在标题里塞实现细节
 
 ## 正文归纳规则

@@ -1,5 +1,5 @@
-import type { HeadingBlock, InlineNode, InlineRoot } from "@yulora/markdown-engine";
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+import type { HeadingBlock, InlineNode, InlineRoot } from "@fishmark/markdown-engine";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 export type OutlineItem = {
   id: string;

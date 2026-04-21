@@ -10,9 +10,9 @@ export const PREFERENCES_FILE_NAME = "preferences.json";
 export const PREFERENCES_SCHEMA_VERSION = 2 as const;
 export type PreferencesSchemaVersion = typeof PREFERENCES_SCHEMA_VERSION;
 
-export const GET_PREFERENCES_CHANNEL = "yulora:get-preferences";
-export const UPDATE_PREFERENCES_CHANNEL = "yulora:update-preferences";
-export const PREFERENCES_CHANGED_EVENT = "yulora:preferences-changed";
+export const GET_PREFERENCES_CHANNEL = "fishmark:get-preferences";
+export const UPDATE_PREFERENCES_CHANNEL = "fishmark:update-preferences";
+export const PREFERENCES_CHANGED_EVENT = "fishmark:preferences-changed";
 
 export type ThemeMode = "system" | "light" | "dark";
 export type ThemeEffectsMode = "auto" | "full" | "off";

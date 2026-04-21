@@ -1,4 +1,4 @@
-# Yulora 正式发版检查清单
+# FishMark 正式发版检查清单
 
 ## 发版前
 
@@ -13,8 +13,8 @@
 1. 运行 `tools\release-win.bat`
 2. 确认脚本成功生成：
    - `release/latest.yml`
-   - `release/Yulora-Setup-<version>.exe`
-   - `release/Yulora-Setup-<version>.exe.blockmap`
+   - `release/FishMark-Setup-<version>.exe`
+   - `release/FishMark-Setup-<version>.exe.blockmap`
 3. 确认 GitHub Release `v<version>` 已创建或复用
 4. 确认 GitHub Release 标题和正文与元数据一致
 

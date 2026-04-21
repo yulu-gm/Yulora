@@ -1,8 +1,8 @@
 {
-  "appId": "com.yulora.app",
+  "appId": "com.fishmark.app",
   "electronVersion": "41.2.0",
   "electronLanguages": ["en-US", "zh-CN", "zh-TW"],
-  "productName": "Yulora",
+  "productName": "FishMark",
   "artifactName": "${productName}-Setup-${version}.${ext}",
   "electronUpdaterCompatibility": ">=2.16",
   "directories": {
@@ -31,7 +31,7 @@
     {
       "provider": "github",
       "owner": "yulu-gm",
-      "repo": "Yulora",
+      "repo": "FishMark",
       "releaseType": "release"
     }
   ],

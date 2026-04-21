@@ -1,4 +1,4 @@
-import type { CodeFenceBlock } from "@yulora/markdown-engine";
+import type { CodeFenceBlock } from "@fishmark/markdown-engine";
 
 import { getInactiveCodeFenceLines } from "../../decorations";
 import type { BlockInteractionAdapter, PointerInteractionContext, VerticalInteractionContext } from "../types";

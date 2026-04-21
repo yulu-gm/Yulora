@@ -8,15 +8,15 @@ const packageJson = JSON.parse(
 
 export default defineConfig({
   define: {
-    __YULORA_APP_VERSION__: JSON.stringify(packageJson.version)
+    __FISHMARK_APP_VERSION__: JSON.stringify(packageJson.version)
   },
   resolve: {
     alias: {
-      "@yulora/editor-core": fileURLToPath(new URL("./packages/editor-core/src/index.ts", import.meta.url)),
-      "@yulora/markdown-engine": fileURLToPath(
+      "@fishmark/editor-core": fileURLToPath(new URL("./packages/editor-core/src/index.ts", import.meta.url)),
+      "@fishmark/markdown-engine": fileURLToPath(
         new URL("./packages/markdown-engine/src/index.ts", import.meta.url)
       ),
-      "@yulora/test-harness": fileURLToPath(
+      "@fishmark/test-harness": fileURLToPath(
         new URL("./packages/test-harness/src/index.ts", import.meta.url)
       )
     }

@@ -1,127 +1,127 @@
 :root {
-  --yulora-page-bg: var(--yulora-app-bg);
-  --yulora-surface-bg: var(--yulora-workspace-bg);
-  --yulora-surface-raised-bg: color-mix(in srgb, var(--yulora-panel-bg) 92%, var(--yulora-workspace-bg));
-  --yulora-surface-muted-bg: color-mix(in srgb, var(--yulora-control-bg-active) 56%, var(--yulora-workspace-bg));
-  --yulora-surface-subtle-bg: color-mix(in srgb, var(--yulora-panel-border) 18%, var(--yulora-workspace-bg));
-  --yulora-surface-blockquote-bg: color-mix(
+  --fishmark-page-bg: var(--fishmark-app-bg);
+  --fishmark-surface-bg: var(--fishmark-workspace-bg);
+  --fishmark-surface-raised-bg: color-mix(in srgb, var(--fishmark-panel-bg) 92%, var(--fishmark-workspace-bg));
+  --fishmark-surface-muted-bg: color-mix(in srgb, var(--fishmark-control-bg-active) 56%, var(--fishmark-workspace-bg));
+  --fishmark-surface-subtle-bg: color-mix(in srgb, var(--fishmark-panel-border) 18%, var(--fishmark-workspace-bg));
+  --fishmark-surface-blockquote-bg: color-mix(
     in srgb,
-    var(--yulora-markdown-quote-border) 12%,
-    var(--yulora-workspace-bg)
+    var(--fishmark-markdown-quote-border) 12%,
+    var(--fishmark-workspace-bg)
   );
-  --yulora-border-strong: var(--yulora-panel-border);
-  --yulora-border-muted: color-mix(in srgb, var(--yulora-panel-border) 86%, transparent);
-  --yulora-border-subtle: color-mix(in srgb, var(--yulora-panel-border) 72%, transparent);
-  --yulora-border-faint: color-mix(in srgb, var(--yulora-panel-border) 54%, transparent);
-  --yulora-text-strong: var(--yulora-text-primary);
-  --yulora-text-body: var(--yulora-editor-fg);
-  --yulora-text-subtle: color-mix(in srgb, var(--yulora-text-muted) 78%, var(--yulora-workspace-bg));
-  --yulora-dirty-text: #d97706;
-  --yulora-clean-text: var(--yulora-text-accent);
-  --yulora-danger-bg: var(--yulora-banner-error-bg);
-  --yulora-danger-border: color-mix(in srgb, var(--yulora-text-danger) 28%, var(--yulora-panel-border));
-  --yulora-danger-text: var(--yulora-text-danger);
-  --yulora-welcome-heading: var(--yulora-text-strong);
-  --yulora-welcome-kicker: var(--yulora-text-subtle);
-  --yulora-welcome-copy: color-mix(in srgb, var(--yulora-text-secondary) 88%, var(--yulora-workspace-bg));
-  --yulora-welcome-meta-bg: color-mix(in srgb, var(--yulora-panel-bg) 68%, transparent);
-  --yulora-welcome-meta-border: var(--yulora-border-subtle);
-  --yulora-welcome-meta-text: var(--yulora-text-subtle);
-  --yulora-rail-control-bg: color-mix(in srgb, var(--yulora-surface-raised-bg) 88%, var(--yulora-glass-strong-bg));
-  --yulora-rail-control-bg-hover: color-mix(in srgb, var(--yulora-surface-muted-bg) 76%, var(--yulora-glass-strong-bg));
-  --yulora-rail-control-border: color-mix(in srgb, var(--yulora-border-subtle) 90%, transparent);
-  --yulora-rail-control-border-hover: color-mix(in srgb, var(--yulora-border-muted) 92%, transparent);
-  --yulora-rail-control-fg: var(--yulora-text-secondary);
-  --yulora-rail-control-fg-hover: var(--yulora-text-strong);
-  --yulora-rail-control-shadow: var(--yulora-shadow-1);
+  --fishmark-border-strong: var(--fishmark-panel-border);
+  --fishmark-border-muted: color-mix(in srgb, var(--fishmark-panel-border) 86%, transparent);
+  --fishmark-border-subtle: color-mix(in srgb, var(--fishmark-panel-border) 72%, transparent);
+  --fishmark-border-faint: color-mix(in srgb, var(--fishmark-panel-border) 54%, transparent);
+  --fishmark-text-strong: var(--fishmark-text-primary);
+  --fishmark-text-body: var(--fishmark-editor-fg);
+  --fishmark-text-subtle: color-mix(in srgb, var(--fishmark-text-muted) 78%, var(--fishmark-workspace-bg));
+  --fishmark-dirty-text: #d97706;
+  --fishmark-clean-text: var(--fishmark-text-accent);
+  --fishmark-danger-bg: var(--fishmark-banner-error-bg);
+  --fishmark-danger-border: color-mix(in srgb, var(--fishmark-text-danger) 28%, var(--fishmark-panel-border));
+  --fishmark-danger-text: var(--fishmark-text-danger);
+  --fishmark-welcome-heading: var(--fishmark-text-strong);
+  --fishmark-welcome-kicker: var(--fishmark-text-subtle);
+  --fishmark-welcome-copy: color-mix(in srgb, var(--fishmark-text-secondary) 88%, var(--fishmark-workspace-bg));
+  --fishmark-welcome-meta-bg: color-mix(in srgb, var(--fishmark-panel-bg) 68%, transparent);
+  --fishmark-welcome-meta-border: var(--fishmark-border-subtle);
+  --fishmark-welcome-meta-text: var(--fishmark-text-subtle);
+  --fishmark-rail-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 88%, var(--fishmark-glass-strong-bg));
+  --fishmark-rail-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 76%, var(--fishmark-glass-strong-bg));
+  --fishmark-rail-control-border: color-mix(in srgb, var(--fishmark-border-subtle) 90%, transparent);
+  --fishmark-rail-control-border-hover: color-mix(in srgb, var(--fishmark-border-muted) 92%, transparent);
+  --fishmark-rail-control-fg: var(--fishmark-text-secondary);
+  --fishmark-rail-control-fg-hover: var(--fishmark-text-strong);
+  --fishmark-rail-control-shadow: var(--fishmark-shadow-1);
 }
 
-[data-yulora-layout="rail"].app-rail {
+[data-fishmark-layout="rail"].app-rail {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-rail-bg) 88%, var(--yulora-glass-strong-bg)),
-      color-mix(in srgb, var(--yulora-rail-bg) 62%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-rail-bg) 88%, var(--fishmark-glass-strong-bg)),
+      color-mix(in srgb, var(--fishmark-rail-bg) 62%, var(--fishmark-glass-bg))
     );
-  border-right-color: color-mix(in srgb, var(--yulora-panel-border) 72%, transparent);
+  border-right-color: color-mix(in srgb, var(--fishmark-panel-border) 72%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 82%, transparent),
-    0 12px 24px color-mix(in srgb, var(--yulora-scrim) 16%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 82%, transparent),
+    0 12px 24px color-mix(in srgb, var(--fishmark-scrim) 16%, transparent);
   backdrop-filter: blur(18px) saturate(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.05);
 }
 
-[data-yulora-layout="workspace"].app-workspace {
-  --yulora-rain-glass-workspace-opacity: var(
-    --yulora-theme-parameter-workspaceGlassOpacity,
+[data-fishmark-layout="workspace"].app-workspace {
+  --fishmark-rain-glass-workspace-opacity: var(
+    --fishmark-theme-parameter-workspaceGlassOpacity,
     0.24
   );
   width: min(100%, 1040px);
-  height: calc(100% - (var(--yulora-space-2) * 2));
-  margin: var(--yulora-space-2) auto;
+  height: calc(100% - (var(--fishmark-space-2) * 2));
+  margin: var(--fishmark-space-2) auto;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--yulora-space-3);
-  padding: var(--yulora-space-4) var(--yulora-space-5);
+  gap: var(--fishmark-space-3);
+  padding: var(--fishmark-space-4) var(--fishmark-space-5);
   border: 1px solid
     color-mix(
       in srgb,
-      var(--yulora-panel-border) calc(var(--yulora-rain-glass-workspace-opacity) * 58%),
+      var(--fishmark-panel-border) calc(var(--fishmark-rain-glass-workspace-opacity) * 58%),
       transparent
     );
-  border-radius: calc(var(--yulora-radius-xl) + 4px);
+  border-radius: calc(var(--fishmark-radius-xl) + 4px);
   background:
     linear-gradient(
       180deg,
       color-mix(
         in srgb,
-        var(--yulora-workspace-bg) calc(var(--yulora-rain-glass-workspace-opacity) * 100%),
-        var(--yulora-glass-strong-bg)
+        var(--fishmark-workspace-bg) calc(var(--fishmark-rain-glass-workspace-opacity) * 100%),
+        var(--fishmark-glass-strong-bg)
       ),
       color-mix(
         in srgb,
-        var(--yulora-panel-bg) calc(var(--yulora-rain-glass-workspace-opacity) * 100%),
-        var(--yulora-glass-bg)
+        var(--fishmark-panel-bg) calc(var(--fishmark-rain-glass-workspace-opacity) * 100%),
+        var(--fishmark-glass-bg)
       )
     );
   box-shadow:
     inset 0 1px 0
       color-mix(
         in srgb,
-        var(--yulora-glass-sheen) calc(var(--yulora-rain-glass-workspace-opacity) * 74%),
+        var(--fishmark-glass-sheen) calc(var(--fishmark-rain-glass-workspace-opacity) * 74%),
         transparent
       ),
     0 20px 44px
       color-mix(
         in srgb,
-        var(--yulora-scrim) calc(var(--yulora-rain-glass-workspace-opacity) * 18%),
+        var(--fishmark-scrim) calc(var(--fishmark-rain-glass-workspace-opacity) * 18%),
         transparent
       );
   backdrop-filter:
-    blur(calc(var(--yulora-rain-glass-workspace-opacity) * 24px))
-    saturate(calc(1 + (var(--yulora-rain-glass-workspace-opacity) * 0.08)))
-    brightness(calc(1 + (var(--yulora-rain-glass-workspace-opacity) * 0.05)));
+    blur(calc(var(--fishmark-rain-glass-workspace-opacity) * 24px))
+    saturate(calc(1 + (var(--fishmark-rain-glass-workspace-opacity) * 0.08)))
+    brightness(calc(1 + (var(--fishmark-rain-glass-workspace-opacity) * 0.05)));
   -webkit-backdrop-filter:
-    blur(calc(var(--yulora-rain-glass-workspace-opacity) * 24px))
-    saturate(calc(1 + (var(--yulora-rain-glass-workspace-opacity) * 0.08)))
-    brightness(calc(1 + (var(--yulora-rain-glass-workspace-opacity) * 0.05)));
+    blur(calc(var(--fishmark-rain-glass-workspace-opacity) * 24px))
+    saturate(calc(1 + (var(--fishmark-rain-glass-workspace-opacity) * 0.08)))
+    brightness(calc(1 + (var(--fishmark-rain-glass-workspace-opacity) * 0.05)));
 }
 
-[data-yulora-region="empty-state"] .empty-inner {
+[data-fishmark-region="empty-state"] .empty-inner {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-panel-bg) 82%, transparent),
-      color-mix(in srgb, var(--yulora-workspace-bg) 42%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-panel-bg) 82%, transparent),
+      color-mix(in srgb, var(--fishmark-workspace-bg) 42%, var(--fishmark-glass-bg))
     );
-  border: 1px solid color-mix(in srgb, var(--yulora-panel-border) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fishmark-panel-border) 68%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 74%, transparent),
-    0 12px 28px color-mix(in srgb, var(--yulora-scrim) 18%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 74%, transparent),
+    0 12px 28px color-mix(in srgb, var(--fishmark-scrim) 18%, transparent);
   backdrop-filter: blur(24px) saturate(1.08) brightness(1.05);
   -webkit-backdrop-filter: blur(24px) saturate(1.08) brightness(1.05);
 }
 
-[data-yulora-region="workspace-canvas"] .document-editor {
+[data-fishmark-region="workspace-canvas"] .document-editor {
   width: 100%;
   margin: 0;
   border: 0;
@@ -132,12 +132,12 @@
   -webkit-backdrop-filter: none;
 }
 
-[data-yulora-layout="workspace"] .workspace-header {
+[data-fishmark-layout="workspace"] .workspace-header {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-titlebar-bg) 88%, transparent),
-      color-mix(in srgb, var(--yulora-panel-bg) 28%, transparent)
+      color-mix(in srgb, var(--fishmark-titlebar-bg) 88%, transparent),
+      color-mix(in srgb, var(--fishmark-panel-bg) 28%, transparent)
     );
   border-radius: 0;
   box-shadow: none;
@@ -146,14 +146,14 @@
   width: 100%;
 }
 
-[data-yulora-layout="workspace"] .app-status-bar {
+[data-fishmark-layout="workspace"] .app-status-bar {
   position: static;
   left: auto;
   right: auto;
   bottom: auto;
   z-index: auto;
   min-height: auto;
-  padding: var(--yulora-space-2) 0 0;
+  padding: var(--fishmark-space-2) 0 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -161,88 +161,88 @@
   -webkit-backdrop-filter: none;
 }
 
-[data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"] {
-  min-height: var(--yulora-status-bar-height);
-  padding-top: var(--yulora-space-2);
+[data-fishmark-layout="workspace"] .app-status-bar [data-fishmark-region="status-strip"] {
+  min-height: var(--fishmark-status-bar-height);
+  padding-top: var(--fishmark-space-2);
   background: transparent;
 }
 
 /* Outline drawer — frosted glass with gentle sheen. */
 .outline-panel,
-[data-yulora-region="outline-panel"] {
+[data-fishmark-region="outline-panel"] {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-panel-bg) 84%, transparent),
-      color-mix(in srgb, var(--yulora-workspace-bg) 36%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-panel-bg) 84%, transparent),
+      color-mix(in srgb, var(--fishmark-workspace-bg) 36%, var(--fishmark-glass-bg))
     );
-  border-color: color-mix(in srgb, var(--yulora-panel-border) 82%, transparent);
+  border-color: color-mix(in srgb, var(--fishmark-panel-border) 82%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 70%, transparent),
-    -12px 0 30px color-mix(in srgb, var(--yulora-scrim) 20%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 70%, transparent),
+    -12px 0 30px color-mix(in srgb, var(--fishmark-scrim) 20%, transparent);
   backdrop-filter: blur(20px) saturate(1.06);
   -webkit-backdrop-filter: blur(20px) saturate(1.06);
 }
 
 /* Settings drawer — heavier blur so content behind reads as soft watercolour. */
 .settings-shell,
-[data-yulora-panel="settings-drawer"] {
+[data-fishmark-panel="settings-drawer"] {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-panel-bg) 86%, transparent),
-      color-mix(in srgb, var(--yulora-workspace-bg) 34%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-panel-bg) 86%, transparent),
+      color-mix(in srgb, var(--fishmark-workspace-bg) 34%, var(--fishmark-glass-bg))
     );
-  border-color: color-mix(in srgb, var(--yulora-panel-border) 84%, transparent);
+  border-color: color-mix(in srgb, var(--fishmark-panel-border) 84%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 78%, transparent),
-    0 24px 60px color-mix(in srgb, var(--yulora-scrim) 28%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 78%, transparent),
+    0 24px 60px color-mix(in srgb, var(--fishmark-scrim) 28%, transparent);
   backdrop-filter: blur(28px) saturate(1.1);
   -webkit-backdrop-filter: blur(28px) saturate(1.1);
 }
 
 /* Scrim behind the settings drawer — subtle dim without full black overlay. */
-[data-yulora-dialog="settings-drawer"] {
-  background: color-mix(in srgb, var(--yulora-scrim) 28%, transparent);
+[data-fishmark-dialog="settings-drawer"] {
+  background: color-mix(in srgb, var(--fishmark-scrim) 28%, transparent);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
 
 /* Individual settings-group cards — layered glass on the drawer glass. */
 .settings-group {
-  background: color-mix(in srgb, var(--yulora-panel-bg) 54%, transparent);
-  border: 1px solid color-mix(in srgb, var(--yulora-panel-border) 56%, transparent);
+  background: color-mix(in srgb, var(--fishmark-panel-bg) 54%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fishmark-panel-border) 56%, transparent);
   border-radius: 14px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 60%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 60%, transparent);
   backdrop-filter: blur(10px) saturate(1.03);
   -webkit-backdrop-filter: blur(10px) saturate(1.03);
 }
 
 /* Notification banner — frosted pill that floats over the workbench. */
 .app-notification-banner,
-[data-yulora-region="app-notification-banner"] {
+[data-fishmark-region="app-notification-banner"] {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-panel-bg) 88%, transparent),
-      color-mix(in srgb, var(--yulora-workspace-bg) 28%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-panel-bg) 88%, transparent),
+      color-mix(in srgb, var(--fishmark-workspace-bg) 28%, var(--fishmark-glass-bg))
     );
-  border: 1px solid color-mix(in srgb, var(--yulora-panel-border) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fishmark-panel-border) 82%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--yulora-glass-sheen) 72%, transparent),
-    0 12px 28px color-mix(in srgb, var(--yulora-scrim) 18%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 72%, transparent),
+    0 12px 28px color-mix(in srgb, var(--fishmark-scrim) 18%, transparent);
   backdrop-filter: blur(22px) saturate(1.08);
   -webkit-backdrop-filter: blur(22px) saturate(1.08);
 }
 
 /* Titlebar when controlled by the theme — match the workbench rail weight. */
 .app-titlebar,
-[data-yulora-titlebar] {
+[data-fishmark-titlebar] {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--yulora-titlebar-bg) 88%, transparent),
-      color-mix(in srgb, var(--yulora-panel-bg) 24%, var(--yulora-glass-bg))
+      color-mix(in srgb, var(--fishmark-titlebar-bg) 88%, transparent),
+      color-mix(in srgb, var(--fishmark-panel-bg) 24%, var(--fishmark-glass-bg))
     );
   backdrop-filter: blur(18px) saturate(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.05);

@@ -1,4 +1,4 @@
-import type { ListBlock, ListItemBlock } from "@yulora/markdown-engine";
+import type { ListBlock, ListItemBlock } from "@fishmark/markdown-engine";
 
 export function findListItemAtLineStart(block: ListBlock, lineStart: number): ListItemBlock | null {
   return findItemInScope(block.items, lineStart);

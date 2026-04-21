@@ -1,7 +1,7 @@
 import { createPreviewAssetUrl } from "../shared/preview-asset-url";
 import type { ThemePackageRuntimeDescriptor } from "./theme-package-runtime";
 
-export type ThemePackageDescriptor = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
+export type ThemePackageDescriptor = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
 
 export type ThemePackageRuntimeEntry = {
   id: string;

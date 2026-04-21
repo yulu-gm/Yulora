@@ -10,7 +10,7 @@ import {
 describe("cli stream helpers", () => {
   it("builds a prefixed event line", () => {
     const line = buildStreamedEventLine(
-      { YULORA_CLI_STREAM_EVENTS: "1", YULORA_RUN_ID: "run-1" },
+      { FISHMARK_CLI_STREAM_EVENTS: "1", FISHMARK_RUN_ID: "run-1" },
       { type: "scenario-start", scenarioId: "app-shell-startup", at: 100 }
     );
 
@@ -21,7 +21,7 @@ describe("cli stream helpers", () => {
 
   it("returns null when event streaming is disabled", () => {
     const line = buildStreamedEventLine(
-      { YULORA_CLI_STREAM_EVENTS: "", YULORA_RUN_ID: "run-1" },
+      { FISHMARK_CLI_STREAM_EVENTS: "", FISHMARK_RUN_ID: "run-1" },
       { type: "scenario-start", scenarioId: "app-shell-startup", at: 100 }
     );
 
@@ -30,7 +30,7 @@ describe("cli stream helpers", () => {
 
   it("builds a prefixed terminal line", () => {
     const line = buildStreamedTerminalLine(
-      { YULORA_CLI_STREAM_EVENTS: "1", YULORA_RUN_ID: "run-1" },
+      { FISHMARK_CLI_STREAM_EVENTS: "1", FISHMARK_RUN_ID: "run-1" },
       {
         exitCode: 0,
         status: "passed",

@@ -1,18 +1,18 @@
 :root {
-  --yulora-list-marker-size: 0.3rem;
-  --yulora-list-ordered-marker-width: 1.5rem;
-  --yulora-task-size: 0.92rem;
-  --yulora-task-radius: 0.2rem;
-  --yulora-blockquote-bg: color-mix(
+  --fishmark-list-marker-size: 0.3rem;
+  --fishmark-list-ordered-marker-width: 1.5rem;
+  --fishmark-task-size: 0.92rem;
+  --fishmark-task-radius: 0.2rem;
+  --fishmark-blockquote-bg: color-mix(
     in srgb,
-    var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12)) 12%,
+    var(--fishmark-markdown-quote-border, rgba(15, 23, 42, 0.12)) 12%,
     transparent
   );
-  --yulora-blockquote-border: var(--yulora-markdown-quote-border, rgba(15, 23, 42, 0.12));
+  --fishmark-blockquote-border: var(--fishmark-markdown-quote-border, rgba(15, 23, 42, 0.12));
 }
 
 .document-editor .cm-inactive-heading {
-  color: var(--yulora-markdown-heading, var(--yulora-text-primary, #171a1f));
+  color: var(--fishmark-markdown-heading, var(--fishmark-text-primary, #171a1f));
 }
 
 .document-editor .cm-inactive-heading-marker {
@@ -20,7 +20,7 @@
 }
 
 .document-editor .cm-active-heading {
-  color: var(--yulora-markdown-heading, var(--yulora-text-primary, #171a1f));
+  color: var(--fishmark-markdown-heading, var(--fishmark-text-primary, #171a1f));
 }
 
 .document-editor .cm-inactive-heading-depth-1 {
@@ -88,11 +88,11 @@
 }
 
 .document-editor .cm-inactive-paragraph {
-  color: var(--yulora-markdown-body, var(--yulora-editor-fg, #31353d));
+  color: var(--fishmark-markdown-body, var(--fishmark-editor-fg, #31353d));
 }
 
 .document-editor .cm-active-paragraph {
-  color: var(--yulora-editor-fg, var(--yulora-markdown-body, #31353d));
+  color: var(--fishmark-editor-fg, var(--fishmark-markdown-body, #31353d));
 }
 
 .document-editor .cm-inactive-paragraph-leading {
@@ -110,20 +110,20 @@
 }
 
 .document-editor .cm-inactive-inline-strong {
-  color: var(--yulora-markdown-strong, var(--yulora-text-primary, #171a1f));
+  color: var(--fishmark-markdown-strong, var(--fishmark-text-primary, #171a1f));
   font-weight: 650;
 }
 
 .document-editor .cm-inactive-inline-emphasis {
-  color: var(--yulora-markdown-emphasis, var(--yulora-markdown-body, #31353d));
+  color: var(--fishmark-markdown-emphasis, var(--fishmark-markdown-body, #31353d));
   font-style: italic;
 }
 
 .document-editor .cm-inactive-inline-code {
   padding: 0.08em 0.34em;
   border-radius: 0.38em;
-  background: var(--yulora-markdown-inline-code-bg, rgba(17, 24, 39, 0.06));
-  color: var(--yulora-markdown-inline-code-fg, #0f172a);
+  background: var(--fishmark-markdown-inline-code-bg, rgba(17, 24, 39, 0.06));
+  color: var(--fishmark-markdown-inline-code-fg, #0f172a);
   font-family:
     "Cascadia Code",
     "Consolas",
@@ -133,18 +133,18 @@
   font-size: 0.92em;
 }
 
-.document-editor .cm-yulora-cjk-font {
-  font-family: var(--yulora-document-cjk-font-family, inherit);
+.document-editor .cm-fishmark-cjk-font {
+  font-family: var(--fishmark-document-cjk-font-family, inherit);
 }
 
 .document-editor .cm-inactive-inline-strikethrough {
-  color: var(--yulora-text-muted, #687180);
+  color: var(--fishmark-text-muted, #687180);
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
 }
 
 .document-editor .cm-inactive-list {
-  color: var(--yulora-markdown-list-text, var(--yulora-text-muted, #687180));
+  color: var(--fishmark-markdown-list-text, var(--fishmark-text-muted, #687180));
 }
 
 .document-editor .cm-inactive-list-unordered,
@@ -153,7 +153,7 @@
 }
 
 .document-editor .cm-inactive-list-marker {
-  color: var(--yulora-markdown-list-bullet, #98a2b3);
+  color: var(--fishmark-markdown-list-bullet, #98a2b3);
   font-weight: 500;
   opacity: 0.82;
 }
@@ -170,17 +170,17 @@
   content: "";
   position: absolute;
   top: 50%;
-  left: calc((0.9rem - var(--yulora-list-marker-size)) / 2);
-  width: var(--yulora-list-marker-size);
-  height: var(--yulora-list-marker-size);
+  left: calc((0.9rem - var(--fishmark-list-marker-size)) / 2);
+  width: var(--fishmark-list-marker-size);
+  height: var(--fishmark-list-marker-size);
   border-radius: 999px;
-  background: var(--yulora-list-marker);
+  background: var(--fishmark-list-marker);
   transform: translateY(-50%);
 }
 
 .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {
   display: inline-block;
-  min-width: var(--yulora-list-ordered-marker-width);
+  min-width: var(--fishmark-list-ordered-marker-width);
   margin-right: 0.18rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -219,11 +219,11 @@
 .document-editor .cm-inactive-task-marker::before {
   content: "";
   box-sizing: border-box;
-  width: var(--yulora-task-size);
-  height: var(--yulora-task-size);
-  border: 1.5px solid var(--yulora-task-border, var(--yulora-control-border, rgba(15, 23, 42, 0.12)));
-  border-radius: var(--yulora-task-radius);
-  background: var(--yulora-task-bg, var(--yulora-control-bg, rgba(255, 255, 255, 0.9)));
+  width: var(--fishmark-task-size);
+  height: var(--fishmark-task-size);
+  border: 1.5px solid var(--fishmark-task-border, var(--fishmark-control-border, rgba(15, 23, 42, 0.12)));
+  border-radius: var(--fishmark-task-radius);
+  background: var(--fishmark-task-bg, var(--fishmark-control-bg, rgba(255, 255, 255, 0.9)));
 }
 
 .document-editor .cm-inactive-task-marker[data-task-state="checked"]::after {
@@ -233,13 +233,13 @@
   left: 0.35rem;
   width: 0.22rem;
   height: 0.42rem;
-  border-right: 2px solid var(--yulora-text-accent, #4f7cff);
-  border-bottom: 2px solid var(--yulora-text-accent, #4f7cff);
+  border-right: 2px solid var(--fishmark-text-accent, #4f7cff);
+  border-bottom: 2px solid var(--fishmark-text-accent, #4f7cff);
   transform: rotate(45deg);
 }
 
 .document-editor .cm-inactive-list-task-checked {
-  color: var(--yulora-markdown-task-done, var(--yulora-text-muted, #687180));
+  color: var(--fishmark-markdown-task-done, var(--fishmark-text-muted, #687180));
 }
 
 .document-editor .cm-inactive-list-depth-1 {
@@ -251,9 +251,9 @@
 }
 
 .document-editor .cm-inactive-blockquote {
-  color: var(--yulora-markdown-quote-fg, var(--yulora-text-secondary, #31353d));
-  background: var(--yulora-blockquote-bg);
-  box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);
+  color: var(--fishmark-markdown-quote-fg, var(--fishmark-text-secondary, #31353d));
+  background: var(--fishmark-blockquote-bg);
+  box-shadow: inset 2px 0 0 var(--fishmark-blockquote-border);
   padding-left: 1.1rem;
   padding-right: 0.85rem;
 }
@@ -285,11 +285,11 @@
 }
 
 .document-editor .cm-inactive-code-block {
-  color: var(--yulora-markdown-code-fg, #1f2328);
-  background: var(--yulora-markdown-code-bg, #f6f8fa);
+  color: var(--fishmark-markdown-code-fg, #1f2328);
+  background: var(--fishmark-markdown-code-bg, #f6f8fa);
   box-shadow:
-    inset 1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12)),
-    inset -1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12));
+    inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
+    inset -1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12));
   font:
     400 0.88rem/1.55 "JetBrains Mono", "Cascadia Code", "Consolas", "SFMono-Regular", "Menlo", "Courier New", monospace;
   font-variant-ligatures: none;
@@ -307,9 +307,9 @@
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   box-shadow:
-    inset 1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12)),
-    inset -1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12)),
-    inset 0 1px 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12));
+    inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
+    inset -1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
+    inset 0 1px 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12));
 }
 
 .document-editor .cm-inactive-code-block-end {
@@ -319,9 +319,9 @@
   margin-bottom: 0.35rem;
   position: relative;
   box-shadow:
-    inset 1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12)),
-    inset -1px 0 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12)),
-    inset 0 -1px 0 0 var(--yulora-markdown-code-border, rgba(31, 35, 40, 0.12));
+    inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
+    inset -1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
+    inset 0 -1px 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12));
 }
 
 .document-editor .cm-inactive-code-block-end[data-language]::after {
@@ -329,7 +329,7 @@
   position: absolute;
   right: 0.6rem;
   bottom: 0.25rem;
-  font-family: var(--yulora-ui-font-family, system-ui, sans-serif);
+  font-family: var(--fishmark-ui-font-family, system-ui, sans-serif);
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -337,8 +337,8 @@
   line-height: 1;
   padding: 2px 6px;
   border-radius: 4px;
-  color: var(--yulora-markdown-code-language-fg, color-mix(in srgb, var(--yulora-markdown-code-fg, #1f2328) 55%, transparent));
-  background: var(--yulora-markdown-code-language-bg, color-mix(in srgb, var(--yulora-markdown-code-bg, #f6f8fa) 60%, transparent));
+  color: var(--fishmark-markdown-code-language-fg, color-mix(in srgb, var(--fishmark-markdown-code-fg, #1f2328) 55%, transparent));
+  background: var(--fishmark-markdown-code-language-bg, color-mix(in srgb, var(--fishmark-markdown-code-bg, #f6f8fa) 60%, transparent));
   pointer-events: none;
   user-select: none;
 }
@@ -356,7 +356,7 @@
 .document-editor .cm-inactive-thematic-break::before {
   content: "";
   display: block;
-  border-top: 1.5px solid var(--yulora-markdown-hr, #d0d5dd);
+  border-top: 1.5px solid var(--fishmark-markdown-hr, #d0d5dd);
 }
 
 .document-editor .cm-inactive-thematic-break-marker {
@@ -366,16 +366,16 @@
 
 .document-editor .cm-table-widget {
   width: 100%;
-  margin: var(--yulora-table-margin-top) 0 var(--yulora-table-margin-bottom);
+  margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);
 }
 
 .document-editor .cm-inactive-thematic-break:has(+ .cm-table-widget) {
-  padding-bottom: var(--yulora-table-after-break-padding-bottom);
-  margin-bottom: var(--yulora-table-after-break-margin-bottom);
+  padding-bottom: var(--fishmark-table-after-break-padding-bottom);
+  margin-bottom: var(--fishmark-table-after-break-margin-bottom);
 }
 
 .document-editor .cm-inactive-thematic-break + .cm-table-widget {
-  margin-top: var(--yulora-table-after-break-margin-top);
+  margin-top: var(--fishmark-table-after-break-margin-top);
 }
 
 .document-editor .cm-table-widget-table {
@@ -383,16 +383,16 @@
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  background: var(--yulora-table-bg);
-  border: var(--yulora-table-border-width) solid var(--yulora-table-border-color);
-  border-radius: var(--yulora-table-radius);
+  background: var(--fishmark-table-bg);
+  border: var(--fishmark-table-border-width) solid var(--fishmark-table-border-color);
+  border-radius: var(--fishmark-table-radius);
   overflow: hidden;
 }
 
 .document-editor .cm-table-widget-cell {
   padding: 0;
-  border-right: var(--yulora-table-cell-border-width) solid var(--yulora-table-cell-border-color);
-  border-bottom: var(--yulora-table-cell-border-width) solid var(--yulora-table-cell-border-color);
+  border-right: var(--fishmark-table-cell-border-width) solid var(--fishmark-table-cell-border-color);
+  border-bottom: var(--fishmark-table-cell-border-width) solid var(--fishmark-table-cell-border-color);
 }
 
 .document-editor .cm-table-widget-row:last-child .cm-table-widget-cell {
@@ -404,23 +404,23 @@
 }
 
 .document-editor .cm-table-widget-cell[data-active="true"] {
-  background: var(--yulora-table-cell-active-bg);
+  background: var(--fishmark-table-cell-active-bg);
 }
 
 .document-editor .cm-table-widget-input {
   width: 100%;
-  min-height: var(--yulora-table-cell-min-height);
-  padding: var(--yulora-table-cell-padding-block) var(--yulora-table-cell-padding-inline);
+  min-height: var(--fishmark-table-cell-min-height);
+  padding: var(--fishmark-table-cell-padding-block) var(--fishmark-table-cell-padding-inline);
   border: none;
-  background: var(--yulora-table-cell-bg);
-  color: var(--yulora-table-text);
+  background: var(--fishmark-table-cell-bg);
+  color: var(--fishmark-table-text);
   font: inherit;
   outline: none;
 }
 
 .document-editor .cm-table-widget-row-header .cm-table-widget-input {
-  color: var(--yulora-table-header-text);
-  font-weight: var(--yulora-table-header-font-weight);
+  color: var(--fishmark-table-header-text);
+  font-weight: var(--fishmark-table-header-font-weight);
 }
 
 .document-editor .cm-markdown-image-preview {
@@ -463,52 +463,52 @@
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
-  background: var(--yulora-markdown-table-cell-bg, transparent);
-  border: 1px solid var(--yulora-markdown-table-border, rgba(15, 23, 42, 0.12));
+  background: var(--fishmark-markdown-table-cell-bg, transparent);
+  border: 1px solid var(--fishmark-markdown-table-border, rgba(15, 23, 42, 0.12));
 }
 
 .document-editor th,
 .document-editor td {
   padding: 0.55rem 0.75rem;
-  border: 1px solid var(--yulora-markdown-table-border, rgba(15, 23, 42, 0.12));
+  border: 1px solid var(--fishmark-markdown-table-border, rgba(15, 23, 42, 0.12));
 }
 
 .document-editor th {
-  background: var(--yulora-markdown-table-header-bg, rgba(255, 255, 255, 0.92));
-  color: var(--yulora-markdown-table-header-fg, var(--yulora-text-primary, #171a1f));
+  background: var(--fishmark-markdown-table-header-bg, rgba(255, 255, 255, 0.92));
+  color: var(--fishmark-markdown-table-header-fg, var(--fishmark-text-primary, #171a1f));
   text-align: left;
 }
 
 .document-editor tbody tr:nth-child(even) td {
-  background: var(--yulora-markdown-table-row-stripe, transparent);
+  background: var(--fishmark-markdown-table-row-stripe, transparent);
 }
 
 .document-editor .cm-inactive-code-block .tok-keyword,
 .document-editor .cm-inactive-code-block .cm-keyword {
-  color: var(--yulora-markdown-code-token-keyword, #7c3aed);
+  color: var(--fishmark-markdown-code-token-keyword, #7c3aed);
 }
 
 .document-editor .cm-inactive-code-block .tok-string,
 .document-editor .cm-inactive-code-block .cm-string {
-  color: var(--yulora-markdown-code-token-string, #b45309);
+  color: var(--fishmark-markdown-code-token-string, #b45309);
 }
 
 .document-editor .cm-inactive-code-block .tok-number,
 .document-editor .cm-inactive-code-block .cm-number {
-  color: var(--yulora-markdown-code-token-number, #2563eb);
+  color: var(--fishmark-markdown-code-token-number, #2563eb);
 }
 
 .document-editor .cm-inactive-code-block .tok-comment,
 .document-editor .cm-inactive-code-block .cm-comment {
-  color: var(--yulora-markdown-code-token-comment, rgba(51, 65, 85, 0.7));
+  color: var(--fishmark-markdown-code-token-comment, rgba(51, 65, 85, 0.7));
 }
 
 .document-editor .cm-inactive-code-block .tok-function,
 .document-editor .cm-inactive-code-block .cm-function {
-  color: var(--yulora-markdown-code-token-function, #0f766e);
+  color: var(--fishmark-markdown-code-token-function, #0f766e);
 }
 
 .document-editor .cm-inactive-code-block .tok-typeName,
 .document-editor .cm-inactive-code-block .cm-typeName {
-  color: var(--yulora-markdown-code-token-type, #be185d);
+  color: var(--fishmark-markdown-code-token-type, #be185d);
 }

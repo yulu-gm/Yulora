@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseMarkdownDocument } from "@yulora/markdown-engine";
+import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createMarkdownDocumentCache } from "./markdown-document-cache";
 import { deriveInactiveBlockDecorationsState } from "./inactive-block-decorations";

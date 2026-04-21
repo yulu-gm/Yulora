@@ -1,9 +1,9 @@
 // Pearl Drift workbench backdrop.
 // Iridescent deformed sphere raymarched over a pearl canvas in light mode
 // and a cooler nocturnal atmosphere in dark mode.
-// Ported to WebGL1 / GLSL ES 1.00 for Yulora's theme runtime:
+// Ported to WebGL1 / GLSL ES 1.00 for FishMark's theme runtime:
 //  - precision lowered to mediump for broader ANGLE support
-//  - iResolution / iTime resolve from either Shadertoy-style or Yulora-style uniforms
+//  - iResolution / iTime resolve from either Shadertoy-style or FishMark-style uniforms
 //  - iridescence / animationSpeed / enableGrain stay user-adjustable
 //  - u_themeMode drives the light/dark split directly
 //  - map / calcNormal take explicit time input to avoid hidden global state

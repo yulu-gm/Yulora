@@ -1,6 +1,6 @@
 import type { EditorView } from "@codemirror/view";
 
-import type { MarkdownBlock, MarkdownDocument } from "@yulora/markdown-engine";
+import type { MarkdownBlock, MarkdownDocument } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 

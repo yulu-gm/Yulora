@@ -16,8 +16,8 @@ describe("createCliProcessRunner", () => {
     const child = new FakeChildProcess();
     const spawnProcess = vi.fn(() => child);
     const runner = createCliProcessRunner({
-      cliScriptPath: "D:/MyAgent/Yulora/Yulora/dist-cli/cli/bin.js",
-      cwd: "D:/MyAgent/Yulora/Yulora",
+      cliScriptPath: "D:/MyAgent/FishMark/FishMark/dist-cli/cli/bin.js",
+      cwd: "D:/MyAgent/FishMark/FishMark",
       spawnProcess
     });
     const forwardedEvents: unknown[] = [];
@@ -33,11 +33,11 @@ describe("createCliProcessRunner", () => {
 
     child.stdout.emit(
       "data",
-      '__YULORA_EVENT__{"runId":"run-1","event":{"type":"scenario-start","scenarioId":"open-markdown-file-basic","at":100}}\n'
+      '__FISHMARK_EVENT__{"runId":"run-1","event":{"type":"scenario-start","scenarioId":"open-markdown-file-basic","at":100}}\n'
     );
     child.stdout.emit(
       "data",
-      '__YULORA_TERMINAL__{"runId":"run-1","exitCode":0,"status":"passed","resultPath":"out/result.json","stepTracePath":"out/step-trace.json"}\n'
+      '__FISHMARK_TERMINAL__{"runId":"run-1","exitCode":0,"status":"passed","resultPath":"out/result.json","stepTracePath":"out/step-trace.json"}\n'
     );
     child.emit("close", 0);
 
@@ -45,12 +45,12 @@ describe("createCliProcessRunner", () => {
 
     expect(spawnProcess).toHaveBeenCalledWith(
       process.execPath,
-      ["D:/MyAgent/Yulora/Yulora/dist-cli/cli/bin.js", "--id", "open-markdown-file-basic"],
+      ["D:/MyAgent/FishMark/FishMark/dist-cli/cli/bin.js", "--id", "open-markdown-file-basic"],
       expect.objectContaining({
-        cwd: "D:/MyAgent/Yulora/Yulora",
+        cwd: "D:/MyAgent/FishMark/FishMark",
         env: expect.objectContaining({
-          YULORA_CLI_STREAM_EVENTS: "1",
-          YULORA_RUN_ID: "run-1"
+          FISHMARK_CLI_STREAM_EVENTS: "1",
+          FISHMARK_RUN_ID: "run-1"
         })
       })
     );
@@ -80,8 +80,8 @@ describe("createCliProcessRunner", () => {
     const spawnProcess = vi.fn(() => child);
     const controller = new AbortController();
     const runner = createCliProcessRunner({
-      cliScriptPath: "D:/MyAgent/Yulora/Yulora/dist-cli/cli/bin.js",
-      cwd: "D:/MyAgent/Yulora/Yulora",
+      cliScriptPath: "D:/MyAgent/FishMark/FishMark/dist-cli/cli/bin.js",
+      cwd: "D:/MyAgent/FishMark/FishMark",
       spawnProcess
     });
 
@@ -109,8 +109,8 @@ describe("createCliProcessRunner", () => {
       message: "ready"
     });
     const runner = createCliProcessRunner({
-      cliScriptPath: "D:/MyAgent/Yulora/Yulora/dist-cli/cli/bin.js",
-      cwd: "D:/MyAgent/Yulora/Yulora",
+      cliScriptPath: "D:/MyAgent/FishMark/FishMark/dist-cli/cli/bin.js",
+      cwd: "D:/MyAgent/FishMark/FishMark",
       spawnProcess,
       ensureEditorSession: async () => ({ sessionId: "editor-session-1" }),
       dispatchEditorCommand
@@ -155,10 +155,10 @@ describe("createCliProcessRunner", () => {
     });
     expect(spawnProcess).toHaveBeenCalledWith(
       process.execPath,
-      ["D:/MyAgent/Yulora/Yulora/dist-cli/cli/bin.js", "--id", "app-shell-startup"],
+      ["D:/MyAgent/FishMark/FishMark/dist-cli/cli/bin.js", "--id", "app-shell-startup"],
       expect.objectContaining({
         env: expect.objectContaining({
-          YULORA_EDITOR_SESSION_ID: "editor-session-1"
+          FISHMARK_EDITOR_SESSION_ID: "editor-session-1"
         })
       })
     );

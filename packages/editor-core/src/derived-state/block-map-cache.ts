@@ -1,4 +1,4 @@
-import type { BlockMap } from "@yulora/markdown-engine";
+import type { BlockMap } from "@fishmark/markdown-engine";
 import { createMarkdownDocumentCache } from "./markdown-document-cache";
 
 export type ParseBlockMap = (source: string) => BlockMap;

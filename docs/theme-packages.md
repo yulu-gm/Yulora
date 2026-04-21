@@ -1,6 +1,6 @@
 # Theme Packages
 
-Theme packages are the only supported theme architecture in Yulora.
+Theme packages are the only supported theme architecture in FishMark.
 
 - Builtin packages ship from `src/renderer/theme-packages/`
 - Renderer builds copy builtin packages into `dist/theme-packages/` so packaged apps can still scan them
@@ -24,7 +24,7 @@ The current runtime works like this:
 5. The selected package is resolved against the active light/dark mode.
 6. If the selected package is missing or does not support that mode, renderer falls back to builtin `default`.
 7. Renderer mounts theme stylesheets in stable order: `tokens`, `ui`, `titlebar`, `editor`, `markdown`.
-8. Renderer exposes the built-in runtime env on `document.documentElement`: `--yulora-env-word-count`, `--yulora-env-reading-mode`, `--yulora-env-viewport-width`, `--yulora-env-viewport-height`, plus `data-yulora-theme-mode`.
+8. Renderer exposes the built-in runtime env on `document.documentElement`: `--fishmark-env-word-count`, `--fishmark-env-reading-mode`, `--fishmark-env-viewport-width`, `--fishmark-env-viewport-height`, plus `data-fishmark-theme-mode`.
 9. Optional shader surfaces are mounted separately and may fall back to static CSS at runtime.
 
 ## Package Layout
@@ -102,13 +102,13 @@ Theme authors should not depend on `layout.titlebar` or `surfaces.welcomeHero` u
 The effective styling contract is:
 
 - `tokens/*.css` defines foundation tokens and mode differences
-- `styles/ui.css` defines formal shell/control slots such as `--yulora-app-bg`, `--yulora-panel-bg`, `--yulora-control-bg`
-- `styles/editor.css` defines formal editor slots such as `--yulora-editor-bg`, `--yulora-editor-fg`, `--yulora-caret-color`
-- `styles/markdown.css` defines formal markdown slots such as `--yulora-markdown-heading`, `--yulora-markdown-code-bg`, `--yulora-markdown-table-border`
+- `styles/ui.css` defines formal shell/control slots such as `--fishmark-app-bg`, `--fishmark-panel-bg`, `--fishmark-control-bg`
+- `styles/editor.css` defines formal editor slots such as `--fishmark-editor-bg`, `--fishmark-editor-fg`, `--fishmark-caret-color`
+- `styles/markdown.css` defines formal markdown slots such as `--fishmark-markdown-heading`, `--fishmark-markdown-code-bg`, `--fishmark-markdown-table-border`
 - `styles/titlebar.css` is optional polish for the controlled titlebar shell
 - `parameters[]` can drive both CSS variables and shader uniforms
 
-The renderer now treats the semantic slot contract as the only supported public CSS interface. Themes should define the formal `--yulora-*` slots from `src/shared/theme-style-contract.ts` for:
+The renderer now treats the semantic slot contract as the only supported public CSS interface. Themes should define the formal `--fishmark-*` slots from `src/shared/theme-style-contract.ts` for:
 
 - shell: app / workspace / rail / panel / status bar / titlebar
 - text hierarchy and controls
@@ -118,7 +118,7 @@ The renderer now treats the semantic slot contract as the only supported public 
 
 Each active parameter is mirrored onto `document.documentElement.style` as:
 
-- `--yulora-theme-parameter-<parameterId>`
+- `--fishmark-theme-parameter-<parameterId>`
 
 If a parameter also declares `uniform`, the same effective value is passed into the shader scene.
 

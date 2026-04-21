@@ -1,5 +1,5 @@
 /* =============================================================
-   YULORA PRIMITIVES  —  src/renderer/styles/primitives.css
+   FISHMARK PRIMITIVES  —  src/renderer/styles/primitives.css
 
    Single source of truth for shared control shapes.
    Feature files (app-ui.css, settings.css) only add sizing
@@ -15,7 +15,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--yulora-radius-md);
+  border-radius: var(--fishmark-radius-md);
   cursor: pointer;
   /* font is inherited globally from base.css */
   transition:
@@ -30,7 +30,7 @@
 .settings-entry:focus-visible,
 .settings-back:focus-visible,
 .settings-reset:focus-visible {
-  outline: 2px solid var(--yulora-focus-ring);
+  outline: 2px solid var(--fishmark-focus-ring);
   outline-offset: 2px;
 }
 
@@ -46,19 +46,19 @@
 
 .settings-entry {
   padding: 0;
-  border: 1px solid var(--yulora-rail-control-border, var(--yulora-control-border));
-  background: var(--yulora-rail-control-bg, var(--yulora-control-bg));
-  color: var(--yulora-rail-control-fg, var(--yulora-control-fg));
-  box-shadow: var(--yulora-rail-control-shadow, var(--yulora-shadow-1));
+  border: 1px solid var(--fishmark-rail-control-border, var(--fishmark-control-border));
+  background: var(--fishmark-rail-control-bg, var(--fishmark-control-bg));
+  color: var(--fishmark-rail-control-fg, var(--fishmark-control-fg));
+  box-shadow: var(--fishmark-rail-control-shadow, var(--fishmark-shadow-1));
 }
 
 .settings-entry:hover {
   border-color: var(
-    --yulora-rail-control-border-hover,
-    color-mix(in srgb, var(--yulora-control-border) 82%, var(--yulora-panel-border))
+    --fishmark-rail-control-border-hover,
+    color-mix(in srgb, var(--fishmark-control-border) 82%, var(--fishmark-panel-border))
   );
-  background: var(--yulora-rail-control-bg-hover, var(--yulora-control-bg-hover));
-  color: var(--yulora-rail-control-fg-hover, var(--yulora-text-primary));
+  background: var(--fishmark-rail-control-bg-hover, var(--fishmark-control-bg-hover));
+  color: var(--fishmark-rail-control-fg-hover, var(--fishmark-text-primary));
 }
 
 /* ── Glass controls (inside glass panels / drawers) ──────────── */
@@ -68,16 +68,16 @@
 .settings-back,
 .settings-reset {
   padding: 0;
-  border: 1px solid var(--yulora-panel-border);
-  background: color-mix(in srgb, var(--yulora-panel-bg) 72%, transparent);
-  color: var(--yulora-control-fg);
+  border: 1px solid var(--fishmark-panel-border);
+  background: color-mix(in srgb, var(--fishmark-panel-bg) 72%, transparent);
+  color: var(--fishmark-control-fg);
 }
 
 .settings-back:hover,
 .settings-reset:hover {
-  border-color: color-mix(in srgb, var(--yulora-panel-border) 82%, transparent);
-  background: color-mix(in srgb, var(--yulora-control-bg-hover) 78%, transparent);
-  color: var(--yulora-text-primary);
+  border-color: color-mix(in srgb, var(--fishmark-panel-border) 82%, transparent);
+  background: color-mix(in srgb, var(--fishmark-control-bg-hover) 78%, transparent);
+  color: var(--fishmark-text-primary);
 }
 
 /* ── Text input ──────────────────────────────────────────────── */
@@ -85,10 +85,10 @@
 .settings-input {
   display: block;
   width: 100%;
-  border: 1px solid var(--yulora-control-border);
-  border-radius: var(--yulora-radius-md);
-  background: color-mix(in srgb, var(--yulora-panel-bg) 94%, transparent);
-  color: var(--yulora-text-secondary);
+  border: 1px solid var(--fishmark-control-border);
+  border-radius: var(--fishmark-radius-md);
+  background: color-mix(in srgb, var(--fishmark-panel-bg) 94%, transparent);
+  color: var(--fishmark-text-secondary);
   font-size: 0.92rem;
   transition:
     border-color var(--yu-t-fast),
@@ -98,13 +98,13 @@
 
 .settings-input:focus {
   outline: none;
-  border-color: var(--yulora-focus-ring);
-  background: color-mix(in srgb, var(--yulora-control-bg-hover) 92%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yulora-focus-ring) 16%, transparent);
+  border-color: var(--fishmark-focus-ring);
+  background: color-mix(in srgb, var(--fishmark-control-bg-hover) 92%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fishmark-focus-ring) 16%, transparent);
 }
 
 .settings-input:disabled {
-  color: var(--yulora-text-muted);
+  color: var(--fishmark-text-muted);
   cursor: not-allowed;
   opacity: 0.72;
 }
@@ -115,8 +115,8 @@
   cursor: pointer;
   padding-right: 40px;
   background-image:
-    linear-gradient(45deg, transparent 50%, var(--yulora-text-muted) 50%),
-    linear-gradient(135deg, var(--yulora-text-muted) 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, var(--fishmark-text-muted) 50%),
+    linear-gradient(135deg, var(--fishmark-text-muted) 50%, transparent 50%);
   background-position:
     calc(100% - 18px) calc(50% - 1px),
     calc(100% - 12px) calc(50% - 1px);
@@ -129,17 +129,17 @@
 }
 
 .settings-select option {
-  background-color: color-mix(in srgb, var(--yulora-panel-bg) 94%, transparent);
-  color: var(--yulora-text-secondary);
+  background-color: color-mix(in srgb, var(--fishmark-panel-bg) 94%, transparent);
+  color: var(--fishmark-text-secondary);
 }
 
 .settings-select option:disabled {
-  color: var(--yulora-text-muted);
+  color: var(--fishmark-text-muted);
 }
 
 .settings-select optgroup {
-  background-color: color-mix(in srgb, var(--yulora-panel-bg) 94%, transparent);
-  color: var(--yulora-text-muted);
+  background-color: color-mix(in srgb, var(--fishmark-panel-bg) 94%, transparent);
+  color: var(--fishmark-text-muted);
 }
 
 /* ── Segment / radio group ───────────────────────────────────── */
@@ -147,18 +147,18 @@
 .settings-radio-group {
   display: inline-flex;
   padding: 3px;
-  border: 1px solid var(--yulora-control-border);
-  border-radius: var(--yulora-radius-pill);
-  background: color-mix(in srgb, var(--yulora-control-bg) 92%, transparent);
+  border: 1px solid var(--fishmark-control-border);
+  border-radius: var(--fishmark-radius-pill);
+  background: color-mix(in srgb, var(--fishmark-control-bg) 92%, transparent);
 }
 
 .settings-radio {
   display: inline-flex;
   align-items: center;
   padding: 6px 14px;
-  border-radius: var(--yulora-radius-pill);
+  border-radius: var(--fishmark-radius-pill);
   cursor: pointer;
-  color: var(--yulora-control-fg);
+  color: var(--fishmark-control-fg);
   font-size: 0.88rem;
   user-select: none;
   transition:
@@ -173,7 +173,7 @@
 }
 
 .settings-radio.is-selected {
-  background: var(--yulora-control-bg-active);
-  color: var(--yulora-text-primary);
-  box-shadow: var(--yulora-shadow-1);
+  background: var(--fishmark-control-bg-active);
+  color: var(--fishmark-text-primary);
+  box-shadow: var(--fishmark-shadow-1);
 }

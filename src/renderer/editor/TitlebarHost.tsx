@@ -84,14 +84,14 @@ function TitlebarSlotView({
   return (
     <div
       className="app-titlebar-slot"
-      data-yulora-titlebar-slot={slot}
-      data-yulora-drag-region={isDragRegion ? "true" : "false"}
+      data-fishmark-titlebar-slot={slot}
+      data-fishmark-drag-region={isDragRegion ? "true" : "false"}
     >
       {items.map((item) => (
         <div
           key={`${slot}-${item}`}
           className="app-titlebar-item"
-          data-yulora-titlebar-item={item}
+          data-fishmark-titlebar-item={item}
         >
           {renderTitlebarItem(item, {
             platform,
@@ -118,7 +118,7 @@ export function TitlebarHost({
   return (
     <header
       className="app-titlebar"
-      data-yulora-role="titlebar"
+      data-fishmark-role="titlebar"
       data-platform={platform}
       data-compact-when-narrow={layout.compactWhenNarrow ? "true" : "false"}
       style={{ height: `${layout.height}px` }}

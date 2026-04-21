@@ -1,3 +1,3 @@
 /// <reference types="vite/client" />
 
-declare const __YULORA_APP_VERSION__: string;
+declare const __FISHMARK_APP_VERSION__: string;

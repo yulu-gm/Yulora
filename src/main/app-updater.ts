@@ -89,7 +89,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
   const handleUpdateFailure = (error: unknown): void => {
     const message = resolveErrorMessage(error);
     isChecking = false;
-    logger.error(`[yulora] auto update failed: ${message}`);
+    logger.error(`[fishmark] auto update failed: ${message}`);
     setState({ kind: "error", message });
 
     if (lastCheckSource === "manual") {
@@ -108,7 +108,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
       cancelId: 1,
       title: "\u5b89\u88c5\u66f4\u65b0",
       message: "\u65b0\u7248\u672c\u5df2\u4e0b\u8f7d\u5b8c\u6210\u3002",
-      detail: `Yulora ${activeVersion} \u5df2\u51c6\u5907\u597d\u5b89\u88c5\u3002`
+      detail: `FishMark ${activeVersion} \u5df2\u51c6\u5907\u597d\u5b89\u88c5\u3002`
     });
 
     if (result.response === 0) {
@@ -120,7 +120,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
     options.autoUpdater.autoDownload = true;
 
     options.autoUpdater.on("checking-for-update", () => {
-      logger.info("[yulora] checking for updates");
+      logger.info("[fishmark] checking for updates");
       setState({ kind: "checking" });
     });
 
@@ -130,7 +130,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
           ? info.version
           : options.app.getVersion();
       activeVersion = nextVersion;
-      logger.info(`[yulora] update available: ${nextVersion}`);
+      logger.info(`[fishmark] update available: ${nextVersion}`);
       setState({ kind: "downloading", version: nextVersion, percent: 0 });
     });
 
@@ -146,7 +146,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
     });
 
     options.autoUpdater.on("update-not-available", () => {
-      logger.info("[yulora] no update available");
+      logger.info("[fishmark] no update available");
       isChecking = false;
       setState({ kind: "idle" });
 
@@ -165,7 +165,7 @@ export function createAppUpdater(options: CreateAppUpdaterOptions): AppUpdaterCo
           : activeVersion;
       activeVersion = nextVersion;
       isChecking = false;
-      logger.info(`[yulora] update downloaded: ${nextVersion}`);
+      logger.info(`[fishmark] update downloaded: ${nextVersion}`);
       setState({ kind: "downloaded", version: nextVersion });
       void showInstallDialog();
     });

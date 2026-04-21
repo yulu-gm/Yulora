@@ -7,11 +7,11 @@ import {
   createIdleDebugRunState,
   defaultScenarioRegistry,
   formatRunStatus
-} from "@yulora/test-harness";
+} from "@fishmark/test-harness";
 import { ScenarioCatalog } from "../scenario-catalog";
 
 export default function WorkbenchApp() {
-  const hasBridge = Boolean(window.yulora);
+  const hasBridge = Boolean(window.fishmark);
   const scenarios = defaultScenarioRegistry.list();
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(scenarios[0]?.id ?? null);
   const selectedScenario = selectedScenarioId
@@ -22,11 +22,11 @@ export default function WorkbenchApp() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasBridge || !window.yulora) {
+    if (!hasBridge || !window.fishmark) {
       return;
     }
 
-    const detachEvent = window.yulora.onScenarioRunEvent((payload) => {
+    const detachEvent = window.fishmark.onScenarioRunEvent((payload) => {
       if (activeRunIdRef.current && payload.runId !== activeRunIdRef.current) {
         return;
       }
@@ -39,7 +39,7 @@ export default function WorkbenchApp() {
       setRunState((current) => applyRunnerEventToDebugState(current, scenario, payload.event));
     });
 
-    const detachTerminal = window.yulora.onScenarioRunTerminal((payload) => {
+    const detachTerminal = window.fishmark.onScenarioRunTerminal((payload) => {
       if (activeRunIdRef.current && payload.runId !== activeRunIdRef.current) {
         return;
       }
@@ -56,23 +56,23 @@ export default function WorkbenchApp() {
   }, [hasBridge]);
 
   async function handleRunSelectedScenario(): Promise<void> {
-    if (!selectedScenario || !window.yulora || activeRunIdRef.current) {
+    if (!selectedScenario || !window.fishmark || activeRunIdRef.current) {
       return;
     }
 
     setRunState(createIdleDebugRunState(selectedScenario));
 
-    const { runId } = await window.yulora.startScenarioRun({ scenarioId: selectedScenario.id });
+    const { runId } = await window.fishmark.startScenarioRun({ scenarioId: selectedScenario.id });
     activeRunIdRef.current = runId;
     setActiveRunId(runId);
   }
 
   function handleInterruptRun(): void {
-    if (!activeRunIdRef.current || !window.yulora) {
+    if (!activeRunIdRef.current || !window.fishmark) {
       return;
     }
 
-    void window.yulora.interruptScenarioRun({ runId: activeRunIdRef.current });
+    void window.fishmark.interruptScenarioRun({ runId: activeRunIdRef.current });
   }
 
   function handleSelectScenario(nextScenarioId: string | null): void {
@@ -93,7 +93,7 @@ export default function WorkbenchApp() {
       <header className="test-workbench-hero">
         <div>
           <p className="test-workbench-kicker">Agent Testing</p>
-          <h1>Yulora Test Workbench</h1>
+          <h1>FishMark Test Workbench</h1>
           <p className="test-workbench-copy">
             Keep debug state and test process orchestration in this control window, then open
             dedicated editor windows for the concrete test flow.
@@ -103,7 +103,7 @@ export default function WorkbenchApp() {
           className="test-workbench-launch"
           disabled={!hasBridge}
           onClick={() => {
-            void window.yulora?.openEditorTestWindow();
+            void window.fishmark?.openEditorTestWindow();
           }}
           type="button"
         >

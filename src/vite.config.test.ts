@@ -24,7 +24,7 @@ describe("vite renderer build", () => {
   });
 
   it("preserves standard and prefixed backdrop-filter declarations in built CSS", async () => {
-    const root = mkdtempSync(path.join(tmpdir(), "yulora-vite-backdrop-"));
+    const root = mkdtempSync(path.join(tmpdir(), "fishmark-vite-backdrop-"));
     tempDirectories.push(root);
 
     writeFileSync(

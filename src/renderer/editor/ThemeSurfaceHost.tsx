@@ -200,9 +200,9 @@ export function ThemeSurfaceHost({
   return (
     <div
       className="theme-surface-host"
-      data-yulora-theme-surface={surface}
-      data-yulora-theme-scene={descriptor.sceneId}
-      data-yulora-theme-surface-mode={mode}
+      data-fishmark-theme-surface={surface}
+      data-fishmark-theme-scene={descriptor.sceneId}
+      data-fishmark-theme-surface-mode={mode}
       aria-hidden="true"
     >
       <canvas

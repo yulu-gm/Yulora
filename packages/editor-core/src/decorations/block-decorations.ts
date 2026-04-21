@@ -1,7 +1,7 @@
 import { Decoration, type DecorationSet } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 
-import { parseInlineAst, type ListItemBlock } from "@yulora/markdown-engine";
+import { parseInlineAst, type ListItemBlock } from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";

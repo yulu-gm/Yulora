@@ -13,8 +13,8 @@ afterEach(() => {
 });
 
 describe("generate-icons script", () => {
-  it("creates PNG and ICO assets for both logo variants", () => {
-    const outputDirectory = mkdtempSync(path.join(tmpdir(), "yulora-icons-"));
+  it("creates PNG and ICO assets for both FishMark logo variants", () => {
+    const outputDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-icons-"));
     createdDirectories.push(outputDirectory);
 
     const result = spawnSync(

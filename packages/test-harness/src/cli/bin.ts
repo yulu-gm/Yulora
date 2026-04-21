@@ -21,7 +21,7 @@ import {
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const controller = new AbortController();
-  const editorSessionId = process.env.YULORA_EDITOR_SESSION_ID;
+  const editorSessionId = process.env.FISHMARK_EDITOR_SESSION_ID;
   const canUseElectronDriver =
     Boolean(editorSessionId) && typeof process.send === "function";
   const electronCommandRunner =

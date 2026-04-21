@@ -1,0 +1,4 @@
+interface:
+  display_name: "FishMark 任务执行"
+  short_description: "指导 agent 实现一个已定界的 FishMark task。"
+  default_prompt: "使用 $fishmark-task-execution 在 FishMark 项目中执行一个已明确范围的完整 task。"

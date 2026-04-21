@@ -1,4 +1,4 @@
-export const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--yulora-startup-open-path=";
+export const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--fishmark-startup-open-path=";
 
 export function formatStartupOpenPathArgument(targetPath: string): string {
   return `${STARTUP_OPEN_PATH_ARGUMENT_PREFIX}${encodeURIComponent(targetPath)}`;

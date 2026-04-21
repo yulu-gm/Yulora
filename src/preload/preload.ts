@@ -1,32 +1,32 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 // Preload runs inside Electron's sandboxed environment, so local module imports
 // can prevent the bridge from loading at all. Keep the contract self-contained here.
-const OPEN_MARKDOWN_FILE_CHANNEL = "yulora:open-markdown-file";
-const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "yulora:open-markdown-file-from-path";
-const HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL = "yulora:handle-dropped-markdown-file";
-const SAVE_MARKDOWN_FILE_CHANNEL = "yulora:save-markdown-file";
-const SAVE_MARKDOWN_FILE_AS_CHANNEL = "yulora:save-markdown-file-as";
-const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "yulora:import-clipboard-image";
-const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "yulora:open-editor-test-window";
-const START_SCENARIO_RUN_CHANNEL = "yulora:start-scenario-run";
-const INTERRUPT_SCENARIO_RUN_CHANNEL = "yulora:interrupt-scenario-run";
-const SCENARIO_RUN_EVENT = "yulora:scenario-run-event";
-const SCENARIO_RUN_TERMINAL_EVENT = "yulora:scenario-run-terminal";
-const EDITOR_TEST_COMMAND_EVENT = "yulora:editor-test-command";
-const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "yulora:complete-editor-test-command";
-const APP_MENU_COMMAND_EVENT = "yulora:app-menu-command";
-const GET_PREFERENCES_CHANNEL = "yulora:get-preferences";
-const UPDATE_PREFERENCES_CHANNEL = "yulora:update-preferences";
-const PREFERENCES_CHANGED_EVENT = "yulora:preferences-changed";
-const LIST_FONT_FAMILIES_CHANNEL = "yulora:list-font-families";
-const LIST_THEME_PACKAGES_CHANNEL = "yulora:list-theme-packages";
-const REFRESH_THEME_PACKAGES_CHANNEL = "yulora:refresh-theme-packages";
-const OPEN_THEMES_DIRECTORY_CHANNEL = "yulora:open-themes-directory";
-const CHECK_FOR_APP_UPDATES_CHANNEL = "yulora:check-for-app-updates";
-const APP_UPDATE_STATE_EVENT = "yulora:app-update-state";
-const APP_NOTIFICATION_EVENT = "yulora:app-notification";
-const RUNTIME_MODE_ARGUMENT_PREFIX = "--yulora-runtime-mode=";
-const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--yulora-startup-open-path=";
+const OPEN_MARKDOWN_FILE_CHANNEL = "fishmark:open-markdown-file";
+const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "fishmark:open-markdown-file-from-path";
+const HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL = "fishmark:handle-dropped-markdown-file";
+const SAVE_MARKDOWN_FILE_CHANNEL = "fishmark:save-markdown-file";
+const SAVE_MARKDOWN_FILE_AS_CHANNEL = "fishmark:save-markdown-file-as";
+const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "fishmark:import-clipboard-image";
+const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
+const START_SCENARIO_RUN_CHANNEL = "fishmark:start-scenario-run";
+const INTERRUPT_SCENARIO_RUN_CHANNEL = "fishmark:interrupt-scenario-run";
+const SCENARIO_RUN_EVENT = "fishmark:scenario-run-event";
+const SCENARIO_RUN_TERMINAL_EVENT = "fishmark:scenario-run-terminal";
+const EDITOR_TEST_COMMAND_EVENT = "fishmark:editor-test-command";
+const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "fishmark:complete-editor-test-command";
+const APP_MENU_COMMAND_EVENT = "fishmark:app-menu-command";
+const GET_PREFERENCES_CHANNEL = "fishmark:get-preferences";
+const UPDATE_PREFERENCES_CHANNEL = "fishmark:update-preferences";
+const PREFERENCES_CHANGED_EVENT = "fishmark:preferences-changed";
+const LIST_FONT_FAMILIES_CHANNEL = "fishmark:list-font-families";
+const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
+const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
+const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
+const CHECK_FOR_APP_UPDATES_CHANNEL = "fishmark:check-for-app-updates";
+const APP_UPDATE_STATE_EVENT = "fishmark:app-update-state";
+const APP_NOTIFICATION_EVENT = "fishmark:app-notification";
+const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
+const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--fishmark-startup-open-path=";
 
 type EditorTestCommand =
   | { type: "wait-for-editor-ready" }
@@ -383,4 +383,4 @@ const api = {
   }
 };
 
-contextBridge.exposeInMainWorld("yulora", api);
+contextBridge.exposeInMainWorld("fishmark", api);

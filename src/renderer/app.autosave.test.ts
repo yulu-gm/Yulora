@@ -36,8 +36,8 @@ type EditorTestCommandListener = (payload: EditorTestCommandEnvelope) => void;
 type ScenarioRunEventListener = (payload: RunnerEventEnvelope) => void;
 type ScenarioRunTerminalListener = (payload: ScenarioRunTerminal) => void;
 type PreferencesChangedListener = (preferences: Preferences) => void;
-type ThemePackageDescriptor = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
-type UpdatePreferencesResult = Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>;
+type ThemePackageDescriptor = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
+type UpdatePreferencesResult = Awaited<ReturnType<Window["fishmark"]["updatePreferences"]>>;
 type MockMediaQueryList = MediaQueryList & {
   __setMatches: (matches: boolean) => void;
 };
@@ -74,7 +74,7 @@ function makeManifestThemePackage(
     id,
     kind: "manifest-package",
     source: overrides.source ?? "community",
-    packageRoot: `/tmp/yulora/themes/${id}`,
+    packageRoot: `/tmp/fishmark/themes/${id}`,
     manifest: {
       id,
       contractVersion: 2,
@@ -86,13 +86,13 @@ function makeManifestThemePackage(
         dark: true
       },
       tokens: overrides.tokens ?? {
-        dark: `/tmp/yulora/themes/${id}/tokens-dark.css`,
-        light: `/tmp/yulora/themes/${id}/tokens-light.css`
+        dark: `/tmp/fishmark/themes/${id}/tokens-dark.css`,
+        light: `/tmp/fishmark/themes/${id}/tokens-light.css`
       },
       styles: overrides.styles ?? {
-        ui: `/tmp/yulora/themes/${id}/ui.css`,
-        editor: `/tmp/yulora/themes/${id}/editor.css`,
-        markdown: `/tmp/yulora/themes/${id}/markdown.css`
+        ui: `/tmp/fishmark/themes/${id}/ui.css`,
+        editor: `/tmp/fishmark/themes/${id}/editor.css`,
+        markdown: `/tmp/fishmark/themes/${id}/markdown.css`
       },
       layout: {
         titlebar: null
@@ -432,7 +432,7 @@ describe("App autosave", () => {
 
   const builtinDefaultThemePackage = makeManifestThemePackage({
     id: "default",
-    name: "Yulora Default",
+    name: "FishMark Default",
     source: "builtin"
   });
   const graphiteThemePackage = makeManifestThemePackage({
@@ -584,7 +584,7 @@ describe("App autosave", () => {
       .mockResolvedValue(defaultThemeCatalog);
     openThemesDirectory = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
-    window.yulora = {
+    window.fishmark = {
       platform: "win32",
       runtimeMode: "editor",
       startupOpenPath: null,
@@ -657,7 +657,7 @@ describe("App autosave", () => {
           }
         };
       }
-    } as Window["yulora"];
+    } as Window["fishmark"];
   });
 
   afterEach(async () => {
@@ -703,17 +703,17 @@ describe("App autosave", () => {
       .fn<() => Promise<ThemePackageDescriptor[]>>()
       .mockResolvedValue(withBuiltinDefault(refreshThemePackagesResult));
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue(getPreferencesResult),
       updatePreferences:
         updatePreferencesImplementation !== undefined
           ? vi.fn(updatePreferencesImplementation)
-          : window.yulora.updatePreferences,
+          : window.fishmark.updatePreferences,
       listThemePackages,
       refreshThemePackages,
       openThemesDirectory
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -810,11 +810,11 @@ describe("App autosave", () => {
       }
     });
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       openMarkdownFileFromPath,
       startupOpenPath: "C:/notes/startup.md"
-    } as unknown as Window["yulora"];
+    } as unknown as Window["fishmark"];
 
     await renderApp();
 
@@ -835,15 +835,15 @@ describe("App autosave", () => {
         }
       });
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       handleDroppedMarkdownFile,
       openMarkdownFileFromPath
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
-    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
+    const workspaceCanvas = container.querySelector('[data-fishmark-region="workspace-canvas"]');
     if (!workspaceCanvas) {
       throw new Error("workspace canvas not found");
     }
@@ -889,16 +889,16 @@ describe("App autosave", () => {
       });
     getPathForDroppedFile = vi.fn().mockReturnValue("C:/notes/bridge-drop.md");
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       handleDroppedMarkdownFile,
       getPathForDroppedFile,
       openMarkdownFileFromPath
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
-    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
+    const workspaceCanvas = container.querySelector('[data-fishmark-region="workspace-canvas"]');
     if (!workspaceCanvas) {
       throw new Error("workspace canvas not found");
     }
@@ -941,12 +941,12 @@ describe("App autosave", () => {
       disposition: "opened-in-new-window"
     });
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       startupOpenPath: "C:/notes/current.md",
       handleDroppedMarkdownFile,
       openMarkdownFileFromPath
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -1000,9 +1000,9 @@ describe("App autosave", () => {
 
     expect(openMarkdownFile).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Untitled.md");
-    expect(container.querySelector('[data-yulora-region="empty-state"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="empty-state"]')).toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
-    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.yuloraShellMode).toBe(
+    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.fishmarkShellMode).toBe(
       "editing"
     );
   });
@@ -1273,8 +1273,8 @@ describe("App autosave", () => {
   });
 
   it("applies initial theme and typography preferences to the document root", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: null },
@@ -1288,31 +1288,31 @@ describe("App autosave", () => {
           fontSize: 18
         }
       })
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
-    expect(document.documentElement.dataset.yuloraTheme).toBe("dark");
+    expect(document.documentElement.dataset.fishmarkTheme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
-    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-size")).toBe("17px");
-    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-ui-font-size")).toBe("17px");
+    expect(document.documentElement.style.getPropertyValue("--fishmark-ui-font-family")).toBe(
       "Segoe UI"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-font-family")).toBe(
       "IBM Plex Serif"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-cjk-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-cjk-font-family")).toBe(
       "Source Han Sans SC"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-font-size")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-font-size")).toBe(
       "18px"
     );
     expect(listFontFamilies).not.toHaveBeenCalled();
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/default/tokens-dark.css"));
   });
 
   it("updates theme variables and mounted stylesheets when preferences change", async () => {
@@ -1337,75 +1337,75 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(document.documentElement.dataset.yuloraTheme).toBe("dark");
+    expect(document.documentElement.dataset.fishmarkTheme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
-    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-size")).toBe("18px");
-    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-ui-font-size")).toBe("18px");
+    expect(document.documentElement.style.getPropertyValue("--fishmark-ui-font-family")).toBe(
       "Aptos"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-font-family")).toBe(
       "Source Serif 4"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-cjk-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-cjk-font-family")).toBe(
       "霞鹜文楷"
     );
-    expect(document.documentElement.style.getPropertyValue("--yulora-document-font-size")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-document-font-size")).toBe(
       "20px"
     );
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/graphite/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/graphite/tokens-dark.css"));
   });
 
   it("treats legacy-suffixed package ids as missing and falls back to builtin default", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: "graphite-dark" }
       })
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/default/tokens-dark.css"));
     expect(container.textContent).toContain("已配置主题未找到");
   });
 
   it("mounts non-empty theme package catalogs through preview asset urls without a missing-theme warning", async () => {
     const packageThemes: ThemePackageDescriptor[] = [
-      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "default", name: "FishMark Default", source: "builtin" }),
       makeManifestThemePackage({ id: "rain-glass", name: "Rain Glass" })
     ];
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: "rain-glass", effectsMode: "auto", parameters: {} }
       }),
       listThemePackages: vi.fn().mockResolvedValue(withBuiltinDefault(packageThemes))
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/rain-glass/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/rain-glass/tokens-dark.css"));
     expect(container.textContent).not.toContain("已配置主题未找到");
   });
 
   it("does not warn about a missing configured theme while the theme package catalog is still loading", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
         theme: { mode: "dark", selectedId: "rain-glass", effectsMode: "auto", parameters: {} }
@@ -1413,7 +1413,7 @@ describe("App autosave", () => {
       listThemePackages: vi.fn<() => Promise<ThemePackageDescriptor[]>>(
         () => new Promise<ThemePackageDescriptor[]>(() => {})
       )
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -1422,13 +1422,13 @@ describe("App autosave", () => {
 
   it("refreshes the package catalog from settings and falls back to default when the selected package disappears", async () => {
     const packageThemes = [
-      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "default", name: "FishMark Default", source: "builtin" }),
       makeManifestThemePackage({ id: "graphite", name: "Graphite" })
     ];
     const driver = await renderEditorApp({
       listThemePackagesResult: packageThemes,
       refreshThemePackagesResult: [
-        makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" })
+        makeManifestThemePackage({ id: "default", name: "FishMark Default", source: "builtin" })
       ],
       getPreferencesResult: {
         ...DEFAULT_PREFERENCES,
@@ -1451,16 +1451,16 @@ describe("App autosave", () => {
     expect(
       document
         .head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/graphite/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/graphite/tokens-dark.css"));
     expect(
       Array.from(themeSelect?.options ?? []).map((option) => ({
         value: option.value,
         label: option.textContent
       }))
     ).toEqual([
-      { value: "default", label: "Yulora 默认" },
+      { value: "default", label: "FishMark 默认" },
       { value: "graphite", label: "Graphite" }
     ]);
 
@@ -1474,9 +1474,9 @@ describe("App autosave", () => {
     expect(
       document
         .head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/default/tokens-dark.css"));
     expect(themeSelect?.value).toBe("default");
   });
 
@@ -1486,7 +1486,7 @@ describe("App autosave", () => {
     await driver.openSettings();
     await driver.selectSettingsOption("settings-theme-effects", "off");
 
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
+    expect(window.fishmark.updatePreferences).toHaveBeenCalledWith({
       theme: { effectsMode: "off" }
     });
   });
@@ -1532,21 +1532,21 @@ describe("App autosave", () => {
             workbenchBackground: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"
             }
           }
         })
       ]
     });
 
-    const surfaceHost = container.querySelector('[data-yulora-theme-surface="workbenchBackground"]');
+    const surfaceHost = container.querySelector('[data-fishmark-theme-surface="workbenchBackground"]');
 
     expect(surfaceHost).not.toBeNull();
-    expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+    expect(surfaceHost?.getAttribute("data-fishmark-theme-scene")).toBe("rain-scene");
     expect(surfaceHost?.parentElement?.classList.contains("app-layout")).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      createPreviewAssetUrl("/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"),
+      createPreviewAssetUrl("/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"),
       expect.any(Object)
     );
   });
@@ -1601,11 +1601,11 @@ describe("App autosave", () => {
             workbenchBackground: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl",
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl",
               channels: {
                 "0": {
                   type: "image",
-                  src: "/tmp/yulora/themes/rain-glass/textures/noise.png"
+                  src: "/tmp/fishmark/themes/rain-glass/textures/noise.png"
                 }
               }
             }
@@ -1620,7 +1620,7 @@ describe("App autosave", () => {
     });
 
     expect(loadedImageSrcs).toContain(
-      createPreviewAssetUrl("/tmp/yulora/themes/rain-glass/textures/noise.png")
+      createPreviewAssetUrl("/tmp/fishmark/themes/rain-glass/textures/noise.png")
     );
   });
 
@@ -1647,7 +1647,7 @@ describe("App autosave", () => {
             workbenchBackground: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"
             }
           }
         })
@@ -1659,78 +1659,78 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(document.documentElement.getAttribute("data-yulora-theme-dynamic-mode")).toBe("fallback");
-    expect(container.querySelector('[data-yulora-region="app-notification-banner"]')?.textContent).toContain(
+    expect(document.documentElement.getAttribute("data-fishmark-theme-dynamic-mode")).toBe("fallback");
+    expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
       "主题动态效果已自动关闭，已回退到静态样式。"
     );
   });
 
   it("renders a controlled titlebar host with built-in items on controlled-chrome platforms", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       platform: "darwin"
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
-    const titlebar = container.querySelector('[data-yulora-role="titlebar"]');
+    const titlebar = container.querySelector('[data-fishmark-role="titlebar"]');
 
     expect(titlebar).not.toBeNull();
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="document-title"]')?.textContent).toContain(
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="document-title"]')?.textContent).toContain(
       "Local-first Markdown writing"
     );
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="dirty-indicator"]')).not.toBeNull();
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="app-icon"]')).toBeNull();
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="theme-toggle"]')).toBeNull();
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="window-actions"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="dirty-indicator"]')).not.toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="app-icon"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="theme-toggle"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="window-actions"]')).toBeNull();
   });
 
   it("does not mount a renderer titlebar on Windows native-chrome platforms", async () => {
     await renderApp();
 
-    expect(container.querySelector('[data-yulora-role="titlebar"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-role="titlebar"]')).toBeNull();
   });
 
   it("renders the bridge-unavailable fallback inside a shell-safe container", async () => {
-    window.yulora = undefined as unknown as Window["yulora"];
+    window.fishmark = undefined as unknown as Window["fishmark"];
 
     await renderApp();
 
-    expect(container.querySelector('[data-yulora-role="titlebar"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-role="titlebar"]')).toBeNull();
     expect(container.querySelector(".app-shell-fallback")).not.toBeNull();
     expect(container.querySelector(".app-shell-fallback .error-banner")?.textContent).toContain(
-      "Yulora bridge unavailable"
+      "FishMark bridge unavailable"
     );
   });
 
   it("uses the macOS default titlebar layout without renderer window actions", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       platform: "darwin"
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
-    const titlebar = container.querySelector('[data-yulora-role="titlebar"]');
+    const titlebar = container.querySelector('[data-fishmark-role="titlebar"]');
 
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="window-actions"]')).toBeNull();
-    expect(titlebar?.querySelector('[data-yulora-titlebar-item="app-icon"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="window-actions"]')).toBeNull();
+    expect(titlebar?.querySelector('[data-fishmark-titlebar-item="app-icon"]')).toBeNull();
   });
 
   it("keeps passive titlebar content draggable while limiting no-drag to controls", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
 
-    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-yulora-drag-region="true"]');
-    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-yulora-drag-region="false"]');
+    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-fishmark-drag-region="true"]');
+    expect(appUiStylesheet).toContain('.app-titlebar-slot[data-fishmark-drag-region="false"]');
     expect(appUiStylesheet).toContain(".app-titlebar button");
     expect(appUiStylesheet).not.toContain(".app-titlebar-item,\n.app-titlebar-item > *");
   });
 
   it("mounts a titlebar shader surface host for the active manifest package", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       platform: "darwin"
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderEditorApp({
       getPreferencesResult: {
@@ -1754,17 +1754,17 @@ describe("App autosave", () => {
             titlebarBackdrop: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/titlebar-backdrop.glsl"
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/titlebar-backdrop.glsl"
             }
           }
         })
       ]
     });
 
-    const surfaceHost = container.querySelector('[data-yulora-theme-surface="titlebarBackdrop"]');
+    const surfaceHost = container.querySelector('[data-fishmark-theme-surface="titlebarBackdrop"]');
 
     expect(surfaceHost).not.toBeNull();
-    expect(surfaceHost?.getAttribute("data-yulora-theme-scene")).toBe("rain-scene");
+    expect(surfaceHost?.getAttribute("data-fishmark-theme-scene")).toBe("rain-scene");
   });
 
   it("does not refetch the workbench shader during ordinary app rerenders", async () => {
@@ -1780,14 +1780,14 @@ describe("App autosave", () => {
           workbenchBackground: {
             kind: "fragment",
             scene: "rain-scene",
-            shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+            shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"
           }
         }
       })
     ]);
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       getPreferences: vi.fn().mockResolvedValue({
         ...DEFAULT_PREFERENCES,
         theme: {
@@ -1798,7 +1798,7 @@ describe("App autosave", () => {
         }
       }),
       listThemePackages
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -1840,15 +1840,15 @@ describe("App autosave", () => {
             workbenchBackground: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"
             }
           }
         })
       ]
     });
 
-    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).toBeNull();
-    expect(document.documentElement.getAttribute("data-yulora-theme-dynamic-mode")).toBe("off");
+    expect(container.querySelector('[data-fishmark-theme-surface="workbenchBackground"]')).toBeNull();
+    expect(document.documentElement.getAttribute("data-fishmark-theme-dynamic-mode")).toBe("off");
   });
 
   it("re-resolves shader surfaces through React state when the system theme flips", async () => {
@@ -1880,23 +1880,23 @@ describe("App autosave", () => {
             workbenchBackground: {
               kind: "fragment",
               scene: "rain-scene",
-              shader: "/tmp/yulora/themes/rain-glass/shaders/workbench-background.glsl"
+              shader: "/tmp/fishmark/themes/rain-glass/shaders/workbench-background.glsl"
             }
           }
         })
       ]
     });
 
-    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).not.toBeNull();
-    expect(document.documentElement.getAttribute("data-yulora-theme")).toBe("dark");
+    expect(container.querySelector('[data-fishmark-theme-surface="workbenchBackground"]')).not.toBeNull();
+    expect(document.documentElement.getAttribute("data-fishmark-theme")).toBe("dark");
 
     await act(async () => {
       colorSchemeMediaQuery.__setMatches(false);
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-theme-surface="workbenchBackground"]')).toBeNull();
-    expect(document.documentElement.getAttribute("data-yulora-theme")).toBe("light");
+    expect(container.querySelector('[data-fishmark-theme-surface="workbenchBackground"]')).toBeNull();
+    expect(document.documentElement.getAttribute("data-fishmark-theme")).toBe("light");
   });
 
   it("shows a refresh error banner when refreshing theme packages fails", async () => {
@@ -1904,11 +1904,11 @@ describe("App autosave", () => {
       .fn<() => Promise<ThemePackageDescriptor[]>>()
       .mockRejectedValue(new Error("refresh failed"));
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       listThemePackages: vi.fn().mockResolvedValue([]),
       refreshThemePackages
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -1965,10 +1965,10 @@ describe("App autosave", () => {
   it("shows an error when opening the themes directory fails", async () => {
     openThemesDirectory = vi.fn<() => Promise<void>>().mockRejectedValue(new Error("open failed"));
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       openThemesDirectory
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -1998,7 +1998,7 @@ describe("App autosave", () => {
 
   it("falls back to the builtin theme and routes the unsupported-mode warning through the top notification banner", async () => {
     const darkOnlyThemes: ThemePackageDescriptor[] = [
-      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "default", name: "FishMark Default", source: "builtin" }),
       makeManifestThemePackage({
         id: "midnight",
         name: "Midnight",
@@ -2007,19 +2007,19 @@ describe("App autosave", () => {
           dark: true
         },
         tokens: {
-          dark: "/tmp/yulora/themes/midnight/tokens-dark.css"
+          dark: "/tmp/fishmark/themes/midnight/tokens-dark.css"
         },
         styles: {
-          ui: "/tmp/yulora/themes/midnight/ui.css",
-          editor: "/tmp/yulora/themes/midnight/editor.css"
+          ui: "/tmp/fishmark/themes/midnight/ui.css",
+          editor: "/tmp/fishmark/themes/midnight/editor.css"
         }
       })
     ];
 
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       listThemePackages: vi.fn().mockResolvedValue(darkOnlyThemes)
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderApp();
 
@@ -2043,11 +2043,11 @@ describe("App autosave", () => {
 
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-light.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/default/tokens-light.css"));
     expect(container.textContent).toContain("该主题不支持浅色模式");
-    expect(container.querySelector('[data-yulora-region="app-notification-banner"]')?.textContent).toContain(
+    expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
       "该主题不支持浅色模式"
     );
     expect(
@@ -2089,17 +2089,17 @@ describe("App autosave", () => {
 
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
     expect(container.textContent).toContain("today.md");
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-dialog="settings-drawer"]')).not.toBeNull();
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(container.querySelector<HTMLElement>('[data-yulora-dialog="settings-drawer"]')?.dataset.state).toBe(
+    expect(container.querySelector<HTMLElement>('[data-fishmark-dialog="settings-drawer"]')?.dataset.state).toBe(
       "closing"
     );
-    expect(container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]')?.dataset.state).toBe(
+    expect(container.querySelector<HTMLElement>('[data-fishmark-panel="settings-drawer"]')?.dataset.state).toBe(
       "closing"
     );
 
@@ -2108,7 +2108,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-dialog="settings-drawer"]')).toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
     expect(container.textContent).toContain("today.md");
   });
@@ -2118,12 +2118,12 @@ describe("App autosave", () => {
 
     await clickEditorContent();
 
-    const rail = container.querySelector('[data-yulora-layout="rail"]');
-    const workspace = container.querySelector('[data-yulora-layout="workspace"]');
-    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
-    const statusStrip = container.querySelector('[data-yulora-region="status-strip"]');
-    const outlineToggle = container.querySelector('[data-yulora-region="outline-toggle"]');
-    const outlinePanel = container.querySelector('[data-yulora-region="outline-panel"]');
+    const rail = container.querySelector('[data-fishmark-layout="rail"]');
+    const workspace = container.querySelector('[data-fishmark-layout="workspace"]');
+    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
+    const statusStrip = container.querySelector('[data-fishmark-region="status-strip"]');
+    const outlineToggle = container.querySelector('[data-fishmark-region="outline-toggle"]');
+    const outlinePanel = container.querySelector('[data-fishmark-region="outline-panel"]');
 
     expect(rail).not.toBeNull();
     expect(workspace).not.toBeNull();
@@ -2141,11 +2141,11 @@ describe("App autosave", () => {
 
     await clickEditorContent();
 
-    const rail = container.querySelector('[data-yulora-layout="rail"]');
-    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
-    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
-    const outlineToggle = container.querySelector('[data-yulora-region="outline-toggle"]');
-    const outlinePanel = container.querySelector('[data-yulora-region="outline-panel"]');
+    const rail = container.querySelector('[data-fishmark-layout="rail"]');
+    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
+    const documentHeader = container.querySelector('[data-fishmark-region="document-header"]');
+    const outlineToggle = container.querySelector('[data-fishmark-region="outline-toggle"]');
+    const outlinePanel = container.querySelector('[data-fishmark-region="outline-panel"]');
 
     expect(workspaceHeader?.textContent).toContain("today.md");
     expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
@@ -2162,7 +2162,7 @@ describe("App autosave", () => {
     await clickEditorContent();
 
     const outlineToggle = container.querySelector<HTMLButtonElement>(
-      '[data-yulora-region="outline-toggle"]'
+      '[data-fishmark-region="outline-toggle"]'
     );
 
     expect(outlineToggle).not.toBeNull();
@@ -2172,9 +2172,9 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const outlinePanel = container.querySelector('[data-yulora-region="outline-panel"]');
-    const outlineHeader = container.querySelector('[data-yulora-region="outline-panel-header"]');
-    const outlineBody = container.querySelector('[data-yulora-region="outline-panel-body"]');
+    const outlinePanel = container.querySelector('[data-fishmark-region="outline-panel"]');
+    const outlineHeader = container.querySelector('[data-fishmark-region="outline-panel-header"]');
+    const outlineBody = container.querySelector('[data-fishmark-region="outline-panel-body"]');
     const outlineButton = Array.from(outlinePanel?.querySelectorAll("button") ?? []).find((button) =>
       button.textContent?.includes("Today")
     );
@@ -2199,7 +2199,7 @@ describe("App autosave", () => {
     await clickEditorContent();
 
     const outlineToggle = container.querySelector<HTMLButtonElement>(
-      '[data-yulora-region="outline-toggle"]'
+      '[data-fishmark-region="outline-toggle"]'
     );
 
     await act(async () => {
@@ -2210,7 +2210,7 @@ describe("App autosave", () => {
     const collapseButton = container.querySelector<HTMLButtonElement>(
       '[aria-label="Collapse outline"]'
     );
-    expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
     expect(collapseButton).not.toBeNull();
 
     await act(async () => {
@@ -2218,18 +2218,18 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector<HTMLElement>('[data-yulora-region="outline-panel"]')?.dataset.state).toBe(
+    expect(container.querySelector<HTMLElement>('[data-fishmark-region="outline-panel"]')?.dataset.state).toBe(
       "closing"
     );
-    expect(container.querySelector('[data-yulora-region="outline-toggle"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-toggle"]')).toBeNull();
 
     await act(async () => {
       vi.advanceTimersByTime(180);
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-region="outline-panel"]')).toBeNull();
-    expect(container.querySelector('[data-yulora-region="outline-toggle"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-panel"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-toggle"]')).not.toBeNull();
   });
 
   it("renders the empty state inside a shared workspace canvas", async () => {
@@ -2238,15 +2238,15 @@ describe("App autosave", () => {
     const appShell = container.querySelector<HTMLElement>(".app-shell");
     const appLayout = container.querySelector<HTMLElement>(".app-layout");
     const appWorkspace = container.querySelector<HTMLElement>(".app-workspace");
-    const rail = container.querySelector<HTMLElement>('[data-yulora-layout="rail"]');
-    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
-    const workspaceCanvas = container.querySelector<HTMLElement>('[data-yulora-region="workspace-canvas"]');
-    const emptyState = container.querySelector('[data-yulora-region="empty-state"]');
+    const rail = container.querySelector<HTMLElement>('[data-fishmark-layout="rail"]');
+    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
+    const workspaceCanvas = container.querySelector<HTMLElement>('[data-fishmark-region="workspace-canvas"]');
+    const emptyState = container.querySelector('[data-fishmark-region="empty-state"]');
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
-    expect(appLayout?.dataset.yuloraHasDocument).toBe("false");
-    expect(appWorkspace?.dataset.yuloraHasDocument).toBe("false");
-    expect(workspaceCanvas?.dataset.yuloraHasDocument).toBe("false");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
+    expect(appLayout?.dataset.fishmarkHasDocument).toBe("false");
+    expect(appWorkspace?.dataset.fishmarkHasDocument).toBe("false");
+    expect(workspaceCanvas?.dataset.fishmarkHasDocument).toBe("false");
     expect(rail?.dataset.visibility).toBe("visible");
     expect(workspaceHeader).not.toBeNull();
     expect(workspaceCanvas).not.toBeNull();
@@ -2260,7 +2260,7 @@ describe("App autosave", () => {
     const appShell = container.querySelector<HTMLElement>(".app-shell");
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
 
     await act(async () => {
       settingsButton?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
@@ -2268,24 +2268,24 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
+    expect(container.querySelector('[data-fishmark-dialog="settings-drawer"]')).not.toBeNull();
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("renders a fixed app status bar outside the scrolling document flow", async () => {
     await renderAndOpenDocument();
 
-    const workspaceHeader = container.querySelector('[data-yulora-region="workspace-header"]');
-    const workspaceCanvas = container.querySelector('[data-yulora-region="workspace-canvas"]');
-    const documentHeader = container.querySelector('[data-yulora-region="document-header"]');
-    const appStatusBar = container.querySelector('[data-yulora-region="app-status-bar"]');
+    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
+    const workspaceCanvas = container.querySelector('[data-fishmark-region="workspace-canvas"]');
+    const documentHeader = container.querySelector('[data-fishmark-region="document-header"]');
+    const appStatusBar = container.querySelector('[data-fishmark-region="app-status-bar"]');
 
     expect(workspaceHeader).not.toBeNull();
     expect(workspaceCanvas).not.toBeNull();
@@ -2298,7 +2298,7 @@ describe("App autosave", () => {
   it("does not render an update download message by default", async () => {
     await renderAndOpenDocument();
 
-    const appStatusBar = container.querySelector('[data-yulora-region="app-status-bar"]');
+    const appStatusBar = container.querySelector('[data-fishmark-region="app-status-bar"]');
 
     expect(appStatusBar?.textContent).not.toContain("正在下载更新");
   });
@@ -2315,7 +2315,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const appStatusBar = container.querySelector('[data-yulora-region="app-status-bar"]');
+    const appStatusBar = container.querySelector('[data-fishmark-region="app-status-bar"]');
 
     expect(appStatusBar?.textContent).toContain("正在下载更新 37%");
   });
@@ -2331,8 +2331,8 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const notificationBanner = container.querySelector('[data-yulora-region="app-notification-banner"]');
-    const notificationSpinner = container.querySelector('[data-yulora-region="app-notification-spinner"]');
+    const notificationBanner = container.querySelector('[data-fishmark-region="app-notification-banner"]');
+    const notificationSpinner = container.querySelector('[data-fishmark-region="app-notification-spinner"]');
 
     expect(notificationBanner?.textContent).toContain("正在检查更新");
     expect(notificationBanner?.getAttribute("data-state")).toBe("open");
@@ -2347,7 +2347,7 @@ describe("App autosave", () => {
     });
 
     expect(notificationBanner?.textContent).toContain("当前已是最新版本");
-    expect(container.querySelector('[data-yulora-region="app-notification-spinner"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="app-notification-spinner"]')).toBeNull();
 
     await act(async () => {
       vi.advanceTimersByTime(3000);
@@ -2361,26 +2361,27 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-region="app-notification-banner"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')).toBeNull();
   });
 
   it("ensures the top notification banner stays above the settings drawer stacking layer", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
     const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8");
 
-    const notificationZMatch = appUiStylesheet.match(
-      /\.app-notification-banner\s*\{\s*[\s\S]*?z-index:\s*(\d+);/
-    );
+    const notificationRule = getCssRule(appUiStylesheet, ".app-notification-banner");
+    const alertZTokenMatch = baseStylesheet.match(/--fishmark-z-alert:\s*(\d+);/);
     const settingsDialogZMatch = settingsStylesheet.match(
-      /\[data-yulora-dialog="settings-drawer"\]\s*\{\s*[\s\S]*?z-index:\s*(\d+);/
+      /\[data-fishmark-dialog="settings-drawer"\]\s*\{\s*[\s\S]*?z-index:\s*(\d+);/
     );
     const settingsShellZMatch = settingsStylesheet.match(/\.settings-shell\s*\{\s*[\s\S]*?z-index:\s*(\d+);/);
 
-    expect(notificationZMatch?.[1]).toBeDefined();
+    expect(notificationRule).toContain("z-index: var(--fishmark-z-alert);");
+    expect(alertZTokenMatch?.[1]).toBeDefined();
     expect(settingsDialogZMatch?.[1]).toBeDefined();
     expect(settingsShellZMatch?.[1]).toBeDefined();
 
-    const notificationZIndex = Number(notificationZMatch?.[1] ?? 0);
+    const notificationZIndex = Number(alertZTokenMatch?.[1] ?? 0);
     const settingsDialogZIndex = Number(settingsDialogZMatch?.[1] ?? 0);
     const settingsShellZIndex = Number(settingsShellZMatch?.[1] ?? 0);
 
@@ -2408,7 +2409,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const appStatusBar = container.querySelector('[data-yulora-region="app-status-bar"]');
+    const appStatusBar = container.querySelector('[data-fishmark-region="app-status-bar"]');
 
     expect(appStatusBar?.textContent).not.toContain("正在下载更新");
 
@@ -2448,14 +2449,14 @@ describe("App autosave", () => {
       path: "C:/notes/today.md",
       content: "# Blur restore\n"
     });
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-dialog="settings-drawer"]')).not.toBeNull();
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(container.querySelector<HTMLElement>('[data-yulora-dialog="settings-drawer"]')?.dataset.state).toBe(
+    expect(container.querySelector<HTMLElement>('[data-fishmark-dialog="settings-drawer"]')?.dataset.state).toBe(
       "closing"
     );
 
@@ -2464,14 +2465,14 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-dialog="settings-drawer"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-dialog="settings-drawer"]')).toBeNull();
     expect(document.activeElement?.getAttribute("data-testid")).toBe("mock-code-editor");
   });
 
   it("opens an existing document in reading mode", async () => {
     await renderAndOpenDocument();
 
-    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.yuloraShellMode).toBe(
+    expect(container.querySelector<HTMLElement>(".app-shell")?.dataset.fishmarkShellMode).toBe(
       "reading"
     );
   });
@@ -2489,7 +2490,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
   });
 
   it("keeps reading mode when the editor only receives middle-click focus", async () => {
@@ -2504,7 +2505,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("exits editing mode when Escape is pressed", async () => {
@@ -2520,14 +2521,14 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("exits editing mode when the user clicks the editor blank area", async () => {
@@ -2543,14 +2544,14 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
 
     await act(async () => {
       editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 40 }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("exits editing mode when the user clicks workspace-canvas blank area outside the editor", async () => {
@@ -2561,14 +2562,14 @@ describe("App autosave", () => {
 
     await clickEditorContent();
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
 
     await act(async () => {
       workspaceShell?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 24 }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("exits editing mode when the user clicks app-workspace blank area outside the canvas", async () => {
@@ -2579,46 +2580,46 @@ describe("App autosave", () => {
 
     await clickEditorContent();
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
 
     await act(async () => {
       appWorkspace?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 24 }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
   it("collapses the rail in document reading mode while keeping it available on the welcome screen", async () => {
     await renderAndOpenDocument();
 
     const appShell = container.querySelector<HTMLElement>(".app-shell");
-    const rail = container.querySelector<HTMLElement>('[data-yulora-layout="rail"]');
-    const workspaceHeader = container.querySelector<HTMLElement>('[data-yulora-region="workspace-header"]');
-    const statusBar = container.querySelector<HTMLElement>('[data-yulora-region="app-status-bar"]');
+    const rail = container.querySelector<HTMLElement>('[data-fishmark-layout="rail"]');
+    const workspaceHeader = container.querySelector<HTMLElement>('[data-fishmark-region="workspace-header"]');
+    const statusBar = container.querySelector<HTMLElement>('[data-fishmark-region="app-status-bar"]');
     const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
     await clickEditorContent();
 
-    const outlineToggle = container.querySelector<HTMLButtonElement>('[data-yulora-region="outline-toggle"]');
+    const outlineToggle = container.querySelector<HTMLButtonElement>('[data-fishmark-region="outline-toggle"]');
     await act(async () => {
       outlineToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
-    expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
+    expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
     expect(rail?.dataset.visibility).toBe("collapsed");
     expect(workspaceHeader?.dataset.visibility).toBe("collapsed");
     expect(statusBar?.dataset.visibility).toBe("collapsed");
-    expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
 
     await act(async () => {
@@ -2628,11 +2629,11 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
     expect(rail?.dataset.visibility).toBe("visible");
     expect(workspaceHeader?.dataset.visibility).toBe("visible");
     expect(statusBar?.dataset.visibility).toBe("visible");
-    expect(container.querySelector('[data-yulora-region="outline-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
   });
 
   it("shows the shortcut hint overlay only after Control is held for 1 second while the editor is focused", async () => {
@@ -2640,7 +2641,7 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
 
@@ -2659,8 +2660,8 @@ describe("App autosave", () => {
       );
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
-    const overlayShell = container.querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
+    const overlayShell = container.querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]');
 
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
     expect(overlay).toBeNull();
@@ -2671,7 +2672,7 @@ describe("App autosave", () => {
     });
 
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
 
     await act(async () => {
       vi.advanceTimersByTime(1);
@@ -2679,9 +2680,9 @@ describe("App autosave", () => {
     });
 
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("visible");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).toContain("Ctrl+B");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Save");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Open");
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')?.textContent).toContain("Ctrl+B");
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Save");
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')?.textContent).not.toContain("Open");
 
     await act(async () => {
       window.dispatchEvent(
@@ -2715,7 +2716,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')?.textContent).toContain(
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')?.textContent).toContain(
       "Bold"
     );
 
@@ -2738,14 +2739,14 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
     const rail = container.querySelector<HTMLElement>(".app-rail");
-    const tableStrip = container.querySelector<HTMLElement>('[data-yulora-region="table-tool-strip"]');
+    const tableStrip = container.querySelector<HTMLElement>('[data-fishmark-region="table-tool-strip"]');
 
     expect(overlay?.getAttribute("data-shortcut-group")).toBe("table-editing");
     expect(overlay?.textContent).toContain("Next Cell");
     expect(overlay?.textContent).not.toContain("Bold");
-    expect(rail?.getAttribute("data-yulora-rail-mode")).toBe("table-editing");
+    expect(rail?.getAttribute("data-fishmark-rail-mode")).toBe("table-editing");
     expect(
       container.querySelector('.app-rail-mode-group-table')?.getAttribute("data-state")
     ).toBe("open");
@@ -2777,9 +2778,9 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const tableStrip = container.querySelector<HTMLElement>('[data-yulora-region="table-tool-strip"]');
+    const tableStrip = container.querySelector<HTMLElement>('[data-fishmark-region="table-tool-strip"]');
     const toolButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('[data-yulora-region="table-tool-button"]')
+      container.querySelectorAll<HTMLButtonElement>('[data-fishmark-region="table-tool-button"]')
     );
 
     expect(tableStrip).not.toBeNull();
@@ -2820,24 +2821,24 @@ describe("App autosave", () => {
     });
 
     const rowAboveButton = container.querySelector<HTMLButtonElement>(
-      '[data-yulora-region="table-tool-button"][aria-label="Row Above"]'
+      '[data-fishmark-region="table-tool-button"][aria-label="Row Above"]'
     );
 
-    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="table-tool-tooltip"]')).toBeNull();
 
     await act(async () => {
       rowAboveButton?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')?.textContent).toContain("Row Above");
+    expect(container.querySelector('[data-fishmark-region="table-tool-tooltip"]')?.textContent).toContain("Row Above");
 
     await act(async () => {
       rowAboveButton?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[data-yulora-region="table-tool-tooltip"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="table-tool-tooltip"]')).toBeNull();
   });
 
   it("does not show the shortcut hint overlay if Control is released before 1 second elapses", async () => {
@@ -2881,10 +2882,10 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
   });
 
   it("does not show the shortcut hint overlay when Control is held without editor focus", async () => {
@@ -2910,8 +2911,8 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
-    const overlayShell = container.querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
+    const overlayShell = container.querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]');
 
     expect(overlayShell?.getAttribute("data-shortcut-hint-state")).toBe("hidden");
     expect(overlay?.textContent ?? "").not.toContain("Ctrl+B");
@@ -2952,10 +2953,10 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
 
     await act(async () => {
       window.dispatchEvent(
@@ -2968,10 +2969,10 @@ describe("App autosave", () => {
   });
 
   it("shows the shortcut hint overlay while the editor is focused and Meta is held on macOS", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       platform: "darwin"
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderAndOpenDocument();
 
@@ -2995,11 +2996,11 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    const overlay = container.querySelector('[data-yulora-region="shortcut-hint-overlay"]');
+    const overlay = container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]');
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("visible");
     expect(overlay?.textContent).toContain("Cmd+B");
@@ -3015,16 +3016,16 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
   });
 
   it("does not show the shortcut hint overlay when Control is held on macOS", async () => {
-    window.yulora = {
-      ...window.yulora,
+    window.fishmark = {
+      ...window.fishmark,
       platform: "darwin"
-    } as Window["yulora"];
+    } as Window["fishmark"];
 
     await renderAndOpenDocument();
 
@@ -3050,10 +3051,10 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
   });
 
   it("does not show the shortcut hint overlay when Meta is held on win32", async () => {
@@ -3081,10 +3082,10 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).toBeNull();
   });
 
   it("shows the shortcut hint overlay even when the content column starts near the left edge", async () => {
@@ -3124,10 +3125,10 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("visible");
-    expect(container.querySelector('[data-yulora-region="shortcut-hint-overlay"]')).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="shortcut-hint-overlay"]')).not.toBeNull();
   });
 
   it("keeps the shortcut hint overlay visible until every pressed primary modifier is released", async () => {
@@ -3164,7 +3165,7 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("visible");
 
@@ -3181,7 +3182,7 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("visible");
 
@@ -3197,7 +3198,7 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
   });
@@ -3232,7 +3233,7 @@ describe("App autosave", () => {
 
     expect(
       container
-        .querySelector('[data-yulora-region="shortcut-hint-overlay-shell"]')
+        .querySelector('[data-fishmark-region="shortcut-hint-overlay-shell"]')
         ?.getAttribute("data-shortcut-hint-state")
     ).toBe("hidden");
   });
@@ -3289,7 +3290,7 @@ describe("App autosave", () => {
     const driver = await renderEditorApp();
     await driver.openSettings();
 
-    const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');
+    const drawerPanel = container.querySelector<HTMLElement>('[data-fishmark-panel="settings-drawer"]');
     const closeButton = container.querySelector<HTMLButtonElement>('[aria-label="关闭设置"]');
     const themeSelect = container.querySelector<HTMLSelectElement>("#settings-theme-package");
     const documentFontSelect = container.querySelector<HTMLSelectElement>("#settings-document-font-preset");
@@ -3361,10 +3362,10 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
+    expect(window.fishmark.updatePreferences).toHaveBeenCalledWith({
       ui: { fontFamily: "Segoe UI" }
     });
-    expect(document.documentElement.style.getPropertyValue("--yulora-ui-font-family")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-ui-font-family")).toBe(
       "Segoe UI"
     );
   });
@@ -3372,7 +3373,7 @@ describe("App autosave", () => {
   it("does not render a legacy mode toggle entry in the workspace", async () => {
     await renderAndOpenDocument();
 
-    expect(container.querySelector('[data-yulora-region="focus-toggle"]')).toBeNull();
+    expect(container.querySelector('[data-fishmark-region="focus-toggle"]')).toBeNull();
   });
 
   it("defines animated shell chrome transitions for document reading mode and fully retracts the rail", () => {
@@ -3381,11 +3382,11 @@ describe("App autosave", () => {
     const collapsedRailRule = getCssRule(appUiStylesheet, '.app-rail[data-visibility="collapsed"]');
     const readingLayoutRule = getCssRule(
       appUiStylesheet,
-      '.app-layout[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+      '.app-layout[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"]'
     );
     const readingWorkspaceRule = getCssRule(
       appUiStylesheet,
-      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+      '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"]'
     );
     const headerRule = getCssRule(appUiStylesheet, ".app-header");
     const collapsedHeaderRule = getCssRule(appUiStylesheet, '.app-header[data-visibility="collapsed"]');
@@ -3410,11 +3411,11 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const collapsedReadingHeaderRule = getCssRule(
       appUiStylesheet,
-      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] > .app-header[data-yulora-region="workspace-header"][data-visibility="collapsed"]'
+      '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-header[data-fishmark-region="workspace-header"][data-visibility="collapsed"]'
     );
     const collapsedReadingStatusBarRule = getCssRule(
       appUiStylesheet,
-      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] > .app-status-bar[data-yulora-region="app-status-bar"][data-visibility="collapsed"]'
+      '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-status-bar[data-fishmark-region="app-status-bar"][data-visibility="collapsed"]'
     );
 
     expect(collapsedReadingHeaderRule).toContain("display: none;");
@@ -3430,16 +3431,16 @@ describe("App autosave", () => {
     const tooltipRule = getCssRule(appUiStylesheet, ".table-tool-tooltip");
     const dangerRule = getCssRule(appUiStylesheet, '.table-tool-button[data-tone="danger"]');
 
-    expect(railRule).toContain("z-index: 2 !important;");
+    expect(railRule).toContain("z-index: var(--fishmark-z-shell);");
     expect(appUiStylesheet).not.toContain(".app-layout > .app-rail");
     expect(stripRule).toContain("justify-items: center;");
     expect(buttonRule).toContain("inline-size: 44px;");
     expect(buttonRule).toContain("block-size: 44px;");
     expect(tooltipRule).toContain("position: absolute;");
-    expect(tooltipRule).toContain("left: calc(100% + 10px);");
+    expect(tooltipRule).toContain("left: calc(100% + var(--fishmark-space-2));");
     expect(tooltipRule).toContain("transform: translateY(-50%);");
     expect(tooltipRule).toContain("z-index: 3;");
-    expect(appSource).not.toContain('data-yulora-region="table-tool-tooltip-layer"');
+    expect(appSource).not.toContain('data-fishmark-region="table-tool-tooltip-layer"');
     expect(dangerRule).toContain("color:");
   });
 
@@ -3461,7 +3462,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
+    expect(window.fishmark.updatePreferences).toHaveBeenCalledWith({
       document: { fontFamily: "Segoe UI" }
     });
 
@@ -3473,7 +3474,7 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
-    expect(window.yulora.updatePreferences).toHaveBeenCalledWith({
+    expect(window.fishmark.updatePreferences).toHaveBeenCalledWith({
       document: { cjkFontFamily: "霞鹜文楷" }
     });
   });
@@ -3512,7 +3513,7 @@ describe("App autosave", () => {
 
     await driver.openSettings();
 
-    expect(container.querySelector('[data-yulora-panel="settings-drawer"]')?.textContent).toContain(
+    expect(container.querySelector('[data-fishmark-panel="settings-drawer"]')?.textContent).toContain(
       "偏好设置"
     );
   });
@@ -3572,13 +3573,13 @@ describe("App autosave", () => {
     });
 
     expect(
-      document.documentElement.style.getPropertyValue("--yulora-theme-parameter-workspaceGlassOpacity")
+      document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-workspaceGlassOpacity")
     ).toBe("0.35");
-    expect(document.documentElement.style.getPropertyValue("--yulora-theme-parameter-rainAmount")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-rainAmount")).toBe(
       "0.4"
     );
     expect(
-      document.documentElement.style.getPropertyValue("--yulora-theme-parameter-enableLightning")
+      document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-enableLightning")
     ).toBe("0");
 
     await act(async () => {
@@ -3596,13 +3597,13 @@ describe("App autosave", () => {
     });
 
     expect(
-      document.documentElement.style.getPropertyValue("--yulora-theme-parameter-workspaceGlassOpacity")
+      document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-workspaceGlassOpacity")
     ).toBe("");
-    expect(document.documentElement.style.getPropertyValue("--yulora-theme-parameter-rainAmount")).toBe(
+    expect(document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-rainAmount")).toBe(
       ""
     );
     expect(
-      document.documentElement.style.getPropertyValue("--yulora-theme-parameter-enableLightning")
+      document.documentElement.style.getPropertyValue("--fishmark-theme-parameter-enableLightning")
     ).toBe("");
   });
 
@@ -3694,35 +3695,35 @@ describe("App autosave", () => {
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
       "6"
     );
-    expect(baseStylesheet).toContain("--yulora-app-bg");
-    expect(baseStylesheet).toContain("--yulora-markdown-table-border");
-    expect(baseStylesheet).toContain("--yulora-markdown-code-token-keyword");
-    expect(appUiStylesheet).toContain("var(--yulora-titlebar-bg");
-    expect(appUiStylesheet).toContain("var(--yulora-panel-bg");
-    expect(appUiStylesheet).toContain("var(--yulora-control-bg");
-    expect(appUiStylesheet).not.toContain("var(--yulora-surface-bg");
-    expect(appUiStylesheet).not.toContain("var(--yulora-text-body");
-    expect(settingsStylesheet).toContain("var(--yulora-panel-bg");
+    expect(baseStylesheet).toContain("--fishmark-app-bg");
+    expect(baseStylesheet).toContain("--fishmark-markdown-table-border");
+    expect(baseStylesheet).toContain("--fishmark-markdown-code-token-keyword");
+    expect(appUiStylesheet).toContain("var(--fishmark-titlebar-bg");
+    expect(appUiStylesheet).toContain("var(--fishmark-panel-bg");
+    expect(appUiStylesheet).toContain("var(--fishmark-control-bg");
+    expect(appUiStylesheet).not.toContain("var(--fishmark-surface-bg");
+    expect(appUiStylesheet).not.toContain("var(--fishmark-text-body");
+    expect(settingsStylesheet).toContain("var(--fishmark-panel-bg");
     expect(primitivesStylesheet).not.toContain("--yu-ctrl-");
     expect(primitivesStylesheet).not.toContain("--yu-input-");
     expect(primitivesStylesheet).not.toContain("--yu-segment-");
-    expect(editorStylesheet).toContain("var(--yulora-editor-bg");
-    expect(editorStylesheet).toContain("var(--yulora-selection-bg");
-    expect(editorStylesheet).toContain("var(--yulora-caret-color");
-    expect(markdownStylesheet).toContain("var(--yulora-markdown-heading");
-    expect(markdownStylesheet).toContain("var(--yulora-markdown-code-bg");
-    expect(markdownStylesheet).toContain("var(--yulora-markdown-code-token-keyword");
+    expect(editorStylesheet).toContain("var(--fishmark-editor-bg");
+    expect(editorStylesheet).toContain("var(--fishmark-selection-bg");
+    expect(editorStylesheet).toContain("var(--fishmark-caret-color");
+    expect(markdownStylesheet).toContain("var(--fishmark-markdown-heading");
+    expect(markdownStylesheet).toContain("var(--fishmark-markdown-code-bg");
+    expect(markdownStylesheet).toContain("var(--fishmark-markdown-code-token-keyword");
   });
 
   it("marks settings as a floating drawer overlay surface", async () => {
     const driver = await renderEditorApp();
     await driver.openSettings();
 
-    const overlay = container.querySelector<HTMLElement>('[data-yulora-dialog="settings-drawer"]');
-    const drawerPanel = container.querySelector<HTMLElement>('[data-yulora-panel="settings-drawer"]');
+    const overlay = container.querySelector<HTMLElement>('[data-fishmark-dialog="settings-drawer"]');
+    const drawerPanel = container.querySelector<HTMLElement>('[data-fishmark-panel="settings-drawer"]');
 
-    expect(overlay?.getAttribute("data-yulora-overlay-style")).toBe("floating-drawer");
-    expect(drawerPanel?.getAttribute("data-yulora-surface")).toBe("floating-drawer");
+    expect(overlay?.getAttribute("data-fishmark-overlay-style")).toBe("floating-drawer");
+    expect(drawerPanel?.getAttribute("data-fishmark-surface")).toBe("floating-drawer");
   });
 
   it("anchors the rail to the viewport so the settings trigger stays visible", () => {
@@ -3747,12 +3748,14 @@ describe("App autosave", () => {
 
   it("defines a compact floating outline panel with a fixed header and glass styling", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
     const appSource = readFileSync(join(process.cwd(), "src/renderer/editor/App.tsx"), "utf-8");
 
-    expect(appUiStylesheet).toContain("--yulora-outline-column-width: 0px;");
-    expect(appUiStylesheet).toContain("grid-template-columns: minmax(0, 1fr) var(--yulora-outline-column-width);");
+    expect(appUiStylesheet).toContain("--fishmark-outline-column-width: 0px;");
+    expect(appUiStylesheet).toContain("grid-template-columns: minmax(0, 1fr) var(--fishmark-outline-column-width);");
     expect(appUiStylesheet).toContain("transition:");
-    expect(appUiStylesheet).toContain("grid-template-columns 220ms cubic-bezier(0.2, 0.85, 0.2, 1)");
+    expect(appUiStylesheet).toContain("grid-template-columns 220ms var(--fishmark-ease-standard)");
+    expect(baseStylesheet).toContain("--fishmark-ease-standard: cubic-bezier(0.2, 0.85, 0.2, 1);");
     expect(appUiStylesheet).toContain(".outline-entry");
     expect(appUiStylesheet).toContain(".outline-panel");
     expect(appUiStylesheet).toContain(".outline-panel-body");
@@ -3773,10 +3776,10 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
     expect(appUiStylesheet).toContain(
-      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
     );
     expect(appUiStylesheet).toContain(
-      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] .workspace-shell {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
     );
   });
 
@@ -3792,7 +3795,7 @@ describe("App autosave", () => {
   it("uses Times New Roman as the default ui font family", () => {
     const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
 
-    expect(baseStylesheet).toContain('font-family: var(--yulora-ui-font-family, "Times New Roman")');
+    expect(baseStylesheet).toContain('font-family: var(--fishmark-ui-font-family, "Times New Roman")');
   });
 
   it("locks shell scrolling to the editor surface", () => {
@@ -3805,11 +3808,11 @@ describe("App autosave", () => {
 
     expect(shellRule).toContain("overflow: hidden;");
     expect(shellRule).toContain("display: grid;");
-    expect(shellRule).toContain("grid-template-rows: var(--yulora-titlebar-height) minmax(0, 1fr);");
+    expect(shellRule).toContain("grid-template-rows: var(--fishmark-titlebar-height) minmax(0, 1fr);");
     expect(layoutRule).toContain("grid-row: 2;");
     expect(workspaceRule).toContain("height: 100%;");
     expect(workspaceRule).toContain("overflow: hidden;");
-    expect(titlebarRule).toContain("min-height: var(--yulora-titlebar-height);");
+    expect(titlebarRule).toContain("min-height: var(--fishmark-titlebar-height);");
     expect(appUiStylesheet).toContain(".workspace-canvas");
     expect(appUiStylesheet).toContain("overflow: hidden;");
     expect(appUiStylesheet).toContain(".document-editor");
@@ -3841,14 +3844,14 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const readingCanvasRule = getCssRule(
       appUiStylesheet,
-      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"]'
     );
     const readingShellRule = getCssRule(
       appUiStylesheet,
-      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell'
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] .workspace-shell'
     );
 
-    expect(readingCanvasRule).not.toContain("width: min(100%, var(--yulora-workspace-max-width));");
+    expect(readingCanvasRule).not.toContain("width: min(100%, var(--fishmark-workspace-max-width));");
     expect(readingCanvasRule).not.toContain("margin: 0 auto;");
     expect(readingShellRule).not.toContain("max-width: min(100%, 960px);");
     expect(readingShellRule).not.toContain("margin: 0 auto;");
@@ -3867,15 +3870,15 @@ describe("App autosave", () => {
   it("keeps the integrated rain glass status strip in normal workspace flow", () => {
     const rainGlassUiStylesheet = readFileSync(rainGlassUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
-    expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"].app-workspace');
+    expect(rainGlassUiStylesheet).toContain('[data-fishmark-layout="workspace"].app-workspace');
     expect(rainGlassUiStylesheet).toContain("grid-template-rows: auto minmax(0, 1fr) auto;");
-    expect(rainGlassUiStylesheet).toContain("padding: var(--yulora-space-4) var(--yulora-space-5);");
-    expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar');
+    expect(rainGlassUiStylesheet).toContain("padding: var(--fishmark-space-4) var(--fishmark-space-5);");
+    expect(rainGlassUiStylesheet).toContain('[data-fishmark-layout="workspace"] .app-status-bar');
     expect(rainGlassUiStylesheet).toContain("position: static;");
     expect(rainGlassUiStylesheet).toContain("background: transparent;");
-    expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"]');
+    expect(rainGlassUiStylesheet).toContain('[data-fishmark-layout="workspace"] .app-status-bar [data-fishmark-region="status-strip"]');
     expect(rainGlassUiStylesheet).not.toContain("border-top: 1px solid");
-    expect(rainGlassUiStylesheet).toContain('[data-yulora-layout="workspace"] .app-status-bar [data-yulora-region="status-strip"] {\n  min-height: var(--yulora-status-bar-height);\n  padding-top: var(--yulora-space-2);\n  background: transparent;');
+    expect(rainGlassUiStylesheet).toContain('[data-fishmark-layout="workspace"] .app-status-bar [data-fishmark-region="status-strip"] {\n  min-height: var(--fishmark-status-bar-height);\n  padding-top: var(--fishmark-space-2);\n  background: transparent;');
   });
 
   it("removes border framing from the editor shell and bottom status bar", () => {
@@ -3886,10 +3889,10 @@ describe("App autosave", () => {
       appUiStylesheet.match(/\.app-status-bar \{\s+position: fixed;[\s\S]*?\n\}/m)?.[0] ?? "";
     const statusStripRule =
       appUiStylesheet.match(
-        /\.app-status-bar \[data-yulora-region="status-strip"\] \{\s+width: 100%;[\s\S]*?\n\}/m
+        /\.app-status-bar \[data-fishmark-region="status-strip"\] \{\s+width: 100%;[\s\S]*?\n\}/m
       )?.[0] ?? "";
 
-    expect(documentEditorRule).toContain("background: var(--yulora-editor-bg, transparent);");
+    expect(documentEditorRule).toContain("background: var(--fishmark-editor-bg, transparent);");
     expect(documentEditorRule).not.toContain("border:");
     expect(documentEditorRule).not.toContain("box-shadow:");
     expect(appStatusBarRule).not.toContain("border:");
@@ -3904,7 +3907,7 @@ describe("App autosave", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
     const activeParagraphRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-active-paragraph");
 
-    expect(activeParagraphRule).toContain("color: var(--yulora-editor-fg, var(--yulora-markdown-body, #31353d));");
+    expect(activeParagraphRule).toContain("color: var(--fishmark-editor-fg, var(--fishmark-markdown-body, #31353d));");
     expect(activeParagraphRule).not.toContain("background:");
     expect(activeParagraphRule).not.toContain("box-shadow:");
   });
@@ -3913,7 +3916,7 @@ describe("App autosave", () => {
     const settingsStylesheet = readFileSync(settingsStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
     expect(settingsStylesheet).toContain(
-      "background: color-mix(in srgb, var(--yulora-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);"
+      "background: color-mix(in srgb, var(--fishmark-scrim, rgba(15, 18, 24, 0.12)) 72%, transparent);"
     );
     expect(settingsStylesheet).toContain("backdrop-filter: blur(28px) saturate(1.12);");
     expect(settingsStylesheet).toContain(".settings-shell::before");
@@ -3921,16 +3924,16 @@ describe("App autosave", () => {
     expect(settingsStylesheet).toContain("@keyframes settings-drawer-exit");
     expect(settingsStylesheet).toContain("@keyframes settings-overlay-exit");
     expect(settingsStylesheet).toContain(
-      "background: var(--yulora-panel-bg, rgba(255, 255, 255, 0.92));"
+      "background: var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92));"
     );
     expect(settingsStylesheet).toContain(
-      "background: color-mix(\n    in srgb,\n    var(--yulora-panel-bg, rgba(255, 255, 255, 0.92)) 92%,"
+      "background: color-mix(\n    in srgb,\n    var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 92%,"
     );
     expect(settingsStylesheet).toContain(
-      "border: 1px solid var(--yulora-panel-border, rgba(15, 23, 42, 0.12));"
+      "border: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));"
     );
     expect(settingsStylesheet).toContain(
-      "background: color-mix(\n    in srgb,\n    var(--yulora-panel-bg, rgba(255, 255, 255, 0.92)) 92%,"
+      "background: color-mix(\n    in srgb,\n    var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 92%,"
     );
   });
 
@@ -3940,10 +3943,10 @@ describe("App autosave", () => {
     expect(primitivesStylesheet).toContain(".settings-select option");
     expect(primitivesStylesheet).toContain(".settings-select optgroup");
     expect(primitivesStylesheet).toContain(
-      "background-color: color-mix(in srgb, var(--yulora-panel-bg) 94%, transparent);"
+      "background-color: color-mix(in srgb, var(--fishmark-panel-bg) 94%, transparent);"
     );
-    expect(primitivesStylesheet).toContain("color: var(--yulora-text-secondary);");
-    expect(primitivesStylesheet).toContain("color: var(--yulora-text-muted);");
+    expect(primitivesStylesheet).toContain("color: var(--fishmark-text-secondary);");
+    expect(primitivesStylesheet).toContain("color: var(--fishmark-text-muted);");
   });
 
   it("routes welcome card copy and the rail settings button through theme-specific ui tokens", () => {
@@ -3956,18 +3959,18 @@ describe("App autosave", () => {
     const settingsEntryRule = getCssRule(primitivesStylesheet, ".settings-entry");
     const settingsEntryHoverRule = getCssRule(primitivesStylesheet, ".settings-entry:hover");
 
-    expect(welcomeHeadingRule).toContain("color: var(--yulora-welcome-heading, var(--yulora-text-primary, #171a1f));");
-    expect(welcomeKickerRule).toContain("color: var(--yulora-welcome-kicker, var(--yulora-text-muted, #687180));");
-    expect(welcomeCopyRule).toContain("color: var(--yulora-welcome-copy, var(--yulora-text-muted, #687180));");
-    expect(welcomeMetaRule).toContain("border: 1px solid var(--yulora-welcome-meta-border, var(--yulora-panel-border, rgba(15, 23, 42, 0.12)));");
-    expect(welcomeMetaRule).toContain("background: var(--yulora-welcome-meta-bg, transparent);");
-    expect(welcomeMetaRule).toContain("color: var(--yulora-welcome-meta-text, var(--yulora-text-muted, #687180));");
-    expect(settingsEntryRule).toContain("border: 1px solid var(--yulora-rail-control-border, var(--yulora-control-border));");
-    expect(settingsEntryRule).toContain("background: var(--yulora-rail-control-bg, var(--yulora-control-bg));");
-    expect(settingsEntryRule).toContain("color: var(--yulora-rail-control-fg, var(--yulora-control-fg));");
-    expect(settingsEntryHoverRule).toContain("--yulora-rail-control-border-hover");
-    expect(settingsEntryHoverRule).toContain("background: var(--yulora-rail-control-bg-hover, var(--yulora-control-bg-hover));");
-    expect(settingsEntryHoverRule).toContain("color: var(--yulora-rail-control-fg-hover, var(--yulora-text-primary));");
+    expect(welcomeHeadingRule).toContain("color: var(--fishmark-welcome-heading, var(--fishmark-text-primary, #171a1f));");
+    expect(welcomeKickerRule).toContain("color: var(--fishmark-welcome-kicker, var(--fishmark-text-muted, #687180));");
+    expect(welcomeCopyRule).toContain("color: var(--fishmark-welcome-copy, var(--fishmark-text-muted, #687180));");
+    expect(welcomeMetaRule).toContain("border: 1px solid var(--fishmark-welcome-meta-border, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)));");
+    expect(welcomeMetaRule).toContain("background: var(--fishmark-welcome-meta-bg, transparent);");
+    expect(welcomeMetaRule).toContain("color: var(--fishmark-welcome-meta-text, var(--fishmark-text-muted, #687180));");
+    expect(settingsEntryRule).toContain("border: 1px solid var(--fishmark-rail-control-border, var(--fishmark-control-border));");
+    expect(settingsEntryRule).toContain("background: var(--fishmark-rail-control-bg, var(--fishmark-control-bg));");
+    expect(settingsEntryRule).toContain("color: var(--fishmark-rail-control-fg, var(--fishmark-control-fg));");
+    expect(settingsEntryHoverRule).toContain("--fishmark-rail-control-border-hover");
+    expect(settingsEntryHoverRule).toContain("background: var(--fishmark-rail-control-bg-hover, var(--fishmark-control-bg-hover));");
+    expect(settingsEntryHoverRule).toContain("color: var(--fishmark-rail-control-fg-hover, var(--fishmark-text-primary));");
   });
 
   it("defines welcome card and rail button ui tokens for bundled and fixture themes", () => {
@@ -3977,7 +3980,7 @@ describe("App autosave", () => {
     const emberAscendUiStylesheet = readFileSync(emberAscendUiStylesheetPath, "utf-8");
     const pearlDarkRule = getCssRule(
       pearlDriftUiStylesheet,
-      ':root[data-yulora-theme-mode="dark"]'
+      ':root[data-fishmark-theme-mode="dark"]'
     );
 
     for (const stylesheet of [
@@ -3986,18 +3989,18 @@ describe("App autosave", () => {
       pearlDriftUiStylesheet,
       emberAscendUiStylesheet
     ]) {
-      expect(stylesheet).toContain("--yulora-welcome-heading:");
-      expect(stylesheet).toContain("--yulora-welcome-copy:");
-      expect(stylesheet).toContain("--yulora-welcome-meta-border:");
-      expect(stylesheet).toContain("--yulora-rail-control-bg:");
-      expect(stylesheet).toContain("--yulora-rail-control-bg-hover:");
-      expect(stylesheet).toContain("--yulora-rail-control-border:");
-      expect(stylesheet).toContain("--yulora-rail-control-fg:");
+      expect(stylesheet).toContain("--fishmark-welcome-heading:");
+      expect(stylesheet).toContain("--fishmark-welcome-copy:");
+      expect(stylesheet).toContain("--fishmark-welcome-meta-border:");
+      expect(stylesheet).toContain("--fishmark-rail-control-bg:");
+      expect(stylesheet).toContain("--fishmark-rail-control-bg-hover:");
+      expect(stylesheet).toContain("--fishmark-rail-control-border:");
+      expect(stylesheet).toContain("--fishmark-rail-control-fg:");
     }
 
-    expect(pearlDarkRule).toContain("--yulora-welcome-heading:");
-    expect(pearlDarkRule).toContain("--yulora-rail-control-bg:");
-    expect(pearlDarkRule).toContain("--yulora-rail-control-fg:");
+    expect(pearlDarkRule).toContain("--fishmark-welcome-heading:");
+    expect(pearlDarkRule).toContain("--fishmark-rail-control-bg:");
+    expect(pearlDarkRule).toContain("--fishmark-rail-control-fg:");
   });
 
   it("keeps rain glass list and quote overrides aligned with the shared markdown structure tokens", () => {
@@ -4008,26 +4011,26 @@ describe("App autosave", () => {
     const rainGlassRootRule = getCssRule(rainGlassMarkdownStylesheet, ":root");
     const rainGlassUnorderedListMarkerRule = getCssRule(
       rainGlassMarkdownStylesheet,
-      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before'
+      '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before'
     );
     const rainGlassBlockquoteRule = getCssRule(
       rainGlassMarkdownStylesheet,
-      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-blockquote'
+      '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-blockquote'
     );
 
-    expect(rainGlassRootRule).toContain("--yulora-list-marker-size:");
-    expect(rainGlassRootRule).toContain("--yulora-list-ordered-marker-width:");
-    expect(rainGlassRootRule).toContain("--yulora-task-size:");
-    expect(rainGlassRootRule).toContain("--yulora-blockquote-bg:");
+    expect(rainGlassRootRule).toContain("--fishmark-list-marker-size:");
+    expect(rainGlassRootRule).toContain("--fishmark-list-ordered-marker-width:");
+    expect(rainGlassRootRule).toContain("--fishmark-task-size:");
+    expect(rainGlassRootRule).toContain("--fishmark-blockquote-bg:");
     expect(rainGlassMarkdownStylesheet).not.toContain(
-      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-marker {'
+      '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-list-marker {'
     );
     expect(rainGlassMarkdownStylesheet).toContain(
-      '[data-yulora-region="workspace-canvas"] .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {'
+      '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {'
     );
-    expect(rainGlassUnorderedListMarkerRule).toContain("background: var(--yulora-list-marker);");
-    expect(rainGlassBlockquoteRule).toContain("background: var(--yulora-blockquote-bg);");
-    expect(rainGlassBlockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);");
+    expect(rainGlassUnorderedListMarkerRule).toContain("background: var(--fishmark-list-marker);");
+    expect(rainGlassBlockquoteRule).toContain("background: var(--fishmark-blockquote-bg);");
+    expect(rainGlassBlockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--fishmark-blockquote-border);");
   });
 
   it("defines formal semantic text, control, editor, and markdown slots for bundled dark fixture themes", () => {
@@ -4036,14 +4039,14 @@ describe("App autosave", () => {
     const emberAscendDarkTokens = readFileSync(emberAscendDarkTokensPath, "utf-8");
 
     for (const stylesheet of [pearlDriftLightTokens, pearlDriftDarkTokens, emberAscendDarkTokens]) {
-      expect(stylesheet).toContain("--yulora-text-primary:");
-      expect(stylesheet).toContain("--yulora-text-secondary:");
-      expect(stylesheet).toContain("--yulora-control-bg:");
-      expect(stylesheet).toContain("--yulora-control-border:");
-      expect(stylesheet).toContain("--yulora-editor-fg:");
-      expect(stylesheet).toContain("--yulora-markdown-body:");
-      expect(stylesheet).toContain("--yulora-markdown-heading:");
-      expect(stylesheet).toContain("--yulora-markdown-strong:");
+      expect(stylesheet).toContain("--fishmark-text-primary:");
+      expect(stylesheet).toContain("--fishmark-text-secondary:");
+      expect(stylesheet).toContain("--fishmark-control-bg:");
+      expect(stylesheet).toContain("--fishmark-control-border:");
+      expect(stylesheet).toContain("--fishmark-editor-fg:");
+      expect(stylesheet).toContain("--fishmark-markdown-body:");
+      expect(stylesheet).toContain("--fishmark-markdown-heading:");
+      expect(stylesheet).toContain("--fishmark-markdown-strong:");
     }
   });
 
@@ -4051,21 +4054,21 @@ describe("App autosave", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
 
-    expect(lightMarkdownRule).toContain("--yulora-inline-code-bg: var(--yulora-markdown-inline-code-bg);");
-    expect(lightMarkdownRule).toContain("--yulora-list-marker: var(--yulora-markdown-list-bullet);");
-    expect(lightMarkdownRule).toContain("--yulora-code-block-bg: var(--yulora-markdown-code-bg);");
-    expect(lightMarkdownRule).toContain("--yulora-code-block-text: var(--yulora-markdown-code-fg);");
+    expect(lightMarkdownRule).toContain("--fishmark-inline-code-bg: var(--fishmark-markdown-inline-code-bg);");
+    expect(lightMarkdownRule).toContain("--fishmark-list-marker: var(--fishmark-markdown-list-bullet);");
+    expect(lightMarkdownRule).toContain("--fishmark-code-block-bg: var(--fishmark-markdown-code-bg);");
+    expect(lightMarkdownRule).toContain("--fishmark-code-block-text: var(--fishmark-markdown-code-fg);");
   });
 
   it("defines table theming tokens in the default markdown theme stylesheet", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
 
-    expect(lightMarkdownRule).toContain("--yulora-table-bg:");
-    expect(lightMarkdownRule).toContain("--yulora-table-border-color:");
-    expect(lightMarkdownRule).toContain("--yulora-table-cell-active-bg:");
-    expect(lightMarkdownRule).toContain("--yulora-table-cell-min-height:");
-    expect(lightMarkdownRule).toContain("--yulora-table-header-font-weight:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-bg:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-border-color:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-cell-active-bg:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-cell-min-height:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-header-font-weight:");
   });
 
   it("keeps bundled community theme fixtures on contract version 2 so they stay discoverable", () => {
@@ -4084,12 +4087,12 @@ describe("App autosave", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
 
-    expect(lightMarkdownRule).toContain("--yulora-list-marker-size:");
-    expect(lightMarkdownRule).toContain("--yulora-list-ordered-marker-width:");
-    expect(lightMarkdownRule).toContain("--yulora-task-size:");
-    expect(lightMarkdownRule).toContain("--yulora-task-radius:");
-    expect(lightMarkdownRule).toContain("--yulora-blockquote-bg:");
-    expect(lightMarkdownRule).toContain("--yulora-blockquote-border:");
+    expect(lightMarkdownRule).toContain("--fishmark-list-marker-size:");
+    expect(lightMarkdownRule).toContain("--fishmark-list-ordered-marker-width:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-size:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-radius:");
+    expect(lightMarkdownRule).toContain("--fishmark-blockquote-bg:");
+    expect(lightMarkdownRule).toContain("--fishmark-blockquote-border:");
   });
 
   it("renders markdown lists and quotes with explicit markers instead of solid blocks", () => {
@@ -4107,16 +4110,16 @@ describe("App autosave", () => {
     const blockquoteRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote");
 
     expect(listMarkerRule).not.toContain("background:");
-    expect(unorderedListMarkerRule).toContain("width: var(--yulora-list-marker-size);");
-    expect(unorderedListMarkerRule).toContain("height: var(--yulora-list-marker-size);");
-    expect(unorderedListMarkerRule).toContain("background: var(--yulora-list-marker);");
-    expect(orderedListMarkerRule).toContain("min-width: var(--yulora-list-ordered-marker-width);");
+    expect(unorderedListMarkerRule).toContain("width: var(--fishmark-list-marker-size);");
+    expect(unorderedListMarkerRule).toContain("height: var(--fishmark-list-marker-size);");
+    expect(unorderedListMarkerRule).toContain("background: var(--fishmark-list-marker);");
+    expect(orderedListMarkerRule).toContain("min-width: var(--fishmark-list-ordered-marker-width);");
     expect(orderedListMarkerRule).toContain("font-variant-numeric: tabular-nums;");
-    expect(taskMarkerRule).toContain("width: var(--yulora-task-size);");
-    expect(taskMarkerRule).toContain("height: var(--yulora-task-size);");
-    expect(taskMarkerRule).toContain("border-radius: var(--yulora-task-radius);");
-    expect(blockquoteRule).toContain("background: var(--yulora-blockquote-bg);");
-    expect(blockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--yulora-blockquote-border);");
+    expect(taskMarkerRule).toContain("width: var(--fishmark-task-size);");
+    expect(taskMarkerRule).toContain("height: var(--fishmark-task-size);");
+    expect(taskMarkerRule).toContain("border-radius: var(--fishmark-task-radius);");
+    expect(blockquoteRule).toContain("background: var(--fishmark-blockquote-bg);");
+    expect(blockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--fishmark-blockquote-border);");
   });
 
   it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
@@ -4132,12 +4135,12 @@ describe("App autosave", () => {
   it("renders table widgets through theme variables instead of hard-coded visual constants", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
 
-    expect(markdownRenderStylesheet).toContain("margin: var(--yulora-table-margin-top) 0 var(--yulora-table-margin-bottom);");
-    expect(markdownRenderStylesheet).toContain("background: var(--yulora-table-bg);");
-    expect(markdownRenderStylesheet).toContain("border-radius: var(--yulora-table-radius);");
-    expect(markdownRenderStylesheet).toContain("background: var(--yulora-table-cell-active-bg);");
-    expect(markdownRenderStylesheet).toContain("min-height: var(--yulora-table-cell-min-height);");
-    expect(markdownRenderStylesheet).toContain("font-weight: var(--yulora-table-header-font-weight);");
+    expect(markdownRenderStylesheet).toContain("margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
+    expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-bg);");
+    expect(markdownRenderStylesheet).toContain("border-radius: var(--fishmark-table-radius);");
+    expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-cell-active-bg);");
+    expect(markdownRenderStylesheet).toContain("min-height: var(--fishmark-table-cell-min-height);");
+    expect(markdownRenderStylesheet).toContain("font-weight: var(--fishmark-table-header-font-weight);");
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {
@@ -4154,7 +4157,7 @@ describe("App autosave", () => {
       });
     });
 
-    expect(window.yulora.completeEditorTestCommand).toHaveBeenCalledWith({
+    expect(window.fishmark.completeEditorTestCommand).toHaveBeenCalledWith({
       sessionId: "editor-session-1",
       commandId: "command-1",
       result: {
@@ -4169,7 +4172,7 @@ describe("App autosave", () => {
 
   it("falls back to builtin default theme when selected package is missing", async () => {
     const packageThemes: ThemePackageDescriptor[] = [
-      makeManifestThemePackage({ id: "default", name: "Yulora Default", source: "builtin" }),
+      makeManifestThemePackage({ id: "default", name: "FishMark Default", source: "builtin" }),
       makeManifestThemePackage({ id: "rain-glass", name: "Rain Glass" })
     ];
 
@@ -4189,9 +4192,9 @@ describe("App autosave", () => {
 
     expect(
       document.head
-        .querySelector('link[data-yulora-theme-part="tokens"]')
+        .querySelector('link[data-fishmark-theme-part="tokens"]')
         ?.getAttribute("href")
-    ).toBe(createPreviewAssetUrl("/tmp/yulora/themes/default/tokens-dark.css"));
+    ).toBe(createPreviewAssetUrl("/tmp/fishmark/themes/default/tokens-dark.css"));
   });
 
   async function renderAndOpenDocument(options: RenderEditorAppOptions = {}): Promise<void> {

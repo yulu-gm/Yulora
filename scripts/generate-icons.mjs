@@ -10,11 +10,11 @@ const ICO_SIZES = new Set([32, 64, 128, 256]);
 const VARIANTS = [
   {
     name: "light",
-    source: "assets/branding/yulora_logo_light.svg"
+    source: "assets/branding/fishmark_logo_light.svg"
   },
   {
     name: "dark",
-    source: "assets/branding/yulora_logo_dark.svg"
+    source: "assets/branding/fishmark_logo_dark.svg"
   }
 ];
 

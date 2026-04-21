@@ -18,7 +18,7 @@ import {
   type ActiveBlockState,
   type ShortcutGroup,
   type ShortcutGroupId
-} from "@yulora/editor-core";
+} from "@fishmark/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
 import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
 import type { ThemePackageManifest, ThemeSurfaceSlot } from "../../shared/theme-package";
@@ -82,17 +82,17 @@ const SettingsView = lazy(async () => {
 });
 
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
-type ThemePackageEntry = Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>[number];
+type ThemePackageEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
 
 const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
 const DARK_MODE_MEDIA_QUERY = "(prefers-color-scheme: dark)";
-const THEME_ATTRIBUTE = "data-yulora-theme";
-const UI_FONT_FAMILY_CSS_VAR = "--yulora-ui-font-family";
-const UI_FONT_SIZE_CSS_VAR = "--yulora-ui-font-size";
-const DOCUMENT_FONT_FAMILY_CSS_VAR = "--yulora-document-font-family";
-const DOCUMENT_CJK_FONT_FAMILY_CSS_VAR = "--yulora-document-cjk-font-family";
-const DOCUMENT_FONT_SIZE_CSS_VAR = "--yulora-document-font-size";
-const THEME_DYNAMIC_MODE_ATTRIBUTE = "data-yulora-theme-dynamic-mode";
+const THEME_ATTRIBUTE = "data-fishmark-theme";
+const UI_FONT_FAMILY_CSS_VAR = "--fishmark-ui-font-family";
+const UI_FONT_SIZE_CSS_VAR = "--fishmark-ui-font-size";
+const DOCUMENT_FONT_FAMILY_CSS_VAR = "--fishmark-document-font-family";
+const DOCUMENT_CJK_FONT_FAMILY_CSS_VAR = "--fishmark-document-cjk-font-family";
+const DOCUMENT_FONT_SIZE_CSS_VAR = "--fishmark-document-font-size";
+const THEME_DYNAMIC_MODE_ATTRIBUTE = "data-fishmark-theme-dynamic-mode";
 const OUTLINE_EXIT_ANIMATION_MS = 180;
 const SETTINGS_DRAWER_EXIT_ANIMATION_MS = 180;
 type TableToolTone = "default" | "danger";
@@ -210,7 +210,7 @@ function isMarkdownFilePath(targetPath: string): boolean {
 }
 
 function getDroppedMarkdownPath(
-  yulora: Window["yulora"],
+  fishmark: Window["fishmark"],
   dataTransfer: DataTransfer | null
 ): string | null {
   const file = dataTransfer?.files?.[0];
@@ -219,7 +219,7 @@ function getDroppedMarkdownPath(
     return null;
   }
 
-  const filePath = yulora.getPathForDroppedFile(file);
+  const filePath = fishmark.getPathForDroppedFile(file);
 
   if (typeof filePath !== "string" || !isMarkdownFilePath(filePath)) {
     return null;
@@ -368,11 +368,11 @@ function resolveThemeWarningMessage(
   resolution: ReturnType<typeof resolveActiveThemePackage>
 ): string | null {
   if (resolution.fallbackReason === "unsupported-mode") {
-    return `该主题不支持${resolution.resolvedMode === "light" ? "浅色" : "深色"}模式，已回退到 Yulora 默认。`;
+    return `该主题不支持${resolution.resolvedMode === "light" ? "浅色" : "深色"}模式，已回退到 FishMark 默认。`;
   }
 
   if (resolution.fallbackReason === "missing-theme") {
-    return "已配置主题未找到，已回退到 Yulora 默认。";
+    return "已配置主题未找到，已回退到 FishMark 默认。";
   }
 
   return null;
@@ -488,8 +488,8 @@ function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "clos
   return (
     <section
       className="settings-shell"
-      data-yulora-panel="settings-drawer"
-      data-yulora-surface="floating-drawer"
+      data-fishmark-panel="settings-drawer"
+      data-fishmark-surface="floating-drawer"
       data-state={surfaceState}
       role="dialog"
       aria-modal="true"
@@ -499,16 +499,16 @@ function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "clos
 }
 
 export default function EditorApp() {
-  const yulora = window.yulora;
+  const fishmark = window.fishmark;
 
-  if (!yulora) {
+  if (!fishmark) {
     return <BridgeUnavailableApp />;
   }
 
-  return <EditorShell yulora={yulora} />;
+  return <EditorShell fishmark={fishmark} />;
 }
 
-function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
+function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
   const [state, setState] = useState(createInitialAppState);
   const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
@@ -520,7 +520,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [fontFamilies, setFontFamilies] = useState<string[]>([]);
   const [themePackages, setThemePackages] = useState<
-    Awaited<ReturnType<Window["yulora"]["listThemePackages"]>>
+    Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>
   >([]);
   const [themePackageCatalogState, setThemePackageCatalogState] = useState<
     "loading" | "loaded" | "failed"
@@ -549,7 +549,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorContentRef = useRef("");
   const activeBlockStateRef = useRef<ActiveBlockState | null>(null);
-  const startupOpenPathRef = useRef(yulora.startupOpenPath);
+  const startupOpenPathRef = useRef(fishmark.startupOpenPath);
   const stateRef = useRef(state);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAutosaveReplayRef = useRef(false);
@@ -586,7 +586,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     state.openState === "opening"
       ? "Opening document..."
       : "Use File > Open... to load a Markdown document.";
-  const headerEyebrow = isDocumentOpen ? "Current document" : "Yulora";
+  const headerEyebrow = isDocumentOpen ? "Current document" : "FishMark";
   const headerTitle = isDocumentOpen
     ? state.currentDocument?.name ?? "Untitled"
     : "Local-first Markdown writing";
@@ -609,8 +609,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const appUpdateStatusLabel = appUpdateState.kind === "downloading"
     ? `正在下载更新${Number.isFinite(appUpdateState.percent) ? ` ${Math.round(appUpdateState.percent)}%` : "…"}`
     : null;
-  const appVersionLabel = `Yulora v${__YULORA_APP_VERSION__}`;
-  const controlledTitlebarEnabled = supportsControlledTitlebar(yulora.platform);
+  const appVersionLabel = `FishMark v${__FISHMARK_APP_VERSION__}`;
+  const controlledTitlebarEnabled = supportsControlledTitlebar(fishmark.platform);
   const resolvedThemeMode =
     preferences.theme.mode === "system" ? systemThemeMode : preferences.theme.mode;
   const themeRuntimeEnv = useMemo<ThemeRuntimeEnv>(
@@ -702,10 +702,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     ]
   );
   const titlebarLayout = useMemo(
-    () => normalizeTitlebarLayout(resolveDefaultTitlebarLayout(yulora.platform)),
-    [yulora.platform]
+    () => normalizeTitlebarLayout(resolveDefaultTitlebarLayout(fishmark.platform)),
+    [fishmark.platform]
   );
-  const shortcutHintModifierKey: "Control" | "Meta" = yulora.platform === "darwin" ? "Meta" : "Control";
+  const shortcutHintModifierKey: "Control" | "Meta" = fishmark.platform === "darwin" ? "Meta" : "Control";
   const activeShortcutGroup =
     activeShortcutGroupId === "table-editing"
       ? TABLE_EDITING_SHORTCUT_GROUP
@@ -1001,7 +1001,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     pendingAutosaveReplayRef.current = false;
     applyState((current) => startAutosavingDocument(current));
 
-    const result = await yulora.saveMarkdownFile({
+    const result = await fishmark.saveMarkdownFile({
       path: snapshot.currentDocument.path,
       content: getEditorContent()
     });
@@ -1047,7 +1047,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }
 
   async function runManualSave(
-    request: () => ReturnType<typeof window.yulora.saveMarkdownFile>
+    request: () => ReturnType<typeof window.fishmark.saveMarkdownFile>
   ): Promise<void> {
     const snapshot = stateRef.current;
 
@@ -1097,7 +1097,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     fontFamilyLoadStateRef.current = "loading";
 
     try {
-      const nextFontFamilies = await yulora.listFontFamilies();
+      const nextFontFamilies = await fishmark.listFontFamilies();
       fontFamilyLoadStateRef.current = "loaded";
       setFontFamilies(nextFontFamilies);
     } catch {
@@ -1110,18 +1110,18 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     setIsRefreshingThemePackages(true);
 
     try {
-      const nextThemePackages = await yulora.refreshThemePackages();
+      const nextThemePackages = await fishmark.refreshThemePackages();
       setThemePackages(nextThemePackages);
       setThemePackageCatalogState("loaded");
     } finally {
       setIsRefreshingThemePackages(false);
     }
-  }, [yulora]);
+  }, [fishmark]);
 
   async function handleUpdatePreferences(
     patch: PreferencesUpdate
-  ): Promise<Awaited<ReturnType<Window["yulora"]["updatePreferences"]>>> {
-    const result = await yulora.updatePreferences(patch);
+  ): Promise<Awaited<ReturnType<Window["fishmark"]["updatePreferences"]>>> {
+    const result = await fishmark.updatePreferences(patch);
     preferencesRef.current = result.preferences;
     setPreferences(result.preferences);
     scheduleAutosave(stateRef.current);
@@ -1191,7 +1191,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const handleOpenMarkdown = useEffectEvent(async (): Promise<void> => {
     applyState((current) => startOpeningMarkdownFile(current));
 
-    const result = await yulora.openMarkdownFile();
+    const result = await fishmark.openMarkdownFile();
 
     resetAutosaveRuntime();
 
@@ -1221,7 +1221,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   const handleOpenMarkdownFromPath = useEffectEvent(async (targetPath: string): Promise<void> => {
     applyState((current) => startOpeningMarkdownFile(current));
 
-    const result = await yulora.openMarkdownFileFromPath(targetPath);
+    const result = await fishmark.openMarkdownFileFromPath(targetPath);
 
     resetAutosaveRuntime();
 
@@ -1256,13 +1256,13 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     event.preventDefault();
     event.stopPropagation();
 
-    const targetPath = getDroppedMarkdownPath(yulora, event.dataTransfer);
+    const targetPath = getDroppedMarkdownPath(fishmark, event.dataTransfer);
 
     if (!targetPath) {
       return;
     }
 
-    void yulora
+    void fishmark
       .handleDroppedMarkdownFile({
         targetPath,
         hasOpenDocument: stateRef.current.currentDocument !== null
@@ -1297,7 +1297,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
     if (!currentPath) {
       await runManualSave(() =>
-        yulora.saveMarkdownFileAs({
+        fishmark.saveMarkdownFileAs({
           currentPath,
           content: getEditorContent()
         })
@@ -1306,7 +1306,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
 
     await runManualSave(() =>
-      yulora.saveMarkdownFile({
+      fishmark.saveMarkdownFile({
         path: currentPath,
         content: getEditorContent()
       })
@@ -1321,7 +1321,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
     }
 
     await runManualSave(() =>
-      yulora.saveMarkdownFileAs({
+      fishmark.saveMarkdownFileAs({
         currentPath: currentDocument.path,
         content: getEditorContent()
       })
@@ -1331,7 +1331,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   async function handleImportClipboardImage(
     input: { documentPath: string | null }
   ): Promise<string | null> {
-    const result = await yulora.importClipboardImage({
+    const result = await fishmark.importClipboardImage({
       documentPath: input.documentPath ?? ""
     });
 
@@ -1387,20 +1387,20 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       setEditorContentSnapshot: (content: string) => {
         editorContentRef.current = content;
       },
-      openMarkdownFileFromPath: (targetPath: string) => yulora.openMarkdownFileFromPath(targetPath),
-      saveMarkdownFile: (input) => yulora.saveMarkdownFile(input)
+      openMarkdownFileFromPath: (targetPath: string) => fishmark.openMarkdownFileFromPath(targetPath),
+      saveMarkdownFile: (input) => fishmark.saveMarkdownFile(input)
     });
 
     try {
       const result = await driver.run(payload.command);
-      await yulora.completeEditorTestCommand({
+      await fishmark.completeEditorTestCommand({
         sessionId: payload.sessionId,
         commandId: payload.commandId,
         result
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await yulora.completeEditorTestCommand({
+      await fishmark.completeEditorTestCommand({
         sessionId: payload.sessionId,
         commandId: payload.commandId,
         result: {
@@ -1412,7 +1412,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   });
 
   useEffect(() => {
-    return yulora.onMenuCommand((command) => {
+    return fishmark.onMenuCommand((command) => {
       if (command === "new-markdown-document") {
         handleNewMarkdown();
         return;
@@ -1432,18 +1432,18 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         void handleSaveMarkdownAs();
       }
     });
-  }, [yulora]);
+  }, [fishmark]);
 
   useEffect(() => {
-    return yulora.onEditorTestCommand((payload) => {
+    return fishmark.onEditorTestCommand((payload) => {
       void handleEditorTestCommand(payload);
     });
-  }, [yulora]);
+  }, [fishmark]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    void yulora
+    void fishmark
       .getPreferences()
       .then((nextPreferences) => {
         if (isCancelled) {
@@ -1456,7 +1456,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         // Keep defaults when the bridge is temporarily unavailable.
       });
 
-    void yulora
+    void fishmark
       .listThemePackages()
       .then((nextThemePackages) => {
         if (isCancelled) {
@@ -1475,7 +1475,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         setThemePackageCatalogState("failed");
       });
 
-    const detach = yulora.onPreferencesChanged((nextPreferences) => {
+    const detach = fishmark.onPreferencesChanged((nextPreferences) => {
       handlePreferencesSync(nextPreferences);
     });
 
@@ -1483,7 +1483,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       isCancelled = true;
       detach();
     };
-  }, [yulora]);
+  }, [fishmark]);
 
   useEffect(() => {
     if (!isSettingsOpen) {
@@ -1687,16 +1687,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   }, [activeThemeParameterOverrides, preferences, resolvedThemeMode, themePackages]);
 
   useEffect(() => {
-    return yulora.onAppUpdateState((nextState) => {
+    return fishmark.onAppUpdateState((nextState) => {
       setAppUpdateState(nextState);
     });
-  }, [yulora]);
+  }, [fishmark]);
 
   useEffect(() => {
-    return yulora.onAppNotification((nextNotification) => {
+    return fishmark.onAppNotification((nextNotification) => {
       showNotification(nextNotification);
     });
-  }, [showNotification, yulora]);
+  }, [showNotification, fishmark]);
 
   useEffect(() => {
     if (!themeWarningMessage) {
@@ -1842,16 +1842,16 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
   return (
     <main
       className="app-shell"
-      data-yulora-shell-mode={shellMode}
+      data-fishmark-shell-mode={shellMode}
       style={
         {
-          "--yulora-titlebar-height": controlledTitlebarEnabled ? `${titlebarLayout.height}px` : "0px"
+          "--fishmark-titlebar-height": controlledTitlebarEnabled ? `${titlebarLayout.height}px` : "0px"
         } as CSSProperties
       }
     >
       {controlledTitlebarEnabled ? (
         <TitlebarHost
-          platform={yulora.platform}
+          platform={fishmark.platform}
           layout={titlebarLayout}
           title={headerTitle}
           isDirty={state.isDirty}
@@ -1864,8 +1864,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
       ) : null}
       <div
         className="app-layout"
-        data-yulora-shell-mode={shellMode}
-        data-yulora-has-document={isDocumentOpen ? "true" : "false"}
+        data-fishmark-shell-mode={shellMode}
+        data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
       >
         {activeWorkbenchSurface ? (
           <ThemeSurfaceHost
@@ -1879,12 +1879,12 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
         ) : null}
         <aside
           className="app-rail"
-          data-yulora-layout="rail"
-          data-yulora-rail-mode={activeShortcutGroup.id}
+          data-fishmark-layout="rail"
+          data-fishmark-rail-mode={activeShortcutGroup.id}
           data-visibility={isDocumentOpen && isReadingMode ? "collapsed" : "visible"}
         >
           <div className="app-rail-brand">
-            <p className="app-name">Yulora</p>
+            <p className="app-name">FishMark</p>
             <p className="app-subtitle">Desktop editor</p>
           </div>
           <div className="app-rail-content">
@@ -1903,7 +1903,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
               data-state={activeShortcutGroup.id === "table-editing" ? "open" : "closing"}
               aria-hidden={activeShortcutGroup.id !== "table-editing"}
             >
-              <div className="table-tool-strip" data-yulora-region="table-tool-strip">
+              <div className="table-tool-strip" data-fishmark-region="table-tool-strip">
                 {tableToolActions.map((action) => {
                   const Icon = action.icon;
                   const isTooltipVisible = activeTableToolId === action.id;
@@ -1914,7 +1914,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                       type="button"
                       className="table-tool-button"
                       data-tone={action.tone}
-                      data-yulora-region="table-tool-button"
+                      data-fishmark-region="table-tool-button"
                       aria-label={action.label}
                       onClick={action.onClick}
                       onMouseEnter={() => setActiveTableToolId(action.id)}
@@ -1930,7 +1930,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                       {isTooltipVisible ? (
                         <span
                           className="table-tool-tooltip"
-                          data-yulora-region="table-tool-tooltip"
+                          data-fishmark-region="table-tool-tooltip"
                           role="tooltip"
                         >
                           {action.label}
@@ -1979,15 +1979,15 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
         <div
           className="app-workspace"
-          data-yulora-layout="workspace"
-          data-yulora-shell-mode={shellMode}
-          data-yulora-has-document={isDocumentOpen ? "true" : "false"}
+          data-fishmark-layout="workspace"
+          data-fishmark-shell-mode={shellMode}
+          data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
           onMouseDownCapture={handleAppWorkspaceMouseDownCapture}
         >
           {notification && notificationState !== "hidden" ? (
             <div
               className={`app-notification-banner is-${notification.kind}`}
-              data-yulora-region="app-notification-banner"
+              data-fishmark-region="app-notification-banner"
               data-state={notificationState}
               role="status"
               aria-live="polite"
@@ -1996,7 +1996,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                 {notification.kind === "loading" ? (
                   <span
                     className="app-notification-spinner"
-                    data-yulora-region="app-notification-spinner"
+                    data-fishmark-region="app-notification-spinner"
                     aria-hidden="true"
                   />
                 ) : null}
@@ -2006,7 +2006,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
           ) : null}
           <header
             className="app-header workspace-header"
-            data-yulora-region="workspace-header"
+            data-fishmark-region="workspace-header"
             data-visibility={isReadingMode ? "collapsed" : "visible"}
           >
             <div className="workspace-title-group">
@@ -2019,20 +2019,20 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
           <section
             className={`workspace-canvas ${state.currentDocument ? "is-editor-open" : ""}`}
-            data-yulora-region="workspace-canvas"
-            data-yulora-shell-mode={shellMode}
-            data-yulora-has-document={isDocumentOpen ? "true" : "false"}
+            data-fishmark-region="workspace-canvas"
+            data-fishmark-shell-mode={shellMode}
+            data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
           >
             {state.currentDocument ? (
               <>
                 <div
-                  data-yulora-region="shortcut-hint-overlay-shell"
+                  data-fishmark-region="shortcut-hint-overlay-shell"
                   className="shortcut-hint-overlay-shell"
                   data-shortcut-hint-state={isShortcutHintVisible ? "visible" : "hidden"}
                 >
                   <ShortcutHintOverlay
                     visible={isShortcutHintVisible}
-                    platform={yulora.platform}
+                    platform={fishmark.platform}
                     group={activeShortcutGroup}
                   />
                 </div>
@@ -2078,13 +2078,13 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                   {isOutlinePanelVisible ? (
                     <aside
                       className="outline-panel"
-                      data-yulora-region="outline-panel"
+                      data-fishmark-region="outline-panel"
                       data-state={isOutlineOpen ? "open" : "closing"}
                       aria-label="Document outline"
                     >
                       <div
                         className="outline-panel-header"
-                        data-yulora-region="outline-panel-header"
+                        data-fishmark-region="outline-panel-header"
                       >
                         <p className="outline-panel-title">Outline</p>
                         <button
@@ -2113,7 +2113,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                       </div>
                       <div
                         className="outline-panel-body"
-                        data-yulora-region="outline-panel-body"
+                        data-fishmark-region="outline-panel-body"
                       >
                         {outlineItems.length > 0 ? (
                           <ol className="outline-panel-list">
@@ -2143,7 +2143,7 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
                     <button
                       type="button"
                       className="outline-entry"
-                      data-yulora-region="outline-toggle"
+                      data-fishmark-region="outline-toggle"
                       aria-label="Expand outline"
                       onClick={openOutlinePanel}
                     >
@@ -2170,13 +2170,13 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
             ) : (
               <section
                 className="empty-workspace"
-                data-yulora-region="empty-state"
+                data-fishmark-region="empty-state"
               >
                 <div className="empty-inner">
                   <p className="empty-kicker">Ready</p>
                   <h1>Open a Markdown document from the File menu.</h1>
                   <p className="empty-copy">
-                    Yulora keeps Markdown text as the source of truth and writes it back without
+                    FishMark keeps Markdown text as the source of truth and writes it back without
                     reformatting the whole document.
                   </p>
                   <p className="empty-meta">Shortcut: Ctrl/Cmd+O</p>
@@ -2187,10 +2187,10 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
           <footer
             className="app-status-bar"
-            data-yulora-region="app-status-bar"
+            data-fishmark-region="app-status-bar"
             data-visibility={isReadingMode && isDocumentOpen ? "collapsed" : "visible"}
           >
-            <div data-yulora-region="status-strip">
+            <div data-fishmark-region="status-strip">
               {isDocumentOpen ? (
                 <>
                   {appUpdateStatusLabel ? (
@@ -2218,8 +2218,8 @@ function EditorShell({ yulora }: { yulora: Window["yulora"] }) {
 
       {isSettingsDrawerVisible ? (
         <div
-          data-yulora-dialog="settings-drawer"
-          data-yulora-overlay-style="floating-drawer"
+          data-fishmark-dialog="settings-drawer"
+          data-fishmark-overlay-style="floating-drawer"
           data-state={isSettingsOpen ? "open" : "closing"}
           onClick={closeSettingsDrawer}
         >
@@ -2251,14 +2251,14 @@ function BridgeUnavailableApp() {
   return (
     <main
       className="app-shell"
-      style={{ "--yulora-titlebar-height": "0px" } as CSSProperties}
+      style={{ "--fishmark-titlebar-height": "0px" } as CSSProperties}
     >
       <div className="app-shell-fallback">
         <p
           className="error-banner"
           role="alert"
         >
-          Yulora bridge unavailable. Reload the window or restart the dev shell.
+          FishMark bridge unavailable. Reload the window or restart the dev shell.
         </p>
       </div>
     </main>

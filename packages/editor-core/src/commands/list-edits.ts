@@ -1,4 +1,4 @@
-import { parseBlockMap, type ListBlock, type ListItemBlock } from "@yulora/markdown-engine";
+import { parseBlockMap, type ListBlock, type ListItemBlock } from "@fishmark/markdown-engine";
 
 import type { SemanticContext } from "./semantic-context";
 import { parseListLine } from "./line-parsers";

@@ -54,7 +54,7 @@ describe("writeRunArtifacts", () => {
   let root: string;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "yulora-cli-"));
+    root = mkdtempSync(join(tmpdir(), "fishmark-cli-"));
   });
 
   afterEach(() => {
