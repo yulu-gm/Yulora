@@ -2571,6 +2571,24 @@ describe("App autosave", () => {
     expect(appShell?.dataset.yuloraShellMode).toBe("reading");
   });
 
+  it("exits editing mode when the user clicks app-workspace blank area outside the canvas", async () => {
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const appWorkspace = container.querySelector<HTMLElement>(".app-workspace");
+
+    await clickEditorContent();
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("editing");
+
+    await act(async () => {
+      appWorkspace?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 24 }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.yuloraShellMode).toBe("reading");
+  });
+
   it("collapses the rail in document reading mode while keeping it available on the welcome screen", async () => {
     await renderAndOpenDocument();
 
@@ -3388,6 +3406,21 @@ describe("App autosave", () => {
     expect(collapsedStatusBarRule).toContain("transform:");
   });
 
+  it("removes collapsed reading-mode chrome from workspace flow so the canvas stays pinned to the top", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const collapsedReadingHeaderRule = getCssRule(
+      appUiStylesheet,
+      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] > .app-header[data-yulora-region="workspace-header"][data-visibility="collapsed"]'
+    );
+    const collapsedReadingStatusBarRule = getCssRule(
+      appUiStylesheet,
+      '.app-workspace[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] > .app-status-bar[data-yulora-region="app-status-bar"][data-visibility="collapsed"]'
+    );
+
+    expect(collapsedReadingHeaderRule).toContain("display: none;");
+    expect(collapsedReadingStatusBarRule).toContain("display: none;");
+  });
+
   it("defines compact icon rail tool styles and tooltip positioning", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const appSource = readFileSync(join(process.cwd(), "src/renderer/editor/App.tsx"), "utf-8");
@@ -3796,6 +3829,23 @@ describe("App autosave", () => {
     expect(appUiStylesheet).toContain("max-width: none;");
     expect(editorStylesheet).toContain(".document-editor .cm-content");
     expect(editorStylesheet).toContain("padding: 40px 48px 56px;");
+  });
+
+  it("keeps the reading-mode scroll surface full width so the scrollbar and outline stay pinned right", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const readingCanvasRule = getCssRule(
+      appUiStylesheet,
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+    );
+    const readingShellRule = getCssRule(
+      appUiStylesheet,
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell'
+    );
+
+    expect(readingCanvasRule).not.toContain("width: min(100%, var(--yulora-workspace-max-width));");
+    expect(readingCanvasRule).not.toContain("margin: 0 auto;");
+    expect(readingShellRule).not.toContain("max-width: min(100%, 960px);");
+    expect(readingShellRule).not.toContain("margin: 0 auto;");
   });
 
   it("styles theme surfaces as non-interactive workspace backgrounds", () => {
