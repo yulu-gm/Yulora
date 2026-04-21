@@ -3820,6 +3820,23 @@ describe("App autosave", () => {
     expect(editorStylesheet).toContain("padding: 40px 48px 56px;");
   });
 
+  it("keeps the reading-mode scroll surface full width so the scrollbar and outline stay pinned right", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const readingCanvasRule = getCssRule(
+      appUiStylesheet,
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"]'
+    );
+    const readingShellRule = getCssRule(
+      appUiStylesheet,
+      '.workspace-canvas[data-yulora-shell-mode="reading"][data-yulora-has-document="true"] .workspace-shell'
+    );
+
+    expect(readingCanvasRule).not.toContain("width: min(100%, var(--yulora-workspace-max-width));");
+    expect(readingCanvasRule).not.toContain("margin: 0 auto;");
+    expect(readingShellRule).not.toContain("max-width: min(100%, 960px);");
+    expect(readingShellRule).not.toContain("margin: 0 auto;");
+  });
+
   it("styles theme surfaces as non-interactive workspace backgrounds", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
 
