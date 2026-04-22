@@ -25,6 +25,10 @@ const flushMicrotasks = async () => {
   await Promise.resolve();
 };
 
+type TableCellEditorElement = HTMLElement & {
+  value: string;
+};
+
 describe("table editing in createCodeEditorController", () => {
   it("keeps edits made in an auto-materialized table after focus moves to another cell", async () => {
     const host = document.createElement("div");
@@ -53,11 +57,11 @@ describe("table editing in createCodeEditorController", () => {
     await flushMicrotasks();
     await flushMicrotasks();
 
-    const firstEditableCell = document.activeElement as HTMLInputElement | null;
-    const secondEditableCell = host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]');
+    const firstEditableCell = document.activeElement as TableCellEditorElement | null;
+    const secondEditableCell = host.querySelector<TableCellEditorElement>('[data-table-cell="1:1"]');
 
-    expect(firstEditableCell).toBeInstanceOf(HTMLInputElement);
-    expect(secondEditableCell).toBeInstanceOf(HTMLInputElement);
+    expect(firstEditableCell).toBeInstanceOf(HTMLElement);
+    expect(secondEditableCell).toBeInstanceOf(HTMLElement);
     expect(firstEditableCell?.getAttribute("data-table-cell")).toBe("1:0");
     expect(firstEditableCell?.value).toBe("");
     expect(secondEditableCell?.value).toBe("");
@@ -72,7 +76,7 @@ describe("table editing in createCodeEditorController", () => {
     await flushMicrotasks();
     await flushMicrotasks();
 
-    const refreshedFirstEditableCell = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
+    const refreshedFirstEditableCell = host.querySelector<TableCellEditorElement>('[data-table-cell="1:0"]');
 
     expect(onBlur).not.toHaveBeenCalled();
     expect(refreshedFirstEditableCell?.value).toBe("alpha");
