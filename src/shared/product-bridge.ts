@@ -32,17 +32,13 @@ import type {
   SyncWatchedMarkdownFileInput
 } from "./external-file-change";
 import type { ImportClipboardImageInput, ImportClipboardImageResult } from "./clipboard-image-import";
-import type { Preferences, PreferencesUpdate } from "./preferences";
+import type {
+  Preferences,
+  PreferencesUpdate,
+  UpdatePreferencesResult
+} from "./preferences";
 import type { OpenWorkspacePathRequest } from "./workspace";
-import type { ThemePackageManifest } from "./theme-package";
-
-type ThemePackageDescriptor = {
-  id: string;
-  kind: "manifest-package";
-  source: "builtin" | "community";
-  packageRoot: string;
-  manifest: ThemePackageManifest;
-};
+import type { ThemePackageDescriptor } from "./theme-package";
 
 export interface ProductBridge {
   platform: NodeJS.Platform;
@@ -74,7 +70,7 @@ export interface ProductBridge {
   onMenuCommand: (listener: (command: AppMenuCommand) => void) => () => void;
   onOpenWorkspacePath: (listener: (payload: OpenWorkspacePathRequest) => void) => () => void;
   getPreferences: () => Promise<Preferences>;
-  updatePreferences: (patch: PreferencesUpdate) => Promise<{ status: "success"; preferences: Preferences } | { status: "error"; error: { code: "write-failed" | "commit-failed"; message: string }; preferences: Preferences }>;
+  updatePreferences: (patch: PreferencesUpdate) => Promise<UpdatePreferencesResult>;
   onPreferencesChanged: (listener: (preferences: Preferences) => void) => () => void;
   onAppUpdateState: (listener: (state: AppUpdateState) => void) => () => void;
   onAppNotification: (listener: (notification: AppNotification) => void) => () => void;

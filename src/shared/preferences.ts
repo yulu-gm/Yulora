@@ -74,6 +74,19 @@ export type PreferencesUpdate = {
   theme?: Partial<ThemePreferences>;
 };
 
+export type UpdatePreferencesSuccess = {
+  status: "success";
+  preferences: Preferences;
+};
+
+export type UpdatePreferencesResult =
+  | UpdatePreferencesSuccess
+  | {
+      status: "error";
+      error: { code: "write-failed" | "commit-failed"; message: string };
+      preferences: Preferences;
+    };
+
 export const DEFAULT_PREFERENCES: Preferences = {
   version: PREFERENCES_SCHEMA_VERSION,
   autosave: {

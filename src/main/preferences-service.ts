@@ -2,12 +2,12 @@ import {
   DEFAULT_PREFERENCES,
   type Preferences,
   type PreferencesUpdate,
+  type UpdatePreferencesResult,
   mergePreferences
 } from "../shared/preferences";
 import {
   type LoadPreferencesResult,
   type PreferencesStoreDependencies,
-  type WritePreferencesResult,
   loadPreferencesFromDisk,
   resolvePreferencesFilePath,
   writePreferencesToDisk
@@ -28,15 +28,6 @@ export type PreferencesService = {
   ) => Promise<UpdatePreferencesResult>;
   onChange: (listener: PreferencesChangeListener) => () => void;
 };
-
-export type UpdatePreferencesSuccess = {
-  status: "success";
-  preferences: Preferences;
-};
-
-export type UpdatePreferencesResult =
-  | UpdatePreferencesSuccess
-  | (Extract<WritePreferencesResult, { status: "error" }> & { preferences: Preferences });
 
 export type CreatePreferencesServiceInput = {
   userDataDir: string;

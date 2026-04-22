@@ -1,349 +1,118 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import type { AppNotification, AppUpdateState } from "../shared/app-update";
+import type { EditorTestCommandEnvelope, EditorTestCommandResultEnvelope } from "../shared/editor-test-command";
+import type {
+  ExternalMarkdownFileChangedEvent,
+  SyncWatchedMarkdownFileInput
+} from "../shared/external-file-change";
+import { APP_MENU_COMMAND_EVENT, type AppMenuCommand } from "../shared/menu-command";
+import type {
+  Preferences,
+  PreferencesUpdate,
+  UpdatePreferencesResult
+} from "../shared/preferences";
 import type { ProductBridge } from "../shared/product-bridge";
+import type { SaveMarkdownFileAsInput, SaveMarkdownFileInput } from "../shared/save-markdown-file";
+import type {
+  RunnerEventEnvelope,
+  ScenarioRunTerminal
+} from "../shared/test-run-session";
 import type { TestBridge } from "../shared/test-bridge";
 import type {
-  SaveMarkdownFileAsInput,
-  SaveMarkdownFileInput
-} from "../shared/save-markdown-file";
-import type {
+  ActivateWorkspaceTabInput,
+  CloseWorkspaceTabInput,
+  CreateWorkspaceTabInput,
+  DetachWorkspaceTabToNewWindowInput,
+  MoveWorkspaceTabToWindowInput,
   OpenWorkspaceFileFromPathResult,
-  OpenWorkspaceFileResult
+  OpenWorkspaceFileResult,
+  OpenWorkspacePathRequest,
+  ReloadWorkspaceTabFromPathInput,
+  ReorderWorkspaceTabInput,
+  UpdateWorkspaceTabDraftInput,
+  WorkspaceMoveTabResult,
+  WorkspaceWindowSnapshot
 } from "../shared/workspace";
-// Preload runs inside Electron's sandboxed environment, so local module imports
-// can prevent the bridge from loading at all. Keep the contract self-contained here.
-const OPEN_MARKDOWN_FILE_CHANNEL = "fishmark:open-markdown-file";
-const OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL = "fishmark:open-markdown-file-from-path";
-const HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL = "fishmark:handle-dropped-markdown-file";
-const GET_WORKSPACE_SNAPSHOT_CHANNEL = "fishmark:get-workspace-snapshot";
-const CREATE_WORKSPACE_TAB_CHANNEL = "fishmark:create-workspace-tab";
-const OPEN_WORKSPACE_FILE_CHANNEL = "fishmark:open-workspace-file";
-const OPEN_WORKSPACE_FILE_FROM_PATH_CHANNEL = "fishmark:open-workspace-file-from-path";
-const ACTIVATE_WORKSPACE_TAB_CHANNEL = "fishmark:activate-workspace-tab";
-const CLOSE_WORKSPACE_TAB_CHANNEL = "fishmark:close-workspace-tab";
-const REORDER_WORKSPACE_TAB_CHANNEL = "fishmark:reorder-workspace-tab";
-const MOVE_WORKSPACE_TAB_TO_WINDOW_CHANNEL = "fishmark:move-workspace-tab-to-window";
-const DETACH_WORKSPACE_TAB_TO_NEW_WINDOW_CHANNEL = "fishmark:detach-workspace-tab-to-new-window";
-const UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL = "fishmark:update-workspace-tab-draft";
-const RELOAD_WORKSPACE_TAB_FROM_PATH_CHANNEL = "fishmark:reload-workspace-tab-from-path";
-const OPEN_WORKSPACE_PATH_EVENT = "fishmark:open-workspace-path";
-const SAVE_MARKDOWN_FILE_CHANNEL = "fishmark:save-markdown-file";
-const SAVE_MARKDOWN_FILE_AS_CHANNEL = "fishmark:save-markdown-file-as";
-const SYNC_WATCHED_MARKDOWN_FILE_CHANNEL = "fishmark:sync-watched-markdown-file";
-const IMPORT_CLIPBOARD_IMAGE_CHANNEL = "fishmark:import-clipboard-image";
+import type { HandleDroppedMarkdownFileInput } from "../shared/open-markdown-file";
+import type { ThemePackageDescriptor } from "../shared/theme-package";
+import {
+  HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
+  OPEN_MARKDOWN_FILE_CHANNEL,
+  OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL
+} from "../shared/open-markdown-file";
+
+export type {
+  EditorTestCommandEnvelope,
+  EditorTestCommandResultEnvelope,
+  EditorTestCommandEnvelope as PreloadEditorTestCommandEnvelope,
+  EditorTestCommandResultEnvelope as PreloadEditorTestCommandResultEnvelope
+} from "../shared/editor-test-command";
+export type {
+  Preferences as PreloadPreferences,
+  PreferencesUpdate as PreloadPreferencesUpdate,
+  UpdatePreferencesResult as PreloadUpdatePreferencesResult
+} from "../shared/preferences";
+export type {
+  ThemePackageDescriptor as PreloadThemePackageDescriptor
+} from "../shared/theme-package";
+export type {
+  ImportClipboardImageInput as PreloadImportClipboardImageInput,
+  ImportClipboardImageResult as PreloadImportClipboardImageResult
+} from "../shared/clipboard-image-import";
+export type {
+  ExternalMarkdownFileChangedEvent as PreloadExternalMarkdownFileChangedEvent,
+  SyncWatchedMarkdownFileInput as PreloadSyncWatchedMarkdownFileInput
+} from "../shared/external-file-change";
+
+import {
+  ACTIVATE_WORKSPACE_TAB_CHANNEL,
+  CLOSE_WORKSPACE_TAB_CHANNEL,
+  CREATE_WORKSPACE_TAB_CHANNEL,
+  DETACH_WORKSPACE_TAB_TO_NEW_WINDOW_CHANNEL,
+  GET_WORKSPACE_SNAPSHOT_CHANNEL,
+  OPEN_WORKSPACE_FILE_CHANNEL,
+  OPEN_WORKSPACE_FILE_FROM_PATH_CHANNEL,
+  OPEN_WORKSPACE_PATH_EVENT,
+  RELOAD_WORKSPACE_TAB_FROM_PATH_CHANNEL,
+  REORDER_WORKSPACE_TAB_CHANNEL,
+  UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL,
+  MOVE_WORKSPACE_TAB_TO_WINDOW_CHANNEL
+} from "../shared/workspace";
+import {
+  APP_NOTIFICATION_EVENT,
+  APP_UPDATE_STATE_EVENT,
+  CHECK_FOR_APP_UPDATES_CHANNEL
+} from "../shared/app-update";
+import {
+  COMPLETE_EDITOR_TEST_COMMAND_CHANNEL,
+  EDITOR_TEST_COMMAND_EVENT
+} from "../shared/editor-test-command";
+import {
+  EXTERNAL_MARKDOWN_FILE_CHANGED_EVENT,
+  SYNC_WATCHED_MARKDOWN_FILE_CHANNEL
+} from "../shared/external-file-change";
+import { GET_PREFERENCES_CHANNEL, PREFERENCES_CHANGED_EVENT, UPDATE_PREFERENCES_CHANNEL } from "../shared/preferences";
+import {
+  IMPORT_CLIPBOARD_IMAGE_CHANNEL,
+  type ImportClipboardImageInput,
+  type ImportClipboardImageResult
+} from "../shared/clipboard-image-import";
+import {
+  INTERRUPT_SCENARIO_RUN_CHANNEL,
+  SCENARIO_RUN_EVENT,
+  SCENARIO_RUN_TERMINAL_EVENT,
+  START_SCENARIO_RUN_CHANNEL
+} from "../shared/test-run-session";
+import { SAVE_MARKDOWN_FILE_AS_CHANNEL, SAVE_MARKDOWN_FILE_CHANNEL } from "../shared/save-markdown-file";
+// Preload runs inside Electron's sandboxed environment, so only preload-local
+// runtime helpers stay here. Contract shapes and IPC names come from shared modules.
 const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
-const START_SCENARIO_RUN_CHANNEL = "fishmark:start-scenario-run";
-const INTERRUPT_SCENARIO_RUN_CHANNEL = "fishmark:interrupt-scenario-run";
-const SCENARIO_RUN_EVENT = "fishmark:scenario-run-event";
-const SCENARIO_RUN_TERMINAL_EVENT = "fishmark:scenario-run-terminal";
-const EDITOR_TEST_COMMAND_EVENT = "fishmark:editor-test-command";
-const COMPLETE_EDITOR_TEST_COMMAND_CHANNEL = "fishmark:complete-editor-test-command";
-const APP_MENU_COMMAND_EVENT = "fishmark:app-menu-command";
-const GET_PREFERENCES_CHANNEL = "fishmark:get-preferences";
-const UPDATE_PREFERENCES_CHANNEL = "fishmark:update-preferences";
-const PREFERENCES_CHANGED_EVENT = "fishmark:preferences-changed";
 const LIST_FONT_FAMILIES_CHANNEL = "fishmark:list-font-families";
 const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
 const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
 const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
-const CHECK_FOR_APP_UPDATES_CHANNEL = "fishmark:check-for-app-updates";
-const APP_UPDATE_STATE_EVENT = "fishmark:app-update-state";
-const APP_NOTIFICATION_EVENT = "fishmark:app-notification";
-const EXTERNAL_MARKDOWN_FILE_CHANGED_EVENT = "fishmark:external-markdown-file-changed";
 const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
 const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--fishmark-startup-open-path=";
-
-type EditorTestCommand =
-  | { type: "wait-for-editor-ready" }
-  | { type: "open-fixture-file"; fixturePath: string }
-  | { type: "set-editor-content"; content: string }
-  | { type: "insert-editor-text"; text: string }
-  | { type: "set-editor-selection"; anchor: number; head?: number }
-  | { type: "press-editor-enter" }
-  | { type: "press-editor-backspace" }
-  | { type: "press-editor-tab"; shiftKey?: boolean }
-  | { type: "press-editor-arrow-up" }
-  | { type: "press-editor-arrow-down" }
-  | { type: "save-document" }
-  | { type: "assert-document-path"; expectedPath: string }
-  | { type: "assert-editor-content"; expectedContent: string }
-  | { type: "assert-editor-selection"; expectedAnchor: number; expectedHead?: number }
-  | { type: "assert-dirty-state"; expectedDirty: boolean }
-  | { type: "assert-empty-workspace" }
-  | { type: "close-editor-window" };
-
-type EditorTestCommandEnvelope = {
-  sessionId: string;
-  commandId: string;
-  command: EditorTestCommand;
-};
-
-type EditorTestCommandResultEnvelope = {
-  sessionId: string;
-  commandId: string;
-  result: {
-    ok: boolean;
-    message?: string;
-    details?: Record<string, unknown>;
-  };
-};
-
-export type { EditorTestCommandEnvelope, EditorTestCommandResultEnvelope };
-
-type AppMenuCommand =
-  | "new-markdown-document"
-  | "open-markdown-file"
-  | "new-editor-window"
-  | "save-markdown-file"
-  | "save-markdown-file-as"
-  | "check-for-updates";
-
-type ThemeMode = "system" | "light" | "dark";
-type ThemeEffectsMode = "auto" | "full" | "off";
-type ThemeParameterOverrides = Record<string, Record<string, number>>;
-type ThemeSurfaceSlot = "workbenchBackground" | "titlebarBackdrop" | "welcomeHero";
-type ThemeStylePart = "ui" | "editor" | "markdown" | "titlebar";
-type ThemeSurfaceRenderSettings = {
-  renderScale?: number;
-  frameRate?: number;
-};
-type ThemeSurfaceDescriptor = {
-  kind: "fragment";
-  scene: string;
-  shader: string;
-  channels?: Partial<Record<"0", { type: "image"; src: string }>>;
-  render?: ThemeSurfaceRenderSettings;
-};
-type ThemeParameterDescriptor =
-  | {
-      id: string;
-      label: string;
-      type: "slider";
-      min: number;
-      max: number;
-      step: number;
-      default: number;
-      uniform?: string;
-      description?: string;
-    }
-  | {
-      id: string;
-      label: string;
-      type: "toggle";
-      default: boolean;
-      uniform?: string;
-      description?: string;
-    };
-type ThemePackageManifest = {
-  id: string;
-  contractVersion: 2;
-  name: string;
-  version: string;
-  author: string | null;
-  supports: { light: boolean; dark: boolean };
-  tokens: Partial<Record<"light" | "dark", string>>;
-  styles: Partial<Record<ThemeStylePart, string>>;
-  layout: { titlebar: string | null };
-  scene: {
-    id: string;
-    sharedUniforms: Record<string, number>;
-    render?: ThemeSurfaceRenderSettings;
-  } | null;
-  surfaces: Partial<Record<ThemeSurfaceSlot, ThemeSurfaceDescriptor>>;
-  parameters: ThemeParameterDescriptor[];
-};
-
-type Preferences = {
-  version: 2;
-  autosave: { idleDelayMs: number };
-  recentFiles: { maxEntries: number };
-  ui: { fontFamily: string | null; fontSize: number | null };
-  document: { fontFamily: string | null; cjkFontFamily: string | null; fontSize: number | null };
-  theme: {
-    mode: ThemeMode;
-    selectedId: string | null;
-    effectsMode: ThemeEffectsMode;
-    parameters: ThemeParameterOverrides;
-  };
-};
-
-type PreferencesUpdate = {
-  autosave?: Partial<Preferences["autosave"]>;
-  recentFiles?: Partial<Preferences["recentFiles"]>;
-  ui?: Partial<Preferences["ui"]>;
-  document?: Partial<Preferences["document"]>;
-  theme?: Partial<Preferences["theme"]>;
-};
-
-type ThemePackageDescriptor = {
-  id: string;
-  kind: "manifest-package";
-  source: "builtin" | "community";
-  packageRoot: string;
-  manifest: ThemePackageManifest;
-};
-
-type AppUpdateState =
-  | { kind: "idle" }
-  | { kind: "checking" }
-  | { kind: "downloading"; version: string; percent: number }
-  | { kind: "downloaded"; version: string }
-  | { kind: "error"; message: string };
-
-type AppNotification = {
-  kind: "loading" | "info" | "success" | "warning" | "error";
-  message: string;
-};
-type ExternalMarkdownFileChangedEvent = {
-  path: string;
-  kind: "modified" | "deleted";
-};
-type WorkspaceTabSaveState = "idle" | "manual-saving" | "autosaving";
-type WorkspaceTabStripItem = {
-  tabId: string;
-  path: string | null;
-  name: string;
-  isDirty: boolean;
-  saveState: WorkspaceTabSaveState;
-};
-type WorkspaceDocumentSnapshot = {
-  tabId: string;
-  path: string | null;
-  name: string;
-  content: string;
-  encoding: "utf-8";
-  isDirty: boolean;
-  saveState: WorkspaceTabSaveState;
-};
-type WorkspaceWindowSnapshot = {
-  windowId: string;
-  activeTabId: string | null;
-  tabs: WorkspaceTabStripItem[];
-  activeDocument: WorkspaceDocumentSnapshot | null;
-};
-type CreateWorkspaceTabInput = {
-  kind: "untitled";
-};
-type ActivateWorkspaceTabInput = {
-  tabId: string;
-};
-type CloseWorkspaceTabInput = {
-  tabId: string;
-};
-type ReorderWorkspaceTabInput = {
-  tabId: string;
-  toIndex: number;
-};
-type MoveWorkspaceTabToWindowInput = {
-  tabId: string;
-  targetWindowId: string;
-  targetIndex?: number;
-};
-type DetachWorkspaceTabToNewWindowInput = {
-  tabId: string;
-};
-type UpdateWorkspaceTabDraftInput = {
-  tabId: string;
-  content: string;
-};
-type ReloadWorkspaceTabFromPathInput = {
-  tabId: string;
-  targetPath: string;
-};
-type WorkspaceMoveTabResult = {
-  sourceWindowSnapshot: WorkspaceWindowSnapshot;
-  targetWindowSnapshot: WorkspaceWindowSnapshot;
-};
-type OpenWorkspacePathRequest = {
-  targetPath: string;
-};
-type SyncWatchedMarkdownFileInput = {
-  tabId: string | null;
-};
-type ImportClipboardImageInput = {
-  documentPath: string;
-};
-
-type ImportClipboardImageResult =
-  | {
-      status: "success";
-      markdown: string;
-      relativePath: string;
-    }
-  | {
-      status: "error";
-      error: {
-        code:
-          | "document-path-required"
-          | "no-image"
-          | "image-too-large"
-          | "write-failed";
-        message: string;
-      };
-    };
-type UpdatePreferencesResult =
-  | { status: "success"; preferences: Preferences }
-  | {
-      status: "error";
-      error: { code: "write-failed" | "commit-failed"; message: string };
-      preferences: Preferences;
-    };
-
-export type {
-  Preferences as PreloadPreferences,
-  PreferencesUpdate as PreloadPreferencesUpdate,
-  ThemePackageDescriptor as PreloadThemePackageDescriptor,
-  AppNotification as PreloadAppNotification,
-  AppUpdateState as PreloadAppUpdateState,
-  UpdatePreferencesResult as PreloadUpdatePreferencesResult
-};
-export type {
-  ImportClipboardImageInput as PreloadImportClipboardImageInput,
-  ImportClipboardImageResult as PreloadImportClipboardImageResult
-};
-export type {
-  ExternalMarkdownFileChangedEvent as PreloadExternalMarkdownFileChangedEvent,
-  SyncWatchedMarkdownFileInput as PreloadSyncWatchedMarkdownFileInput
-};
-
-type ScenarioRunStatus = "idle" | "running" | "passed" | "failed" | "timed-out" | "interrupted";
-
-type ScenarioRunErrorInfo = {
-  message: string;
-  stack?: string;
-  kind?: "config" | "step" | "timeout" | "abort";
-};
-
-type RunnerEventEnvelope = {
-  runId: string;
-  event:
-    | { type: "scenario-start"; scenarioId: string; at: number }
-    | { type: "step-start"; scenarioId: string; stepId: string; at: number }
-    | {
-        type: "step-end";
-        scenarioId: string;
-        stepId: string;
-        status: "pending" | "running" | "passed" | "failed" | "timed-out" | "skipped";
-        at: number;
-        durationMs: number;
-        error?: ScenarioRunErrorInfo;
-      }
-    | {
-        type: "scenario-end";
-        scenarioId: string;
-        status: Exclude<ScenarioRunStatus, "idle">;
-        at: number;
-        error?: ScenarioRunErrorInfo & { stepId?: string };
-      };
-};
-
-type ScenarioRunTerminal = {
-  runId: string;
-  exitCode: number;
-  status: Exclude<ScenarioRunStatus, "idle">;
-  resultPath?: string;
-  stepTracePath?: string;
-  error?: ScenarioRunErrorInfo & { stepId?: string };
-};
 
 function resolveRuntimeModeFromArgv(argv: string[]): "editor" | "test-workbench" {
   const runtimeArgument = argv.find((entry) => entry.startsWith(RUNTIME_MODE_ARGUMENT_PREFIX));
@@ -374,7 +143,7 @@ const productApi: ProductBridge = {
   openMarkdownFile: () => ipcRenderer.invoke(OPEN_MARKDOWN_FILE_CHANNEL),
   openMarkdownFileFromPath: (targetPath: string) =>
     ipcRenderer.invoke(OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, { targetPath }),
-  handleDroppedMarkdownFile: (input: { targetPaths: string[]; hasOpenDocument: boolean }) =>
+  handleDroppedMarkdownFile: (input: HandleDroppedMarkdownFileInput) =>
     ipcRenderer.invoke(HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL, input),
   getWorkspaceSnapshot: (): Promise<WorkspaceWindowSnapshot> =>
     ipcRenderer.invoke(GET_WORKSPACE_SNAPSHOT_CHANNEL),

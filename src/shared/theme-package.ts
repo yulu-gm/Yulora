@@ -59,6 +59,14 @@ export type ThemePackageManifest = {
   parameters: ThemeParameterDescriptor[];
 };
 
+export type ThemePackageDescriptor = {
+  id: string;
+  kind: "manifest-package";
+  source: "builtin" | "community";
+  packageRoot: string;
+  manifest: ThemePackageManifest;
+};
+
 const THEME_MODES = ["light", "dark"] as const;
 const THEME_STYLE_PARTS = ["ui", "editor", "markdown", "titlebar"] as const;
 const THEME_SURFACE_SLOTS = ["workbenchBackground", "titlebarBackdrop", "welcomeHero"] as const;

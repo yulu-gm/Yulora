@@ -1,15 +1,11 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { normalizeThemePackageManifest, type ThemePackageManifest } from "../shared/theme-package";
-
-export type ThemePackageDescriptor = {
-  id: string;
-  kind: "manifest-package";
-  source: "builtin" | "community";
-  packageRoot: string;
-  manifest: ThemePackageManifest;
-};
+import {
+  normalizeThemePackageManifest,
+  type ThemePackageDescriptor,
+  type ThemePackageManifest
+} from "../shared/theme-package";
 
 type ThemePackageServiceDependencies = {
   readdir: (targetPath: string, options: { withFileTypes: true }) => Promise<
