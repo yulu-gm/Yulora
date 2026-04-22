@@ -128,8 +128,8 @@ export function createFishMarkMarkdownExtensions(
       previousTableCursor: runtime.activeBlockState.tableCursor
     }).activeBlockState;
 
-  const isTableCellInput = (element: Element | null): element is HTMLInputElement =>
-    element instanceof HTMLInputElement && element.classList.contains("cm-table-widget-input");
+  const isTableCellEditor = (element: Element | null): element is HTMLElement =>
+    element instanceof HTMLElement && element.classList.contains("cm-table-widget-input");
 
   const resolveFallbackPointerSelectionAnchor = (
     view: EditorView,
@@ -166,29 +166,75 @@ export function createFishMarkMarkdownExtensions(
     }
   };
 
-  const focusTableCellInput = (view: EditorView, target: TablePosition) => {
+  const focusTableCellEditor = (view: EditorView, target: TablePosition) => {
     queueMicrotask(() => {
-      const input = view.dom.querySelector<HTMLInputElement>(
+      const editor = view.dom.querySelector<HTMLElement>(
         `[data-table-cell="${target.row}:${target.column}"]`
       );
 
-      if (!input) {
+      if (!editor) {
         return;
       }
 
-      if (document.activeElement !== input) {
-        input.focus();
+      if (document.activeElement !== editor) {
+        editor.focus();
       }
 
+      const contentLength = readTableCellText(editor).length;
       const nextOffset = Math.max(
         0,
-        Math.min(target.offsetInCell ?? input.value.length, input.value.length)
+        Math.min(target.offsetInCell ?? contentLength, contentLength)
       );
-
-      if (typeof input.setSelectionRange === "function") {
-        input.setSelectionRange(nextOffset, nextOffset);
-      }
+      setTableCellSelection(editor, nextOffset);
     });
+  };
+
+  const readTableCellText = (editor: HTMLElement) => editor.textContent ?? "";
+
+  const setTableCellSelection = (editor: HTMLElement, offset: number) => {
+    const documentSelection = editor.ownerDocument.getSelection();
+
+    if (!documentSelection) {
+      return;
+    }
+
+    const contentLength = readTableCellText(editor).length;
+    const clampedOffset = Math.max(0, Math.min(offset, contentLength));
+    const { node, nodeOffset } = resolveTableCellSelectionTarget(editor, clampedOffset);
+    const range = editor.ownerDocument.createRange();
+
+    range.setStart(node, nodeOffset);
+    range.collapse(true);
+    documentSelection.removeAllRanges();
+    documentSelection.addRange(range);
+  };
+
+  const resolveTableCellSelectionTarget = (
+    editor: HTMLElement,
+    offset: number
+  ): { node: Node; nodeOffset: number } => {
+    const walker = editor.ownerDocument.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    let consumed = 0;
+    let currentNode = walker.nextNode();
+
+    while (currentNode) {
+      const textLength = currentNode.textContent?.length ?? 0;
+
+      if (consumed + textLength >= offset) {
+        return {
+          node: currentNode,
+          nodeOffset: offset - consumed
+        };
+      }
+
+      consumed += textLength;
+      currentNode = walker.nextNode();
+    }
+
+    return {
+      node: editor,
+      nodeOffset: editor.childNodes.length
+    };
   };
 
   const focusTableCellFromActiveState = (view: EditorView, activeState: ActiveBlockState) => {
@@ -198,7 +244,7 @@ export function createFishMarkMarkdownExtensions(
       return;
     }
 
-    focusTableCellInput(view, tableContext.position);
+    focusTableCellEditor(view, tableContext.position);
   };
 
   const selectTablePosition = (view: EditorView, position: TablePosition) =>
@@ -217,7 +263,7 @@ export function createFishMarkMarkdownExtensions(
     }
 
     if (nextActiveState.tableCursor?.mode === "inside") {
-      if (!options?.force && isTableCellInput(activeElement)) {
+      if (!options?.force && isTableCellEditor(activeElement)) {
         return;
       }
 
@@ -225,7 +271,7 @@ export function createFishMarkMarkdownExtensions(
       return;
     }
 
-    if (isTableCellInput(activeElement)) {
+    if (isTableCellEditor(activeElement)) {
       view.focus();
     }
   };
@@ -290,7 +336,7 @@ export function createFishMarkMarkdownExtensions(
           text
         )
       ) {
-        focusTableCellInput(tableInteractionView, position);
+        focusTableCellEditor(tableInteractionView, position);
       }
     },
     moveToNextCell(position) {
@@ -485,7 +531,7 @@ export function createFishMarkMarkdownExtensions(
       const activeElement = document.activeElement;
       const eventTarget = event.target instanceof Element ? event.target : null;
 
-      if (!isTableCellInput(activeElement)) {
+      if (!isTableCellEditor(activeElement)) {
         return;
       }
 

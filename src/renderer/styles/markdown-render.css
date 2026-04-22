@@ -365,8 +365,8 @@
 }
 
 .document-editor .cm-table-widget {
-  width: 100%;
   margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);
+  overflow-x: auto;
 }
 
 .document-editor .cm-inactive-thematic-break:has(+ .cm-table-widget) {
@@ -380,9 +380,10 @@
 
 .document-editor .cm-table-widget-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: auto;
   background: var(--fishmark-table-bg);
   border: var(--fishmark-table-border-width) solid var(--fishmark-table-border-color);
   border-radius: var(--fishmark-table-radius);
@@ -393,6 +394,8 @@
   padding: 0;
   border-right: var(--fishmark-table-cell-border-width) solid var(--fishmark-table-cell-border-color);
   border-bottom: var(--fishmark-table-cell-border-width) solid var(--fishmark-table-cell-border-color);
+  vertical-align: top;
+  background: var(--fishmark-table-cell-bg);
 }
 
 .document-editor .cm-table-widget-row:last-child .cm-table-widget-cell {
@@ -408,14 +411,17 @@
 }
 
 .document-editor .cm-table-widget-input {
-  width: 100%;
+  display: block;
+  min-width: 1ch;
   min-height: var(--fishmark-table-cell-min-height);
   padding: var(--fishmark-table-cell-padding-block) var(--fishmark-table-cell-padding-inline);
-  border: none;
-  background: var(--fishmark-table-cell-bg);
+  background: transparent;
   color: var(--fishmark-table-text);
   font: inherit;
   outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  caret-color: var(--fishmark-table-text);
 }
 
 .document-editor .cm-table-widget-row-header .cm-table-widget-input {

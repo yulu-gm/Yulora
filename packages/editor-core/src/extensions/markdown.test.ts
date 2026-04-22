@@ -187,8 +187,8 @@ describe("createFishMarkMarkdownExtensions", () => {
     const firstInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
     const secondInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]');
 
-    expect(firstInput).toBeInstanceOf(HTMLInputElement);
-    expect(secondInput).toBeInstanceOf(HTMLInputElement);
+    expect(firstInput).toBeInstanceOf(HTMLElement);
+    expect(secondInput).toBeInstanceOf(HTMLElement);
 
     firstInput?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     firstInput?.dispatchEvent(

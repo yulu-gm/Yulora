@@ -3510,6 +3510,43 @@ describe("App autosave", () => {
     );
   });
 
+  it("blurs lingering editor focus when opening another document from the file picker", async () => {
+    queueWorkspaceOpenDocuments(
+      {
+        path: "C:/notes/empty.md",
+        name: "empty.md",
+        content: ""
+      },
+      {
+        path: "C:/notes/test.md",
+        name: "test.md",
+        content: "# Test\n"
+      }
+    );
+
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
+
+    await act(async () => {
+      editorSurface?.focus();
+      await Promise.resolve();
+    });
+
+    expect(document.activeElement).toBe(editorSurface);
+
+    await act(async () => {
+      menuCommandListener?.("open-markdown-file");
+      await Promise.resolve();
+    });
+
+    expect(openWorkspaceFile).toHaveBeenCalledTimes(2);
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
+    expect(document.activeElement).not.toBe(editorSurface);
+    expect(document.activeElement?.getAttribute("data-testid")).not.toBe("mock-code-editor");
+  });
+
   it("enters editing mode when the user clicks into the editor body", async () => {
     await renderAndOpenDocument();
 
@@ -3520,6 +3557,30 @@ describe("App autosave", () => {
       editorSurface?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
       editorSurface?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
       editorSurface?.focus();
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
+  });
+
+  it("enters editing mode from content mousedown even when focus is already stuck on the editor", async () => {
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
+    const editorContent = editorSurface?.querySelector<HTMLElement>(".cm-content");
+
+    await act(async () => {
+      editorSurface?.focus();
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
+    expect(document.activeElement).toBe(editorSurface);
+
+    await act(async () => {
+      editorContent?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0, clientX: 300 }));
+      editorContent?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, clientX: 300 }));
       await Promise.resolve();
     });
 
@@ -5217,18 +5278,21 @@ describe("App autosave", () => {
 
   it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const codeBlockRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-code-block");
 
     expect(markdownRenderStylesheet).toContain(".document-editor .cm-inactive-code-block");
-    expect(markdownRenderStylesheet).toContain("white-space: pre-wrap !important;");
-    expect(markdownRenderStylesheet).toContain("overflow-x: hidden;");
+    expect(codeBlockRule).toContain("white-space: pre-wrap !important;");
+    expect(codeBlockRule).toContain("overflow-x: hidden;");
     expect(markdownRenderStylesheet).not.toContain("white-space: pre !important;");
-    expect(markdownRenderStylesheet).not.toContain("overflow-x: auto;");
+    expect(codeBlockRule).not.toContain("overflow-x: auto;");
   });
 
   it("renders table widgets through theme variables instead of hard-coded visual constants", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
 
     expect(markdownRenderStylesheet).toContain("margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
+    expect(markdownRenderStylesheet).toContain("overflow-x: auto;");
+    expect(markdownRenderStylesheet).toContain("table-layout: auto;");
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-bg);");
     expect(markdownRenderStylesheet).toContain("border-radius: var(--fishmark-table-radius);");
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-cell-active-bg);");

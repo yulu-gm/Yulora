@@ -378,6 +378,7 @@
 4. 再把焦点移入表格任意单元格。
 5. 再次按住 `Ctrl/Cmd` 1 秒，观察 shortcut hint 与左侧 rail。
 6. 直接用鼠标点击一个单元格，例如 `2` 所在单元格，并输入新文本把它改为 `20`。
+6A. 在任一单元格中输入或粘贴 `**A**`、`*B*`、`` `C` `` 这类行内格式内容，观察单元格内显示效果。
 7. 在另一个空白文档中只输入一行典型 pipe header，例如 `| a | b | c |`，然后在行尾按 `Enter`。
 8. 回到表格内继续使用 `Tab`、`Shift+Tab`、`ArrowUp`、`ArrowDown`、`ArrowLeft`、`ArrowRight`、`Enter`、`Ctrl/Cmd+Enter`。
 9. 使用 rail 中的表格图标 tools；分别 hover 或 focus 观察 tooltip 是否显示 `Row Above`、`Row Below`、`Column Left`、`Column Right`、`Delete Row`、`Delete Column`、`Delete Table`，并逐个触发对应动作，尤其验证插入空白列后表格仍保持渲染态。
@@ -388,8 +389,12 @@
 - 进入表格后，shortcut hint 切换为表格组，例如 `Next Cell`、`Previous Cell`、`Row Above`、`Row Below`、`Next Row / Exit`、`Insert Row Below`
 - 左侧 rail 中段切换为表格图标工具列，并带有非硬切的过渡
 - 直接点击单元格即可进入对应 cell 的编辑态，不需要先回到原始 Markdown 源码块
+- 非活动单元格里的 `**A**`、`*B*`、`` `C` `` 会按现有 inline 规则渲染；当前正在编辑的活动单元格继续显示原始 Markdown 文本，保证 caret 与输入稳定
+- `**`、`*`、`` ` `` 这类未闭合或不完整的 inline marker 在单元格里不会被错误扩成重复 marker 预览，而是按原始文本显示
+- 在空白或已有内容的单元格里通过输入法输入 `·`、中文或其他 composition 字符时，组合态期间不会提前触发整表 rewrite；`compositionend` 后会等待 post-composition `input`，若浏览器未补发再走 fallback 单次提交，焦点不退出表格
 - 在仅有 header 行的典型 pipe table 草稿上按 `Enter`，会自动补出 delimiter 行和一个空白 body 行，并把光标放到第一格空白单元格
 - 单元格输入会直接改写对应 Markdown 内容，并立即把整张表重排为 canonical 对齐格式
+- 表格列宽会根据当前单元格内容自然撑开，不再固定把整张表强行拉伸成等分列
 - `Tab` / `Shift+Tab` 在单元格之间移动，`ArrowUp` / `ArrowDown` 会在同列上下移动
 - `ArrowLeft` / `ArrowRight` 只会在 caret 到达单元格边界时跨到前后单元格；否则保留原生文本内移动
 - `Enter` 会跳到下一行同列；如果当前已经是最后一行，则退出表格并把焦点还给正文编辑区

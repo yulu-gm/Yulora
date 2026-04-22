@@ -9,6 +9,8 @@
   height: 100%;
   min-height: 0;
   overflow: auto;
+  /* Keep empty documents pinned to the top across shell-mode transitions. */
+  align-items: flex-start !important;
 }
 
 .document-editor .cm-content,
@@ -22,6 +24,7 @@
 
 .document-editor .cm-content {
   width: 100%;
+  min-height: 100%;
   box-sizing: border-box;
   padding: 40px clamp(64px, 12vw, 220px) 56px;
   caret-color: var(--fishmark-caret-color);

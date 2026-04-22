@@ -325,6 +325,16 @@ function isEditingContentPointerEvent(event: MouseEvent, editorContainer: HTMLEl
   return contentElement ? isPointerInsideRect(event, contentElement) : false;
 }
 
+export function isFocusedEditorInteractiveElement(editorContainer: HTMLElement | null): boolean {
+  const activeElement = document.activeElement;
+
+  if (!(activeElement instanceof Element) || !editorContainer?.contains(activeElement)) {
+    return false;
+  }
+
+  return Boolean(activeElement.closest(EDITOR_INTERACTIVE_TARGET_SELECTOR));
+}
+
 function supportsControlledTitlebar(platform: NodeJS.Platform): boolean {
   return platform === "darwin";
 }
@@ -608,6 +618,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shortcutHintHoldTimerRef = useRef<number | null>(null);
   const lastEditorPointerIntentRef = useRef<"editing" | "blank" | null>(null);
+  const pendingEditorOpenBlurTokenRef = useRef(0);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
   const lastThemeDynamicNotificationKeyRef = useRef<string | null>(null);
   const fontFamilyLoadStateRef = useRef<"idle" | "loading" | "loaded">("idle");
@@ -997,8 +1008,40 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
   }, []);
 
   const enterEditingMode = useCallback((): void => {
+    pendingEditorOpenBlurTokenRef.current += 1;
     setShellMode("editing");
   }, []);
+
+  const blurFocusedEditorElement = useCallback((): void => {
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && editorContainerRef.current?.contains(activeElement)) {
+      activeElement.blur();
+    }
+  }, []);
+
+  const cancelPendingEditorOpenBlur = useCallback((): void => {
+    pendingEditorOpenBlurTokenRef.current += 1;
+  }, []);
+
+  const blurFocusedEditorElementAfterOpen = useCallback((): void => {
+    const blurToken = pendingEditorOpenBlurTokenRef.current + 1;
+    pendingEditorOpenBlurTokenRef.current = blurToken;
+    blurFocusedEditorElement();
+    requestAnimationFrame(() => {
+      if (pendingEditorOpenBlurTokenRef.current !== blurToken) {
+        return;
+      }
+
+      blurFocusedEditorElement();
+      requestAnimationFrame(() => {
+        if (pendingEditorOpenBlurTokenRef.current !== blurToken) {
+          return;
+        }
+
+        blurFocusedEditorElement();
+      });
+    });
+  }, [blurFocusedEditorElement]);
 
   const enterReadingMode = useCallback((): void => {
     if (!getActiveDocument(stateRef.current) || isSettingsOpen || isSettingsClosing) {
@@ -1006,12 +1049,8 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
     }
 
     setShellMode("reading");
-
-    const activeElement = document.activeElement;
-    if (activeElement instanceof HTMLElement && editorContainerRef.current?.contains(activeElement)) {
-      activeElement.blur();
-    }
-  }, [isSettingsClosing, isSettingsOpen]);
+    blurFocusedEditorElement();
+  }, [blurFocusedEditorElement, isSettingsClosing, isSettingsOpen]);
 
   const handleAppWorkspaceMouseDownCapture = useCallback(
     (event: React.MouseEvent<HTMLElement>): void => {
@@ -1339,6 +1378,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
 
       applyWorkspaceWindowSnapshot(result, { clearExternalFileConflict: true });
       setShellMode("reading");
+      blurFocusedEditorElementAfterOpen();
     } catch (error) {
       applyState((current) => ({
         ...current,
@@ -1370,24 +1410,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
       const snapshot = await fishmark.openWorkspaceFileFromPath(targetPath);
       applyWorkspaceWindowSnapshot(snapshot, { clearExternalFileConflict: true });
       setShellMode("reading");
-      // Drag-drop on the editor container can leave the editor focused after
-      // the drop event resolves, even though we requested reading mode. Blur
-      // any lingering focus inside the editor on the next frames so the
-      // caret does not appear in reading mode.
-      const blurEditorIfFocused = (): void => {
-        const activeElement = document.activeElement;
-        if (
-          activeElement instanceof HTMLElement &&
-          editorContainerRef.current?.contains(activeElement)
-        ) {
-          activeElement.blur();
-        }
-      };
-      blurEditorIfFocused();
-      requestAnimationFrame(() => {
-        blurEditorIfFocused();
-        requestAnimationFrame(blurEditorIfFocused);
-      });
+      blurFocusedEditorElementAfterOpen();
     } catch (error) {
       applyState((current) => ({
         ...current,
@@ -1398,7 +1421,14 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
         message: error instanceof Error ? error.message : String(error)
       });
     }
-  }, [applyState, applyWorkspaceWindowSnapshot, fishmark, resetAutosaveRuntime, showNotification]);
+  }, [
+    applyState,
+    applyWorkspaceWindowSnapshot,
+    blurFocusedEditorElementAfterOpen,
+    fishmark,
+    resetAutosaveRuntime,
+    showNotification
+  ]);
 
   async function handleActivateWorkspaceTab(tabId: string): Promise<void> {
     if (stateRef.current.workspace.activeTabId === tabId) {
@@ -1918,10 +1948,15 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
         const isEditingContentClick = isEditingContentPointerEvent(event, editorContainer);
         lastEditorPointerIntentRef.current = isEditingContentClick ? "editing" : "blank";
 
-        if (!isEditingContentClick) {
-          event.preventDefault();
-          enterReadingMode();
+        if (isEditingContentClick) {
+          if (getActiveDocument(stateRef.current)) {
+            enterEditingMode();
+          }
+          return;
         }
+
+        event.preventDefault();
+        enterReadingMode();
       }
     };
 
@@ -1931,6 +1966,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
 
     const handleFocusIn = (event: FocusEvent) => {
       if (event.target instanceof Node && editorContainer.contains(event.target)) {
+        cancelPendingEditorOpenBlur();
         const pointerIntent = lastEditorPointerIntentRef.current;
         lastEditorPointerIntentRef.current = null;
         setIsEditorFocused(true);
@@ -1961,7 +1997,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
       editorContainer.removeEventListener("focusout", handleFocusOut);
       window.removeEventListener("mouseup", clearLastPointerIntent);
     };
-  }, [enterEditingMode, enterReadingMode, isDocumentOpen, state.editorLoadRevision]);
+  }, [cancelPendingEditorOpenBlur, enterEditingMode, enterReadingMode, isDocumentOpen, state.editorLoadRevision]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -2145,6 +2181,10 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
     }
 
     const frame = requestAnimationFrame(() => {
+      if (isFocusedEditorInteractiveElement(editorContainerRef.current)) {
+        return;
+      }
+
       editorRef.current?.focus();
     });
 

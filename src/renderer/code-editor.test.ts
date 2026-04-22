@@ -47,6 +47,26 @@ const flushMicrotasks = async () => {
   await Promise.resolve();
 };
 
+const setDomCaret = (editor: HTMLElement, offset: number) => {
+  const selection = editor.ownerDocument.getSelection();
+  const range = editor.ownerDocument.createRange();
+  const textNode = editor.firstChild;
+
+  if (!selection) {
+    return;
+  }
+
+  if (textNode?.nodeType === Node.TEXT_NODE) {
+    range.setStart(textNode, Math.max(0, Math.min(offset, textNode.textContent?.length ?? 0)));
+  } else {
+    range.setStart(editor, Math.max(0, Math.min(offset, editor.childNodes.length)));
+  }
+
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+};
+
 const createDomRect = (left: number, top: number, width: number, height: number): DOMRect =>
   ({
     top,
@@ -3052,6 +3072,164 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("renders inline preview styling inside table cells while preserving raw markdown text for editing", () => {
+    const host = document.createElement("div");
+    const source = [
+      "| bold | italic | code |",
+      "| --- | --- | --- |",
+      "| **A** | *B* | `C` |"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const boldInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
+    const italicInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]');
+    const codeInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:2"]');
+    const boldPreview = host.querySelector<HTMLElement>('[data-table-cell-preview="1:0"]');
+    const italicPreview = host.querySelector<HTMLElement>('[data-table-cell-preview="1:1"]');
+    const codePreview = host.querySelector<HTMLElement>('[data-table-cell-preview="1:2"]');
+
+    expect(boldInput?.value).toBe("**A**");
+    expect(italicInput?.value).toBe("*B*");
+    expect(codeInput?.value).toBe("`C`");
+
+    expect(boldPreview?.querySelector(".cm-inactive-inline-strong")?.textContent).toBe("A");
+    expect(boldPreview?.querySelectorAll(".cm-inactive-inline-marker")).toHaveLength(2);
+    expect(italicPreview?.querySelector(".cm-inactive-inline-emphasis")?.textContent).toBe("B");
+    expect(italicPreview?.querySelectorAll(".cm-inactive-inline-marker")).toHaveLength(2);
+    expect(codePreview?.querySelector(".cm-inactive-inline-code")?.textContent).toBe("C");
+    expect(codePreview?.querySelectorAll(".cm-inactive-inline-marker")).toHaveLength(2);
+
+    controller.destroy();
+  });
+
+  it("keeps the active table cell in raw text mode and falls back to plain text for incomplete inline markers", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "| bold | plain |",
+      "| --- | --- |",
+      "| **A** | done |"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const initialCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(initialCell?.querySelector(".cm-inactive-inline-strong")?.textContent).toBe("A");
+
+    initialCell?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    let activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(document.activeElement).toBe(activeCell);
+    expect(activeCell?.textContent).toBe("**A**");
+    expect(activeCell?.querySelector(".cm-inactive-inline-strong")).toBeNull();
+
+    const editableActiveCell = activeCell as HTMLElement & {
+      value: string;
+      selectionStart: number;
+      setSelectionRange: (start: number, end: number) => void;
+    };
+
+    editableActiveCell.value = "**";
+    editableActiveCell.setSelectionRange(2, 2);
+    activeCell?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(document.activeElement).toBe(activeCell);
+    expect(activeCell?.textContent).toBe("**");
+    expect(
+      (activeCell as HTMLElement & { selectionStart: number }).selectionStart
+    ).toBe(2);
+    expect(activeCell?.querySelector(".cm-inactive-inline-marker")).toBeNull();
+
+    const nextCell = host.querySelector<HTMLElement>('[data-table-cell="1:1"]');
+    nextCell?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    const inactiveCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(inactiveCell?.textContent).toBe("**");
+    expect(inactiveCell?.querySelector(".cm-inactive-inline-marker")).toBeNull();
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("waits for the post-composition input before rewriting a table cell and commits the composed text once", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = ["| name | qty |", "| --- | --- |", "|   | ok |"].join("\n");
+    const onChange = vi.fn();
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange
+    });
+
+    let activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(activeCell).toBeInstanceOf(HTMLElement);
+
+    activeCell?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+    expect(document.activeElement).toBe(activeCell);
+
+    dispatchCompositionEvent(activeCell as HTMLElement, "compositionstart", "·");
+    activeCell!.textContent = "·";
+    setDomCaret(activeCell as HTMLElement, 1);
+    activeCell?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flushMicrotasks();
+
+    expect(controller.getContent()).toBe(source);
+    expect(document.activeElement).toBe(activeCell);
+    expect(onChange).not.toHaveBeenCalled();
+
+    dispatchCompositionEvent(activeCell as HTMLElement, "compositionend", "·");
+    await flushMicrotasks();
+
+    expect(controller.getContent()).toBe(source);
+    expect(document.activeElement).toBe(activeCell);
+    expect(onChange).not.toHaveBeenCalled();
+
+    activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+    activeCell!.textContent = "·";
+    setDomCaret(activeCell as HTMLElement, 1);
+    activeCell?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flushMicrotasks();
+
+    activeCell = host.querySelector<HTMLElement>('[data-table-cell="1:0"]');
+
+    expect(controller.getContent()).toContain("·");
+    expect(controller.getContent().match(/·/g)).toHaveLength(1);
+    expect(host.querySelector(".cm-table-widget")).not.toBeNull();
+    expect(document.activeElement).toBe(activeCell);
+    expect((activeCell as HTMLElement & { selectionStart: number }).selectionStart).toBe(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
+
+    controller.destroy();
+    host.remove();
+  });
+
   it("renders loose headerless pipe rows as a table widget", () => {
     const host = document.createElement("div");
     const source = [
@@ -3121,7 +3299,7 @@ describe("createCodeEditorController", () => {
 
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
 
     input!.focus();
     input!.setSelectionRange(3, 3);
@@ -3167,6 +3345,7 @@ describe("createCodeEditorController", () => {
 
   it("allows clicking a table cell input and typing to update the cell", async () => {
     const host = document.createElement("div");
+    document.body.appendChild(host);
     const source = ["| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
 
     const controller = createCodeEditorController({
@@ -3177,10 +3356,11 @@ describe("createCodeEditorController", () => {
 
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
 
     input?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await flushMicrotasks();
+    expect(document.activeElement).toBe(input);
     input!.value = "pencil";
     input?.dispatchEvent(new Event("input", { bubbles: true }));
     await flushMicrotasks();
@@ -3190,6 +3370,7 @@ describe("createCodeEditorController", () => {
     );
 
     controller.destroy();
+    host.remove();
   });
 
   it("moves the active block into the table when a cell is clicked from another block", async () => {
@@ -3231,7 +3412,7 @@ describe("createCodeEditorController", () => {
 
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
 
     input?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await flushMicrotasks();
@@ -3260,8 +3441,8 @@ describe("createCodeEditorController", () => {
     const firstInput = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
     const secondInput = host.querySelector<HTMLInputElement>('[data-table-cell="2:1"]');
 
-    expect(firstInput).toBeInstanceOf(HTMLInputElement);
-    expect(secondInput).toBeInstanceOf(HTMLInputElement);
+    expect(firstInput).toBeInstanceOf(HTMLElement);
+    expect(secondInput).toBeInstanceOf(HTMLElement);
 
     firstInput?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await flushMicrotasks();
@@ -3298,7 +3479,7 @@ describe("createCodeEditorController", () => {
 
     const shiftedInput = host.querySelector<HTMLInputElement>('[data-table-cell="2:1"]');
 
-    expect(shiftedInput).toBeInstanceOf(HTMLInputElement);
+    expect(shiftedInput).toBeInstanceOf(HTMLElement);
 
     shiftedInput?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await flushMicrotasks();
@@ -3325,7 +3506,7 @@ describe("createCodeEditorController", () => {
 
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
 
     input?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await flushMicrotasks();
@@ -3608,7 +3789,7 @@ describe("createCodeEditorController", () => {
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
     const view = getEditorView(host);
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
     expect(view).not.toBeNull();
 
     input?.focus();
@@ -3663,7 +3844,7 @@ describe("createCodeEditorController", () => {
     const blankLine = getLastEditorLine(host);
     const view = getEditorView(host);
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
     expect(blankLine).not.toBeNull();
     expect(view).not.toBeNull();
 
@@ -3696,7 +3877,7 @@ describe("createCodeEditorController", () => {
     const content = host.querySelector<HTMLElement>(".cm-content");
     const view = getEditorView(host);
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
     expect(content).not.toBeNull();
     expect(view).not.toBeNull();
 
@@ -3731,7 +3912,7 @@ describe("createCodeEditorController", () => {
     const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
     const blankLine = getLastEditorLine(host);
 
-    expect(input).toBeInstanceOf(HTMLInputElement);
+    expect(input).toBeInstanceOf(HTMLElement);
     expect(blankLine).not.toBeNull();
 
     input?.focus();
@@ -3776,7 +3957,7 @@ describe("createCodeEditorController", () => {
     const blankLine = getLastEditorLine(host);
     const view = getEditorView(host);
 
-    expect(currentInput).toBeInstanceOf(HTMLInputElement);
+    expect(currentInput).toBeInstanceOf(HTMLElement);
     expect(blankLine).not.toBeNull();
     expect(view).not.toBeNull();
 
@@ -3970,7 +4151,7 @@ describe("createCodeEditorController", () => {
     const source = ["Paragraph", "", "| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
     const activeBlockTypes: Array<string | null> = [];
     const originalGetClientRects = Range.prototype.getClientRects;
-    const originalFocus = HTMLInputElement.prototype.focus;
+    const originalFocus = HTMLElement.prototype.focus;
 
     Range.prototype.getClientRects = function getClientRects() {
       return {
@@ -3980,9 +4161,14 @@ describe("createCodeEditorController", () => {
       } as unknown as DOMRectList;
     };
 
-    HTMLInputElement.prototype.focus = function focusPatched(this: HTMLInputElement) {
-      this.dispatchEvent(new FocusEvent("focus", { bubbles: false }));
-      this.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    HTMLElement.prototype.focus = function focusPatched(this: HTMLElement) {
+      if (this.classList.contains("cm-table-widget-input")) {
+        this.dispatchEvent(new FocusEvent("focus", { bubbles: false }));
+        this.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+        return;
+      }
+
+      originalFocus.call(this);
     };
 
     try {
@@ -4007,7 +4193,7 @@ describe("createCodeEditorController", () => {
       controller.destroy();
     } finally {
       Range.prototype.getClientRects = originalGetClientRects;
-      HTMLInputElement.prototype.focus = originalFocus;
+      HTMLElement.prototype.focus = originalFocus;
     }
   });
 
