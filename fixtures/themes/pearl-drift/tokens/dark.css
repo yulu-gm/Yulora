@@ -21,7 +21,7 @@
   --fishmark-text-subtle: #9491aa;
   --fishmark-text-secondary: #deddf5;
   --fishmark-app-bg: var(--fishmark-page-bg);
-  --fishmark-workspace-bg: var(--fishmark-surface-bg);
+  --fishmark-workspace-bg: color-mix(in srgb, var(--fishmark-surface-bg) 80%, transparent);
   --fishmark-rail-bg: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 84%, var(--fishmark-page-bg));
   --fishmark-panel-bg: color-mix(in srgb, var(--fishmark-glass-strong-bg) 82%, var(--fishmark-surface-raised-bg));
   --fishmark-panel-border: color-mix(in srgb, var(--fishmark-border-muted) 84%, rgba(170, 165, 240, 0.16));

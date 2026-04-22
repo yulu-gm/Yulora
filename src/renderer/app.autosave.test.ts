@@ -4220,6 +4220,22 @@ describe("App autosave", () => {
     }
   });
 
+  it("keeps ember-ascend and pearl-drift workspace backgrounds translucent so workbench shaders stay visible", () => {
+    const pearlDriftLightTokens = readFileSync(pearlDriftLightTokensPath, "utf-8");
+    const pearlDriftDarkTokens = readFileSync(pearlDriftDarkTokensPath, "utf-8");
+    const emberAscendDarkTokens = readFileSync(emberAscendDarkTokensPath, "utf-8");
+
+    for (const stylesheet of [pearlDriftLightTokens, pearlDriftDarkTokens, emberAscendDarkTokens]) {
+      const workspaceBackgroundMatch = stylesheet.match(
+        /--fishmark-workspace-bg:\s*([^;]+);/
+      );
+
+      expect(workspaceBackgroundMatch?.[1]).toBeDefined();
+      expect(workspaceBackgroundMatch?.[1]).toContain("transparent");
+      expect(workspaceBackgroundMatch?.[1]?.trim()).not.toBe("var(--fishmark-surface-bg)");
+    }
+  });
+
   it("routes the default light markdown palette through formal semantic slots", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
