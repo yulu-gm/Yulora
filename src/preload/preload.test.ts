@@ -16,12 +16,18 @@ vi.mock("electron", () => ({
   }
 }));
 
-async function loadApi() {
+async function loadApi(): Promise<{ api: Window["fishmark"]; testApi: Window["fishmarkTest"] }> {
   await import("./preload");
 
-  expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
+  expect(exposeInMainWorld).toHaveBeenCalledTimes(2);
   const [, api] = exposeInMainWorld.mock.calls[0] ?? [];
-  return api;
+  const [testBridgeName, testBridgeApi] = exposeInMainWorld.mock.calls[1] ?? [];
+
+  expect(testBridgeName).toBe("fishmarkTest");
+  return {
+    api: api as Window["fishmark"],
+    testApi: testBridgeApi as Window["fishmarkTest"]
+  };
 }
 
 describe("preload bridge", () => {
@@ -36,8 +42,8 @@ describe("preload bridge", () => {
   it("exposes task-030 scenario run controls for the workbench", async () => {
     await import("./preload");
 
-    expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
-    const [, api] = exposeInMainWorld.mock.calls[0] ?? [];
+    expect(exposeInMainWorld).toHaveBeenCalledTimes(2);
+    const [, api] = exposeInMainWorld.mock.calls[1] ?? [];
 
     expect(api).toMatchObject({
       startScenarioRun: expect.any(Function),
@@ -47,8 +53,24 @@ describe("preload bridge", () => {
     });
   });
 
+  it("keeps test bridge APIs off the product bridge and exposes the split bridge globally", async () => {
+    const { api, testApi } = await loadApi();
+
+    expect(api).not.toHaveProperty("startScenarioRun");
+    expect(api).not.toHaveProperty("onEditorTestCommand");
+    expect(testApi).toMatchObject({
+      openEditorTestWindow: expect.any(Function),
+      startScenarioRun: expect.any(Function),
+      interruptScenarioRun: expect.any(Function),
+      onScenarioRunEvent: expect.any(Function),
+      onScenarioRunTerminal: expect.any(Function),
+      onEditorTestCommand: expect.any(Function),
+      completeEditorTestCommand: expect.any(Function)
+    });
+  });
+
   it("wires theme package discovery and refresh IPC channels", async () => {
-    const api = await loadApi();
+    const { api } = await loadApi();
 
     expect(api).not.toHaveProperty("listThemes");
     expect(api).not.toHaveProperty("refreshThemes");
@@ -62,7 +84,7 @@ describe("preload bridge", () => {
   });
 
   it("exposes workspace bridge methods for Task-043 tab commands", async () => {
-    const api = await loadApi();
+    const { api } = await loadApi();
 
     expect(api).toMatchObject({
       getWorkspaceSnapshot: expect.any(Function),
@@ -118,7 +140,7 @@ describe("preload bridge", () => {
   });
 
   it("exposes an openThemesDirectory bridge for the native themes folder action", async () => {
-    const api = await loadApi();
+    const { api } = await loadApi();
 
     expect(api).toHaveProperty("openThemesDirectory");
     void api.openThemesDirectory();

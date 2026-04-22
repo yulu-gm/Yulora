@@ -7,13 +7,11 @@ export type SaveMarkdownDocument = OpenMarkdownDocument;
 export type SaveMarkdownFileInput = {
   tabId: string;
   path: string;
-  content: string;
 };
 
 export type SaveMarkdownFileAsInput = {
   tabId: string;
   currentPath: string | null;
-  content: string;
 };
 
 export type SaveMarkdownFileResult =

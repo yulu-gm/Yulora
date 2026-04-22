@@ -139,8 +139,8 @@ function getExternalFileConflictMessage(externalFileState: ExternalMarkdownFileS
 
 function isCancelledWorkspaceOpenResult(
   result: OpenWorkspaceFileResult
-): result is Extract<OpenWorkspaceFileResult, { status: "cancelled" }> {
-  return "status" in result && result.status === "cancelled";
+): result is Extract<OpenWorkspaceFileResult, { kind: "cancelled" }> {
+  return result.kind === "cancelled";
 }
 
 function RowAboveIcon(props: SVGProps<SVGSVGElement>) {
@@ -552,15 +552,27 @@ function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "clos
 
 export default function EditorApp() {
   const fishmark = window.fishmark;
+  const fishmarkTest = window.fishmarkTest;
 
-  if (!fishmark) {
+  if (!fishmark || !fishmarkTest) {
     return <BridgeUnavailableApp />;
   }
 
-  return <EditorShell fishmark={fishmark} />;
+  return (
+    <EditorShell
+      fishmark={fishmark}
+      fishmarkTest={fishmarkTest}
+    />
+  );
 }
 
-function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
+function EditorShell({
+  fishmark,
+  fishmarkTest
+}: {
+  fishmark: Window["fishmark"];
+  fishmarkTest: Window["fishmarkTest"];
+}) {
   const [state, setState] = useState(createInitialAppState);
   const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
@@ -1147,8 +1159,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
 
     const result = await fishmark.saveMarkdownFile({
       tabId: currentDocument.tabId,
-      path: currentDocument.path,
-      content: getEditorContent()
+      path: currentDocument.path
     });
 
     if (result.status === "error") {
@@ -1376,7 +1387,11 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
         return;
       }
 
-      applyWorkspaceWindowSnapshot(result, { clearExternalFileConflict: true });
+      if (result.kind === "error") {
+        throw new Error(result.error.message);
+      }
+
+      applyWorkspaceWindowSnapshot(result.snapshot, { clearExternalFileConflict: true });
       setShellMode("reading");
       blurFocusedEditorElementAfterOpen();
     } catch (error) {
@@ -1408,7 +1423,10 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
 
     try {
       const snapshot = await fishmark.openWorkspaceFileFromPath(targetPath);
-      applyWorkspaceWindowSnapshot(snapshot, { clearExternalFileConflict: true });
+      if (snapshot.kind === "error") {
+        throw new Error(snapshot.error.message);
+      }
+      applyWorkspaceWindowSnapshot(snapshot.snapshot, { clearExternalFileConflict: true });
       setShellMode("reading");
       blurFocusedEditorElementAfterOpen();
     } catch (error) {
@@ -1676,8 +1694,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
       await runManualSave(() =>
         fishmark.saveMarkdownFileAs({
           tabId: currentDocument.tabId,
-          currentPath,
-          content: getEditorContent()
+          currentPath
         })
       );
       return;
@@ -1686,8 +1703,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
     await runManualSave(() =>
       fishmark.saveMarkdownFile({
         tabId: currentDocument.tabId,
-        path: currentPath,
-        content: getEditorContent()
+        path: currentPath
       })
     );
   }
@@ -1702,8 +1718,7 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
     await runManualSave(() =>
       fishmark.saveMarkdownFileAs({
         tabId: currentDocument.tabId,
-        currentPath: currentDocument.path,
-        content: getEditorContent()
+        currentPath: currentDocument.path
       })
     );
   }
@@ -1773,14 +1788,14 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
 
     try {
       const result = await driver.run(payload.command);
-      await fishmark.completeEditorTestCommand({
+      await fishmarkTest.completeEditorTestCommand({
         sessionId: payload.sessionId,
         commandId: payload.commandId,
         result
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await fishmark.completeEditorTestCommand({
+      await fishmarkTest.completeEditorTestCommand({
         sessionId: payload.sessionId,
         commandId: payload.commandId,
         result: {
@@ -1804,10 +1819,10 @@ function EditorShell({ fishmark }: { fishmark: Window["fishmark"] }) {
   }, [fishmark, handleOpenMarkdownFromPath]);
 
   useEffect(() => {
-    return fishmark.onEditorTestCommand((payload) => {
+    return fishmarkTest.onEditorTestCommand((payload) => {
       void handleEditorTestCommand(payload);
     });
-  }, [fishmark]);
+  }, [fishmarkTest]);
 
   useEffect(() => {
     return fishmark.onExternalMarkdownFileChanged((event) => {

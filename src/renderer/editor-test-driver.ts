@@ -1,6 +1,6 @@
 import type { EditorTestCommand, EditorTestCommandResult } from "../shared/editor-test-command";
 import type { SaveMarkdownFileResult } from "../shared/save-markdown-file";
-import type { WorkspaceWindowSnapshot } from "../shared/workspace";
+import type { OpenWorkspaceFileFromPathResult } from "../shared/workspace";
 import {
   applyEditorContentChanged,
   applySaveMarkdownResult,
@@ -28,8 +28,8 @@ export function createEditorTestDriver(input: {
   resetAutosaveRuntime: () => void;
   editor: EditorHandle;
   setEditorContentSnapshot: (content: string) => void;
-  openWorkspaceFileFromPath: (targetPath: string) => Promise<WorkspaceWindowSnapshot>;
-  saveMarkdownFile: (args: { tabId: string; path: string; content: string }) => Promise<SaveMarkdownFileResult>;
+  openWorkspaceFileFromPath: (targetPath: string) => Promise<OpenWorkspaceFileFromPathResult>;
+  saveMarkdownFile: (args: { tabId: string; path: string }) => Promise<SaveMarkdownFileResult>;
 }) {
   type ActiveDocument = NonNullable<ReturnType<typeof getActiveDocument>>;
 
@@ -62,15 +62,20 @@ export function createEditorTestDriver(input: {
 
       if (command.type === "open-fixture-file") {
         const snapshot = await input.openWorkspaceFileFromPath(command.fixturePath);
+        if (snapshot.kind === "error") {
+          return fail(snapshot.error.message, {
+            path: command.fixturePath
+          });
+        }
         const activeDocument =
-          snapshot.activeDocument ??
+          snapshot.snapshot.activeDocument ??
           (() => {
             throw new Error(`Workspace snapshot for '${command.fixturePath}' is missing an active document.`);
           })();
 
         input.resetAutosaveRuntime();
         input.setEditorContentSnapshot(activeDocument.content);
-        input.applyState((current) => applyWorkspaceSnapshot(current, snapshot));
+        input.applyState((current) => applyWorkspaceSnapshot(current, snapshot.snapshot));
 
         return ok("Fixture file opened.", {
           path: activeDocument.path
@@ -185,8 +190,7 @@ export function createEditorTestDriver(input: {
         const content = input.editor.getContent();
         const result = await input.saveMarkdownFile({
           tabId: activeDocument.tabId,
-          path: activeDocument.path,
-          content
+          path: activeDocument.path
         });
         input.applyState((current) => applySaveMarkdownResult(current, result));
 

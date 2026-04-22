@@ -246,6 +246,36 @@ type WorkspaceMoveTabResult = {
 type OpenWorkspacePathRequest = {
   targetPath: string;
 };
+type SaveMarkdownFileInput = {
+  tabId: string;
+  path: string;
+};
+type SaveMarkdownFileAsInput = {
+  tabId: string;
+  currentPath: string | null;
+};
+type WorkspaceResultError = {
+  code: "dialog-failed" | "file-not-found" | "not-a-file" | "read-failed" | "non-utf8" | "unknown-window" | "unknown-tab";
+  message: string;
+};
+type WorkspaceCommandSuccess<TSnapshot> = {
+  kind: "success";
+  snapshot: TSnapshot;
+};
+type WorkspaceCommandCancelled = {
+  kind: "cancelled";
+};
+type WorkspaceCommandError = {
+  kind: "error";
+  error: WorkspaceResultError;
+};
+type OpenWorkspaceFileResult =
+  | WorkspaceCommandSuccess<WorkspaceWindowSnapshot>
+  | WorkspaceCommandCancelled
+  | WorkspaceCommandError;
+type OpenWorkspaceFileFromPathResult =
+  | WorkspaceCommandSuccess<WorkspaceWindowSnapshot>
+  | WorkspaceCommandError;
 type SyncWatchedMarkdownFileInput = {
   tabId: string | null;
 };
@@ -357,7 +387,7 @@ function resolveStartupOpenPathFromArgv(argv: string[]): string | null {
   }
 }
 
-const api = {
+const productApi = {
   platform: process.platform,
   runtimeMode: resolveRuntimeModeFromArgv(process.argv ?? []),
   startupOpenPath: resolveStartupOpenPathFromArgv(process.argv ?? []),
@@ -370,9 +400,9 @@ const api = {
     ipcRenderer.invoke(GET_WORKSPACE_SNAPSHOT_CHANNEL),
   createWorkspaceTab: (input: CreateWorkspaceTabInput): Promise<WorkspaceWindowSnapshot> =>
     ipcRenderer.invoke(CREATE_WORKSPACE_TAB_CHANNEL, input),
-  openWorkspaceFile: (): Promise<WorkspaceWindowSnapshot | { status: "cancelled" }> =>
+  openWorkspaceFile: (): Promise<OpenWorkspaceFileResult> =>
     ipcRenderer.invoke(OPEN_WORKSPACE_FILE_CHANNEL),
-  openWorkspaceFileFromPath: (targetPath: string): Promise<WorkspaceWindowSnapshot> =>
+  openWorkspaceFileFromPath: (targetPath: string): Promise<OpenWorkspaceFileFromPathResult> =>
     ipcRenderer.invoke(OPEN_WORKSPACE_FILE_FROM_PATH_CHANNEL, { targetPath }),
   reloadWorkspaceTabFromPath: (
     input: ReloadWorkspaceTabFromPathInput
@@ -391,54 +421,14 @@ const api = {
   updateWorkspaceTabDraft: (input: UpdateWorkspaceTabDraftInput): Promise<WorkspaceWindowSnapshot> =>
     ipcRenderer.invoke(UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL, input),
   getPathForDroppedFile: (file: File) => webUtils.getPathForFile(file),
-  saveMarkdownFile: (input: { tabId: string; path: string; content: string }) =>
+  saveMarkdownFile: (input: SaveMarkdownFileInput) =>
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_CHANNEL, input),
-  saveMarkdownFileAs: (input: { tabId: string; currentPath: string | null; content: string }) =>
+  saveMarkdownFileAs: (input: SaveMarkdownFileAsInput) =>
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_AS_CHANNEL, input),
   syncWatchedMarkdownFile: (input: SyncWatchedMarkdownFileInput): Promise<void> =>
     ipcRenderer.invoke(SYNC_WATCHED_MARKDOWN_FILE_CHANNEL, input),
   importClipboardImage: (input: ImportClipboardImageInput): Promise<ImportClipboardImageResult> =>
     ipcRenderer.invoke(IMPORT_CLIPBOARD_IMAGE_CHANNEL, input),
-  openEditorTestWindow: () => ipcRenderer.invoke(OPEN_EDITOR_TEST_WINDOW_CHANNEL),
-  startScenarioRun: (input: { scenarioId: string }) =>
-    ipcRenderer.invoke(START_SCENARIO_RUN_CHANNEL, input),
-  interruptScenarioRun: (input: { runId: string }) =>
-    ipcRenderer.invoke(INTERRUPT_SCENARIO_RUN_CHANNEL, input),
-  onScenarioRunEvent: (listener: (payload: RunnerEventEnvelope) => void) => {
-    const handleScenarioRunEvent = (_event: unknown, payload: RunnerEventEnvelope) => {
-      listener(payload);
-    };
-
-    ipcRenderer.on(SCENARIO_RUN_EVENT, handleScenarioRunEvent);
-
-    return () => {
-      ipcRenderer.off(SCENARIO_RUN_EVENT, handleScenarioRunEvent);
-    };
-  },
-  onScenarioRunTerminal: (listener: (payload: ScenarioRunTerminal) => void) => {
-    const handleScenarioRunTerminal = (_event: unknown, payload: ScenarioRunTerminal) => {
-      listener(payload);
-    };
-
-    ipcRenderer.on(SCENARIO_RUN_TERMINAL_EVENT, handleScenarioRunTerminal);
-
-    return () => {
-      ipcRenderer.off(SCENARIO_RUN_TERMINAL_EVENT, handleScenarioRunTerminal);
-    };
-  },
-  onEditorTestCommand: (listener: (payload: EditorTestCommandEnvelope) => void) => {
-    const handleEditorTestCommand = (_event: unknown, payload: EditorTestCommandEnvelope) => {
-      listener(payload);
-    };
-
-    ipcRenderer.on(EDITOR_TEST_COMMAND_EVENT, handleEditorTestCommand);
-
-    return () => {
-      ipcRenderer.off(EDITOR_TEST_COMMAND_EVENT, handleEditorTestCommand);
-    };
-  },
-  completeEditorTestCommand: (payload: EditorTestCommandResultEnvelope) =>
-    ipcRenderer.invoke(COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, payload),
   onMenuCommand: (listener: (command: AppMenuCommand) => void) => {
     const handleMenuCommand = (_event: unknown, command: AppMenuCommand) => {
       listener(command);
@@ -520,4 +510,48 @@ const api = {
   }
 };
 
-contextBridge.exposeInMainWorld("fishmark", api);
+const testApi = {
+  openEditorTestWindow: () => ipcRenderer.invoke(OPEN_EDITOR_TEST_WINDOW_CHANNEL),
+  startScenarioRun: (input: { scenarioId: string }) =>
+    ipcRenderer.invoke(START_SCENARIO_RUN_CHANNEL, input),
+  interruptScenarioRun: (input: { runId: string }) =>
+    ipcRenderer.invoke(INTERRUPT_SCENARIO_RUN_CHANNEL, input),
+  onScenarioRunEvent: (listener: (payload: RunnerEventEnvelope) => void) => {
+    const handleScenarioRunEvent = (_event: unknown, payload: RunnerEventEnvelope) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on(SCENARIO_RUN_EVENT, handleScenarioRunEvent);
+
+    return () => {
+      ipcRenderer.off(SCENARIO_RUN_EVENT, handleScenarioRunEvent);
+    };
+  },
+  onScenarioRunTerminal: (listener: (payload: ScenarioRunTerminal) => void) => {
+    const handleScenarioRunTerminal = (_event: unknown, payload: ScenarioRunTerminal) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on(SCENARIO_RUN_TERMINAL_EVENT, handleScenarioRunTerminal);
+
+    return () => {
+      ipcRenderer.off(SCENARIO_RUN_TERMINAL_EVENT, handleScenarioRunTerminal);
+    };
+  },
+  onEditorTestCommand: (listener: (payload: EditorTestCommandEnvelope) => void) => {
+    const handleEditorTestCommand = (_event: unknown, payload: EditorTestCommandEnvelope) => {
+      listener(payload);
+    };
+
+    ipcRenderer.on(EDITOR_TEST_COMMAND_EVENT, handleEditorTestCommand);
+
+    return () => {
+      ipcRenderer.off(EDITOR_TEST_COMMAND_EVENT, handleEditorTestCommand);
+    };
+  },
+  completeEditorTestCommand: (payload: EditorTestCommandResultEnvelope) =>
+    ipcRenderer.invoke(COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, payload)
+};
+
+contextBridge.exposeInMainWorld("fishmark", productApi);
+contextBridge.exposeInMainWorld("fishmarkTest", testApi);

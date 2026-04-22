@@ -28,12 +28,20 @@ export type SaveMarkdownDialogDependencies = {
   showSaveDialog: () => Promise<SaveDialogResult>;
 };
 
+type SaveMarkdownFileContentInput = SaveMarkdownFileInput & {
+  content: string;
+};
+
+type SaveMarkdownFileAsRuntimeInput = SaveMarkdownFileAsInput & {
+  content: string;
+};
+
 const defaultDependencies: SaveMarkdownFileDependencies = {
   writeFile
 };
 
 export async function saveMarkdownFileToPath(
-  input: SaveMarkdownFileInput,
+  input: SaveMarkdownFileContentInput,
   dependencies: SaveMarkdownFileDependencies = defaultDependencies
 ): Promise<SaveMarkdownFileResult> {
   try {
@@ -54,7 +62,7 @@ export async function saveMarkdownFileToPath(
 }
 
 export async function showSaveMarkdownDialog(
-  input: SaveMarkdownFileAsInput,
+  input: SaveMarkdownFileAsRuntimeInput,
   dependencies: SaveMarkdownDialogDependencies = {
     saveMarkdownFileToPath,
     showSaveDialog: () =>

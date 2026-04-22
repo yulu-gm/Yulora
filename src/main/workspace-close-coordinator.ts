@@ -17,8 +17,12 @@ type WorkspaceCloseCoordinatorDependencies = {
   promptToSaveWorkspaceTab: (
     tab: WorkspaceTabSessionSnapshot
   ) => Promise<DirtyWorkspaceTabChoice>;
-  saveMarkdownFileToPath: (input: SaveMarkdownFileInput) => Promise<SaveMarkdownFileResult>;
-  showSaveMarkdownDialog: (input: SaveMarkdownFileAsInput) => Promise<SaveMarkdownFileResult>;
+  saveMarkdownFileToPath: (
+    input: SaveMarkdownFileInput & { content: string }
+  ) => Promise<SaveMarkdownFileResult>;
+  showSaveMarkdownDialog: (
+    input: SaveMarkdownFileAsInput & { content: string }
+  ) => Promise<SaveMarkdownFileResult>;
 };
 
 type CloseWorkspaceTabResult =

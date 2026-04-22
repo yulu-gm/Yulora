@@ -113,8 +113,13 @@ describe("Test workbench shell", () => {
       openMarkdownFileFromPath: vi.fn(),
       getWorkspaceSnapshot: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
       createWorkspaceTab: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
-      openWorkspaceFile: vi.fn().mockResolvedValue({ status: "cancelled" }),
-      openWorkspaceFileFromPath: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
+      openWorkspaceFile: vi.fn().mockResolvedValue({
+        kind: "cancelled"
+      }),
+      openWorkspaceFileFromPath: vi.fn().mockResolvedValue({
+        kind: "success",
+        snapshot: EMPTY_WORKSPACE_SNAPSHOT
+      }),
       activateWorkspaceTab: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
       closeWorkspaceTab: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
       reorderWorkspaceTab: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
@@ -133,6 +138,22 @@ describe("Test workbench shell", () => {
       saveMarkdownFileAs: vi.fn(),
       syncWatchedMarkdownFile: vi.fn().mockResolvedValue(undefined),
       importClipboardImage: vi.fn(),
+      onMenuCommand: vi.fn(() => () => {}),
+      onOpenWorkspacePath: vi.fn(() => () => {}),
+      getPreferences: vi.fn(),
+      updatePreferences: vi.fn(),
+      listFontFamilies: vi.fn().mockResolvedValue([]),
+      listThemePackages: vi.fn().mockResolvedValue([]),
+      refreshThemePackages: vi.fn().mockResolvedValue([]),
+      openThemesDirectory: vi.fn().mockResolvedValue(undefined),
+      checkForUpdates: vi.fn().mockResolvedValue(undefined),
+      onPreferencesChanged: vi.fn(() => () => {}),
+      onAppUpdateState: vi.fn(() => () => {}),
+      onAppNotification: vi.fn(() => () => {}),
+      onExternalMarkdownFileChanged: vi.fn(() => () => {})
+    } as Window["fishmark"];
+
+    window.fishmarkTest = {
       openEditorTestWindow,
       startScenarioRun,
       interruptScenarioRun,
@@ -149,21 +170,8 @@ describe("Test workbench shell", () => {
         };
       }),
       onEditorTestCommand: vi.fn(() => () => {}),
-      completeEditorTestCommand: vi.fn().mockResolvedValue(undefined),
-      onMenuCommand: vi.fn(() => () => {}),
-      onOpenWorkspacePath: vi.fn(() => () => {}),
-      getPreferences: vi.fn(),
-      updatePreferences: vi.fn(),
-      listFontFamilies: vi.fn().mockResolvedValue([]),
-      listThemePackages: vi.fn().mockResolvedValue([]),
-      refreshThemePackages: vi.fn().mockResolvedValue([]),
-      openThemesDirectory: vi.fn().mockResolvedValue(undefined),
-      checkForUpdates: vi.fn().mockResolvedValue(undefined),
-      onPreferencesChanged: vi.fn(() => () => {}),
-      onAppUpdateState: vi.fn(() => () => {}),
-      onAppNotification: vi.fn(() => () => {}),
-      onExternalMarkdownFileChanged: vi.fn(() => () => {})
-    } as Window["fishmark"];
+      completeEditorTestCommand: vi.fn().mockResolvedValue(undefined)
+    } as Window["fishmarkTest"];
   });
 
   afterEach(async () => {

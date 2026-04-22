@@ -75,6 +75,12 @@ import {
   UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL,
   type OpenWorkspacePathRequest
 } from "../shared/workspace";
+import type { ProductBridge } from "../shared/product-bridge";
+import type { TestBridge } from "../shared/test-bridge";
+import type {
+  OpenWorkspaceFileResult,
+  OpenWorkspaceFileFromPathResult
+} from "../shared/workspace";
 
 const exposeInMainWorld = vi.fn();
 const invoke = vi.fn();
@@ -96,16 +102,47 @@ vi.mock("electron", () => ({
   }
 }));
 
-async function loadApi() {
+async function loadApi(): Promise<{ api: Window["fishmark"]; testApi: Window["fishmarkTest"] }> {
   await import("./preload");
 
-  expect(exposeInMainWorld).toHaveBeenCalledTimes(1);
+  expect(exposeInMainWorld).toHaveBeenCalledTimes(2);
   const [, api] = exposeInMainWorld.mock.calls[0] ?? [];
-  return api;
+  const [, testApi] = exposeInMainWorld.mock.calls[1] ?? [];
+  return {
+    api: api as Window["fishmark"],
+    testApi: testApi as Window["fishmarkTest"]
+  };
 }
 
 describe("preload contract", () => {
   type TypeEquals<A, B> = A extends B ? (B extends A ? true : never) : never;
+
+  it("aligns renderer globals to the shared product and test bridges", () => {
+    const productBridgeContract: TypeEquals<Window["fishmark"], ProductBridge> = true;
+    const testBridgeContract: TypeEquals<Window["fishmarkTest"], TestBridge> = true;
+
+    void productBridgeContract;
+    void testBridgeContract;
+  });
+
+  it("treats workspace open APIs as explicit result unions", () => {
+    const openResult: OpenWorkspaceFileResult = {
+      kind: "error",
+      error: { code: "read-failed", message: "boom" }
+    };
+    const openFromPathResult: OpenWorkspaceFileFromPathResult = {
+      kind: "success",
+      snapshot: {
+        windowId: "window-1",
+        activeTabId: null,
+        tabs: [],
+        activeDocument: null
+      }
+    };
+
+    expect(openResult.kind).toBe("error");
+    expect(openFromPathResult.kind).toBe("success");
+  });
 
   it("aligns editor-test command types with shared contract types", () => {
     const editorEnvelopeContract: TypeEquals<
@@ -154,15 +191,15 @@ describe("preload contract", () => {
   });
 
   it("uses shared IPC channel constants for invoke-based APIs", async () => {
-    const api = await loadApi();
+    const { api, testApi } = await loadApi();
 
     const openPathInput = { targetPath: "D:/fixtures/note.md" };
     const droppedMarkdownInput = {
       targetPaths: ["D:/fixtures/drop.md", "D:/fixtures/second-drop.md"],
       hasOpenDocument: true
     };
-    const saveInput = { tabId: "tab-2", path: "D:/fixtures/note.md", content: "# note" };
-    const saveAsInput = { tabId: "tab-2", currentPath: "D:/fixtures/note.md", content: "# note" };
+    const saveInput = { tabId: "tab-2", path: "D:/fixtures/note.md" };
+    const saveAsInput = { tabId: "tab-2", currentPath: "D:/fixtures/note.md" };
     const createWorkspaceTabInput = { kind: "untitled" } as const;
     const activateWorkspaceTabInput = { tabId: "tab-2" };
     const closeWorkspaceTabInput = { tabId: "tab-2" };
@@ -220,10 +257,10 @@ describe("preload contract", () => {
     void api.saveMarkdownFileAs(saveAsInput);
     void api.syncWatchedMarkdownFile(syncWatchedFileInput);
     void api.importClipboardImage(importClipboardImageInput);
-    void api.openEditorTestWindow();
-    void api.startScenarioRun(startRunInput);
-    void api.interruptScenarioRun(interruptInput);
-    void api.completeEditorTestCommand(completeInput);
+    void testApi.openEditorTestWindow();
+    void testApi.startScenarioRun(startRunInput);
+    void testApi.interruptScenarioRun(interruptInput);
+    void testApi.completeEditorTestCommand(completeInput);
     void api.getPreferences();
     void api.updatePreferences(updatePreferencesInput);
     expect(api).not.toHaveProperty("listThemes");
@@ -282,7 +319,7 @@ describe("preload contract", () => {
   });
 
   it("resolves dropped file paths through Electron webUtils", async () => {
-    const api = await loadApi();
+    const { api } = await loadApi();
     const droppedFile = new File(["content"], "drop.md", { type: "text/markdown" });
     getPathForFile.mockReturnValueOnce("D:/fixtures/drop.md");
 
@@ -292,7 +329,7 @@ describe("preload contract", () => {
   });
 
   it("forwards shared event payloads without reshaping them", async () => {
-    const api = await loadApi();
+    const { api, testApi } = await loadApi();
     const scenarioListener = vi.fn();
     const terminalListener = vi.fn();
     const editorListener = vi.fn();
@@ -303,9 +340,9 @@ describe("preload contract", () => {
     const externalFileListener = vi.fn();
     const openWorkspacePathListener = vi.fn();
 
-    const detachScenario = api.onScenarioRunEvent(scenarioListener);
-    const detachTerminal = api.onScenarioRunTerminal(terminalListener);
-    const detachEditor = api.onEditorTestCommand(editorListener);
+    const detachScenario = testApi.onScenarioRunEvent(scenarioListener);
+    const detachTerminal = testApi.onScenarioRunTerminal(terminalListener);
+    const detachEditor = testApi.onEditorTestCommand(editorListener);
     const detachMenu = api.onMenuCommand(menuListener);
     const detachOpenWorkspacePath = api.onOpenWorkspacePath(openWorkspacePathListener);
     const detachPreferences = api.onPreferencesChanged(preferencesListener);

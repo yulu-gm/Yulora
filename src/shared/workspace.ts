@@ -1,4 +1,4 @@
-import type { OpenMarkdownDocument } from "./open-markdown-file";
+import type { OpenMarkdownDocument, OpenMarkdownFileErrorCode } from "./open-markdown-file";
 
 export type WorkspaceTabSaveState = "idle" | "manual-saving" | "autosaving";
 
@@ -64,6 +64,34 @@ export type WorkspaceMoveTabResult = {
   sourceWindowSnapshot: WorkspaceWindowSnapshot;
   targetWindowSnapshot: WorkspaceWindowSnapshot;
 };
+
+export type WorkspaceResultError = {
+  code: OpenMarkdownFileErrorCode | "unknown-window" | "unknown-tab";
+  message: string;
+};
+
+export type WorkspaceCommandSuccess<TSnapshot> = {
+  kind: "success";
+  snapshot: TSnapshot;
+};
+
+export type WorkspaceCommandCancelled = {
+  kind: "cancelled";
+};
+
+export type WorkspaceCommandError = {
+  kind: "error";
+  error: WorkspaceResultError;
+};
+
+export type OpenWorkspaceFileResult =
+  | WorkspaceCommandSuccess<WorkspaceWindowSnapshot>
+  | WorkspaceCommandCancelled
+  | WorkspaceCommandError;
+
+export type OpenWorkspaceFileFromPathResult =
+  | WorkspaceCommandSuccess<WorkspaceWindowSnapshot>
+  | WorkspaceCommandError;
 
 export type OpenWorkspacePathRequest = {
   targetPath: string;

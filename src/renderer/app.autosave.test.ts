@@ -31,6 +31,8 @@ import type {
   OpenWorkspacePathRequest,
   ReorderWorkspaceTabInput,
   UpdateWorkspaceTabDraftInput,
+  OpenWorkspaceFileResult,
+  OpenWorkspaceFileFromPathResult,
   WorkspaceDocumentSnapshot,
   WorkspaceWindowSnapshot
 } from "../shared/workspace";
@@ -462,10 +464,10 @@ describe("App autosave", () => {
     typeof vi.fn<(input: CreateWorkspaceTabInput) => Promise<WorkspaceWindowSnapshot>>
   >;
   let openWorkspaceFile: ReturnType<
-    typeof vi.fn<() => Promise<WorkspaceWindowSnapshot | { status: "cancelled" }>>
+    typeof vi.fn<() => Promise<OpenWorkspaceFileResult>>
   >;
   let openWorkspaceFileFromPath: ReturnType<
-    typeof vi.fn<(targetPath: string) => Promise<WorkspaceWindowSnapshot>>
+    typeof vi.fn<(targetPath: string) => Promise<OpenWorkspaceFileFromPathResult>>
   >;
   let activateWorkspaceTab: ReturnType<
     typeof vi.fn<(input: ActivateWorkspaceTabInput) => Promise<WorkspaceWindowSnapshot>>
@@ -732,15 +734,20 @@ describe("App autosave", () => {
     return closeWorkspaceSession(tabId);
   }
 
-  function commitWorkspaceSave(input: { tabId: string; path: string; content: string }): void {
+  function getWorkspaceTabContent(tabId: string): string {
+    return workspaceTabs.find((tab) => tab.tabId === tabId)?.content ?? "";
+  }
+
+  function commitWorkspaceSave(input: { tabId: string; path: string }): void {
+    const content = getWorkspaceTabContent(input.tabId);
     workspaceTabs = workspaceTabs.map((tab) =>
       tab.tabId === input.tabId
         ? {
             ...tab,
             path: input.path,
-            content: input.content,
+            content,
             isDirty: false,
-            lastSavedContent: input.content
+            lastSavedContent: content
           }
         : tab
     );
@@ -864,13 +871,17 @@ describe("App autosave", () => {
         });
       });
     openWorkspaceFile = vi
-      .fn<() => Promise<WorkspaceWindowSnapshot | { status: "cancelled" }>>()
-      .mockImplementation(async () => appendWorkspaceDocument(getQueuedWorkspaceDocument()));
+      .fn<() => Promise<OpenWorkspaceFileResult>>()
+      .mockImplementation(async () => ({
+        kind: "success",
+        snapshot: appendWorkspaceDocument(getQueuedWorkspaceDocument())
+      }));
     openWorkspaceFileFromPath = vi
-      .fn<(targetPath: string) => Promise<WorkspaceWindowSnapshot>>()
-      .mockImplementation(async (targetPath) =>
-        appendWorkspaceDocument(getQueuedWorkspaceDocument(targetPath))
-      );
+      .fn<(targetPath: string) => Promise<OpenWorkspaceFileFromPathResult>>()
+      .mockImplementation(async (targetPath) => ({
+        kind: "success",
+        snapshot: appendWorkspaceDocument(getQueuedWorkspaceDocument(targetPath))
+      }));
     activateWorkspaceTab = vi
       .fn<(input: ActivateWorkspaceTabInput) => Promise<WorkspaceWindowSnapshot>>()
       .mockImplementation(async (input) => setWorkspaceActiveTab(input.tabId));
@@ -914,13 +925,14 @@ describe("App autosave", () => {
       .mockImplementation(async (input) => {
         commitWorkspaceSave(input);
         const activeTab = workspaceTabs.find((tab) => tab.tabId === workspaceActiveTabId) ?? null;
+        const content = getWorkspaceTabContent(input.tabId);
 
         return {
           status: "success",
           document: {
             path: input.path,
             name: activeTab?.name ?? "today.md",
-            content: input.content,
+            content,
             encoding: "utf-8"
           }
         };
@@ -983,26 +995,6 @@ describe("App autosave", () => {
       saveMarkdownFileAs,
       syncWatchedMarkdownFile,
       importClipboardImage,
-      openEditorTestWindow: vi.fn().mockResolvedValue(undefined),
-      startScenarioRun: vi.fn().mockResolvedValue({ runId: "unused-run" }),
-      interruptScenarioRun: vi.fn().mockResolvedValue(undefined),
-      onScenarioRunEvent(listener: ScenarioRunEventListener) {
-        void listener;
-        return () => {};
-      },
-      onScenarioRunTerminal(listener: ScenarioRunTerminalListener) {
-        void listener;
-        return () => {};
-      },
-      onEditorTestCommand(listener: EditorTestCommandListener) {
-        editorTestCommandListener = listener;
-        return () => {
-          if (editorTestCommandListener === listener) {
-            editorTestCommandListener = null;
-          }
-        };
-      },
-      completeEditorTestCommand: vi.fn().mockResolvedValue(undefined),
       onMenuCommand(listener: MenuCommandListener) {
         menuCommandListener = listener;
         return () => {
@@ -1062,6 +1054,29 @@ describe("App autosave", () => {
         };
       }
     } as Window["fishmark"];
+
+    window.fishmarkTest = {
+      openEditorTestWindow: vi.fn().mockResolvedValue(undefined),
+      startScenarioRun: vi.fn().mockResolvedValue({ runId: "unused-run" }),
+      interruptScenarioRun: vi.fn().mockResolvedValue(undefined),
+      onScenarioRunEvent(listener: ScenarioRunEventListener) {
+        void listener;
+        return () => {};
+      },
+      onScenarioRunTerminal(listener: ScenarioRunTerminalListener) {
+        void listener;
+        return () => {};
+      },
+      onEditorTestCommand(listener: EditorTestCommandListener) {
+        editorTestCommandListener = listener;
+        return () => {
+          if (editorTestCommandListener === listener) {
+            editorTestCommandListener = null;
+          }
+        };
+      },
+      completeEditorTestCommand: vi.fn().mockResolvedValue(undefined)
+    } as Window["fishmarkTest"];
   });
 
   afterEach(async () => {
@@ -5314,7 +5329,7 @@ describe("App autosave", () => {
       });
     });
 
-    expect(window.fishmark.completeEditorTestCommand).toHaveBeenCalledWith({
+    expect(window.fishmarkTest.completeEditorTestCommand).toHaveBeenCalledWith({
       sessionId: "editor-session-1",
       commandId: "command-1",
       result: {

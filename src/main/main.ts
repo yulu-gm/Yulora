@@ -100,6 +100,8 @@ import {
   type DetachWorkspaceTabToNewWindowInput,
   type MoveWorkspaceTabToWindowInput,
   type OpenWorkspacePathRequest,
+  type OpenWorkspaceFileFromPathResult,
+  type OpenWorkspaceFileResult,
   type ReloadWorkspaceTabFromPathInput,
   type ReorderWorkspaceTabInput,
   type UpdateWorkspaceTabDraftInput,
@@ -489,20 +491,58 @@ app.whenReady().then(async () => {
     const result = await showOpenMarkdownDialog();
 
     if (result.status !== "success") {
-      return result;
+      if (result.status === "cancelled") {
+        return { kind: "cancelled" } satisfies OpenWorkspaceFileResult;
+      }
+
+      return {
+        kind: "error",
+        error: {
+          code: result.error.code,
+          message: result.error.message
+        }
+      } satisfies OpenWorkspaceFileResult;
     }
 
-    return syncWorkspaceWatch(event.sender, workspaceService.openDocument(windowId, result.document));
+    return {
+      kind: "success",
+      snapshot: await syncWorkspaceWatch(
+        event.sender,
+        workspaceService.openDocument(windowId, result.document)
+      )
+    } satisfies OpenWorkspaceFileResult;
   });
   ipcMain.handle(OPEN_WORKSPACE_FILE_FROM_PATH_CHANNEL, async (event, input: { targetPath: string }) => {
     const windowId = ensureWorkspaceWindow(event.sender);
     const result = await openMarkdownFileFromPath(input.targetPath);
 
     if (result.status !== "success") {
-      return result;
+      if (result.status === "cancelled") {
+        return {
+          kind: "error",
+          error: {
+            code: "read-failed",
+            message: `Unable to open Markdown file '${input.targetPath}'.`
+          }
+        } satisfies OpenWorkspaceFileFromPathResult;
+      }
+
+      return {
+        kind: "error",
+        error: {
+          code: result.error.code,
+          message: result.error.message
+        }
+      } satisfies OpenWorkspaceFileFromPathResult;
     }
 
-    return syncWorkspaceWatch(event.sender, workspaceService.openDocument(windowId, result.document));
+    return {
+      kind: "success",
+      snapshot: await syncWorkspaceWatch(
+        event.sender,
+        workspaceService.openDocument(windowId, result.document)
+      )
+    } satisfies OpenWorkspaceFileFromPathResult;
   });
   ipcMain.handle(
     RELOAD_WORKSPACE_TAB_FROM_PATH_CHANNEL,
@@ -603,8 +643,13 @@ app.whenReady().then(async () => {
     }
   );
   ipcMain.handle(SAVE_MARKDOWN_FILE_CHANNEL, async (event, input: SaveMarkdownFileInput) => {
+    const tabSession = workspaceService.getTabSession(input.tabId);
+
     externalFileWatchService.beginInternalWrite(event.sender, input.path);
-    const result = await saveMarkdownFileToPath(input);
+    const result = await saveMarkdownFileToPath({
+      ...input,
+      content: tabSession.content
+    });
 
     if (result.status === "success") {
       workspaceService.saveTabDocument(input.tabId, result.document);
@@ -620,7 +665,11 @@ app.whenReady().then(async () => {
     return result;
   });
   ipcMain.handle(SAVE_MARKDOWN_FILE_AS_CHANNEL, async (event, input: SaveMarkdownFileAsInput) => {
-    const result = await showSaveMarkdownDialog(input);
+    const tabSession = workspaceService.getTabSession(input.tabId);
+    const result = await showSaveMarkdownDialog({
+      ...input,
+      content: tabSession.content
+    });
 
     if (result.status === "success") {
       workspaceService.saveTabDocument(input.tabId, result.document);
