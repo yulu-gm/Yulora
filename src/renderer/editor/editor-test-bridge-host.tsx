@@ -74,7 +74,7 @@ export function EditorTestBridgeHost(props: EditorTestBridgeHostProps): null {
     return props.fishmarkTest.onEditorTestCommand((payload) => {
       void handleEditorTestCommand(payload);
     });
-  }, [handleEditorTestCommand, props.fishmarkTest]);
+  }, [props.fishmarkTest]);
 
   return null;
 }

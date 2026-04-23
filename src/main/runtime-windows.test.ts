@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { PRELOAD_BRIDGE_MODE_ARGUMENT_PREFIX } from "../shared/preload-bridge-mode";
 import {
   createRuntimeWindowManager,
   resolveAppRuntimeMode,
   RUNTIME_MODE_ARGUMENT_PREFIX,
-  PRELOAD_BRIDGE_MODE_ARGUMENT_PREFIX,
   formatStartupOpenPathArgument,
   type RuntimeMode
 } from "./runtime-windows";

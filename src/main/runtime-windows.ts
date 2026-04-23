@@ -1,11 +1,13 @@
 import { formatStartupOpenPathArgument } from "./launch-open-path";
+import {
+  PRELOAD_BRIDGE_MODE_ARGUMENT_PREFIX,
+  type PreloadBridgeMode
+} from "../shared/preload-bridge-mode";
 
 export const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
-export const PRELOAD_BRIDGE_MODE_ARGUMENT_PREFIX = "--fishmark-preload-bridge-mode=";
 export { formatStartupOpenPathArgument } from "./launch-open-path";
 
 export type RuntimeMode = "editor" | "test-workbench";
-export type PreloadBridgeMode = "product" | "editor-test" | "test-workbench";
 
 type WindowLike = {
   once: (event: "ready-to-show", callback: () => void) => unknown;
