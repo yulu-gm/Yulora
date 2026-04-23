@@ -1561,6 +1561,32 @@ describe("App autosave", () => {
     expect(container.textContent).toContain("untitled.md");
   });
 
+  it("surfaces a failed draft sync before a manual save", async () => {
+    await renderAndOpenDocument();
+
+    updateWorkspaceTabDraft.mockRejectedValueOnce(new Error("draft sync failed"));
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Manual sync failure\n");
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      menuCommandListener?.("save-markdown-file");
+      await Promise.resolve();
+    });
+
+    expect(saveMarkdownFile).not.toHaveBeenCalled();
+    expect(saveMarkdownFileAs).not.toHaveBeenCalled();
+
+    expect(saveMarkdownFile).not.toHaveBeenCalled();
+    expect(saveMarkdownFileAs).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
+      "draft sync failed"
+    );
+  });
+
   it("saves the currently active workspace tab by tab id after switching tabs", async () => {
     queueWorkspaceOpenDocuments(
       {
@@ -2035,6 +2061,30 @@ describe("App autosave", () => {
       tabId: "tab-1",
       path: "C:/notes/today.md"
     });
+  });
+
+  it("shows an autosave error banner when the pre-save draft sync fails", async () => {
+    await renderAndOpenDocument();
+
+    updateWorkspaceTabDraft.mockRejectedValueOnce(new Error("draft sync failed"));
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Autosave sync failure\n");
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      codeEditorMock.blur();
+      await Promise.resolve();
+    });
+
+    expect(saveMarkdownFile).not.toHaveBeenCalled();
+
+    expect(saveMarkdownFile).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
+      "Autosave failed"
+    );
   });
 
   it("does not run an extra autosave after a pending manual save", async () => {

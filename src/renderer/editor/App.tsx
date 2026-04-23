@@ -93,6 +93,7 @@ type ThemePackageEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackage
 type OpenWorkspaceFileResult = Awaited<ReturnType<Window["fishmark"]["openWorkspaceFile"]>>;
 
 const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
+const MANUAL_SAVE_FAILED_MESSAGE = "Save failed. Changes are still in memory.";
 const EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE =
   "当前文件已被外部修改。请先决定是重载磁盘版本，还是保留当前编辑并另存为。";
 const EXTERNAL_FILE_DELETED_PENDING_MESSAGE =
@@ -618,6 +619,7 @@ function EditorShell({
   const pendingAutosaveReplayRef = useRef(false);
   const inFlightSaveOriginRef = useRef<"manual" | "autosave" | null>(null);
   const workspaceDraftSyncQueueRef = useRef(Promise.resolve());
+  const workspaceDraftSyncFailureRef = useRef<unknown>(null);
   const preferencesRef = useRef<Preferences>(DEFAULT_PREFERENCES);
   const settingsEntryRef = useRef<HTMLButtonElement | null>(null);
   const settingsOpenOriginRef = useRef<"editor" | null>(null);
@@ -842,12 +844,18 @@ function EditorShell({
 
   const syncActiveWorkspaceDraft = useCallback(
     async (tabId: string, content: string): Promise<void> => {
-      const snapshot = await fishmark.updateWorkspaceTabDraft({
-        tabId,
-        content
-      });
+      try {
+        const snapshot = await fishmark.updateWorkspaceTabDraft({
+          tabId,
+          content
+        });
 
-      applyWorkspaceWindowSnapshot(snapshot, { syncUi: false });
+        workspaceDraftSyncFailureRef.current = null;
+        applyWorkspaceWindowSnapshot(snapshot, { syncUi: false });
+      } catch (error) {
+        workspaceDraftSyncFailureRef.current = error;
+        throw error;
+      }
     },
     [applyWorkspaceWindowSnapshot, fishmark]
   );
@@ -874,6 +882,12 @@ function EditorShell({
 
       if (!activeDocument) {
         await workspaceDraftSyncQueueRef.current;
+        if (workspaceDraftSyncFailureRef.current !== null) {
+          const error = workspaceDraftSyncFailureRef.current;
+          workspaceDraftSyncFailureRef.current = null;
+          throw error;
+        }
+
         return;
       }
 
@@ -882,6 +896,12 @@ function EditorShell({
       if (currentContent === activeDocument.content) {
         await workspaceDraftSyncQueueRef.current;
 
+        if (workspaceDraftSyncFailureRef.current !== null) {
+          const error = workspaceDraftSyncFailureRef.current;
+          workspaceDraftSyncFailureRef.current = null;
+          throw error;
+        }
+
         const latestDocument = getActiveDocument(stateRef.current);
 
         if (!latestDocument) {
@@ -889,6 +909,12 @@ function EditorShell({
         }
 
         if (getEditorContent() === latestDocument.content) {
+          if (workspaceDraftSyncFailureRef.current !== null) {
+            const error = workspaceDraftSyncFailureRef.current;
+            workspaceDraftSyncFailureRef.current = null;
+            throw error;
+          }
+
           return;
         }
 
@@ -1169,6 +1195,27 @@ function EditorShell({
       }, APP_NOTIFICATION_DURATION_MS);
   }, [clearNotificationTimers]);
 
+  const ensureActiveWorkspaceDraftSynced = useCallback(
+    async (saveKind: "manual" | "autosave"): Promise<boolean> => {
+      try {
+        await flushActiveWorkspaceDraft();
+        return true;
+      } catch (error) {
+        showNotification({
+          kind: "error",
+          message:
+            saveKind === "autosave"
+              ? AUTOSAVE_FAILED_MESSAGE
+              : error instanceof Error && error.message.trim().length > 0
+                ? error.message
+                : MANUAL_SAVE_FAILED_MESSAGE
+        });
+        return false;
+      }
+    },
+    [flushActiveWorkspaceDraft, showNotification]
+  );
+
   const resetAutosaveRuntime = useCallback((): void => {
     clearAutosaveTimer();
     pendingAutosaveReplayRef.current = false;
@@ -1177,7 +1224,9 @@ function EditorShell({
 
   const runAutosave = useCallback(async (): Promise<void> => {
     clearAutosaveTimer();
-    await flushActiveWorkspaceDraft();
+    if (!(await ensureActiveWorkspaceDraftSynced("autosave"))) {
+      return;
+    }
 
     const snapshot = stateRef.current;
     const currentDocument = getActiveDocument(snapshot);
@@ -1220,7 +1269,7 @@ function EditorShell({
       pendingAutosaveReplayRef.current = false;
       void runAutosave();
     }
-  }, [applyState, clearAutosaveTimer, fishmark, flushActiveWorkspaceDraft, getEditorContent, showNotification]);
+  }, [applyState, clearAutosaveTimer, ensureActiveWorkspaceDraftSynced, fishmark, getEditorContent, showNotification]);
 
   const scheduleAutosave = useCallback((nextState: AppState): void => {
     clearAutosaveTimer();
@@ -1250,7 +1299,9 @@ function EditorShell({
   async function runManualSave(
     request: () => ReturnType<typeof window.fishmark.saveMarkdownFile>
   ): Promise<void> {
-    await flushActiveWorkspaceDraft();
+    if (!(await ensureActiveWorkspaceDraftSynced("manual"))) {
+      return;
+    }
 
     const snapshot = stateRef.current;
     const currentDocument = getActiveDocument(snapshot);
