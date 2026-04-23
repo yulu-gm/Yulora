@@ -276,6 +276,44 @@ describe("createWorkspaceService", () => {
     });
   });
 
+  it("exposes canonical tab session content before and after a save", () => {
+    const workspace = createWorkspaceService();
+
+    workspace.registerWindow("window-1");
+    const opened = workspace.openDocument(
+      "window-1",
+      createDocument({
+        path: "C:/notes/canonical.md",
+        name: "canonical.md",
+        content: "# Saved\n"
+      })
+    );
+    const tabId = opened.activeTabId!;
+
+    workspace.updateTabDraft(tabId, "# Draft\n");
+
+    expect(workspace.getTabSession(tabId)).toMatchObject({
+      content: "# Draft\n",
+      lastSavedContent: "# Saved\n",
+      isDirty: true
+    });
+
+    workspace.saveTabDocument(
+      tabId,
+      createDocument({
+        path: "C:/notes/canonical.md",
+        name: "canonical.md",
+        content: "# Draft\n"
+      })
+    );
+
+    expect(workspace.getTabSession(tabId)).toMatchObject({
+      content: "# Draft\n",
+      lastSavedContent: "# Draft\n",
+      isDirty: false
+    });
+  });
+
   it("replaces the current tab document in place when reloading from disk", () => {
     const workspace = createWorkspaceService();
 

@@ -269,4 +269,64 @@ describe("createWorkspaceCloseCoordinator", () => {
     });
     expect(workspace.getWindowSnapshot("window-1").tabs).toHaveLength(0);
   });
+
+  it("prompts and saves against the canonical tab session content", async () => {
+    const workspace = createWorkspaceService();
+    workspace.registerWindow("window-1");
+    const snapshot = workspace.openDocument(
+      "window-1",
+      createDocument({
+        path: "C:/notes/note.md",
+        name: "note.md",
+        content: "# Saved\n"
+      })
+    );
+    const tabId = snapshot.activeTabId!;
+
+    workspace.updateTabDraft(tabId, "# Dirty from main\n");
+
+    const saveMarkdownFileToPath = vi.fn(async (input: {
+      tabId: string;
+      path: string;
+      content: string;
+    }) => ({
+      status: "success" as const,
+      document: {
+        path: input.path,
+        name: "note.md",
+        content: input.content,
+        encoding: "utf-8" as const
+      }
+    }));
+
+    const coordinator = createWorkspaceCloseCoordinator({
+      workspaceService: workspace,
+      promptToSaveWorkspaceTab: async () => {
+        workspace.updateTabDraft(tabId, "# Dirty from main, latest\n");
+        return "save";
+      },
+      saveMarkdownFileToPath,
+      showSaveMarkdownDialog: vi.fn(async (input: {
+        tabId: string;
+        currentPath: string | null;
+        content: string;
+      }) => ({
+        status: "success" as const,
+        document: {
+          path: input.currentPath ?? "C:/notes/note.md",
+          name: "note.md",
+          content: input.content,
+          encoding: "utf-8" as const
+        }
+      }))
+    });
+
+    await coordinator.closeTab(tabId);
+
+    expect(saveMarkdownFileToPath).toHaveBeenCalledWith({
+      tabId,
+      path: "C:/notes/note.md",
+      content: "# Dirty from main, latest\n"
+    });
+  });
 });

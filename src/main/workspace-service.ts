@@ -142,7 +142,15 @@ export function createWorkspaceService() {
   }
 
   function saveTabDocument(tabId: string, document: OpenMarkdownDocument): WorkspaceWindowSnapshot {
-    return replaceTabDocument(tabId, document);
+    const tab = getTab(tabId);
+    tab.path = document.path;
+    tab.name = document.name;
+    tab.draftContent = document.content;
+    tab.lastSavedContent = document.content;
+    tab.encoding = document.encoding;
+    tab.isDirty = false;
+    tab.saveState = "idle";
+    return getWindowSnapshot(getWindowIdForTab(tabId));
   }
 
   function closeTab(tabId: string): WorkspaceWindowSnapshot {

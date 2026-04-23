@@ -55,6 +55,7 @@ describe("main process window wiring", () => {
     const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
     const mainSource = readFileSync(mainPath, "utf8");
 
+    expect(mainSource).toContain('import { createWorkspaceApplication } from "./workspace-application"');
     expect(mainSource).toContain('import { createWorkspaceCloseCoordinator } from "./workspace-close-coordinator"');
     expect(mainSource).toContain('import { createWorkspaceService } from "./workspace-service"');
     expect(mainSource).toContain("GET_WORKSPACE_SNAPSHOT_CHANNEL");
@@ -65,6 +66,7 @@ describe("main process window wiring", () => {
     expect(mainSource).toContain("CLOSE_WORKSPACE_TAB_CHANNEL");
     expect(mainSource).toContain("UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL");
     expect(mainSource).toContain("const workspaceService = createWorkspaceService()");
+    expect(mainSource).toContain("const workspaceApplication = createWorkspaceApplication({");
     expect(mainSource).toContain("const workspaceCloseCoordinator = createWorkspaceCloseCoordinator({");
     expect(mainSource).toContain("ipcMain.handle(GET_WORKSPACE_SNAPSHOT_CHANNEL");
     expect(mainSource).toContain("ipcMain.handle(CREATE_WORKSPACE_TAB_CHANNEL");
@@ -76,7 +78,8 @@ describe("main process window wiring", () => {
     expect(mainSource).toContain('ownerWindow.on("close", (event) => {');
     expect(mainSource).toContain("workspaceCloseCoordinator.confirmWindowClose(windowId)");
     expect(mainSource).toContain("workspaceCloseCoordinator.closeTab(input.tabId)");
-    expect(mainSource).toContain("workspaceService.saveTabDocument(input.tabId, result.document)");
+    expect(mainSource).toContain("workspaceApplication.updateDraft(input)");
+    expect(mainSource).toContain("const result = await workspaceApplication.saveTab(input)");
   });
 
   it("keeps File > New Window as an explicit main-process window action", () => {

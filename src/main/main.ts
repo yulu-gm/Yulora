@@ -32,6 +32,7 @@ import { resolveWindowIconPath } from "./window-icon";
 import { createAppUpdateCheckRunner } from "./app-update-check-runner";
 import { resolveAutoUpdaterModule } from "./resolve-auto-updater-module";
 import { createExternalFileWatchService } from "./external-file-watch-service";
+import { createWorkspaceApplication } from "./workspace-application";
 import { createWorkspaceCloseCoordinator } from "./workspace-close-coordinator";
 import { createWorkspaceService } from "./workspace-service";
 import {
@@ -248,6 +249,10 @@ app.whenReady().then(async () => {
   });
   const externalFileWatchService = createExternalFileWatchService();
   const workspaceService = createWorkspaceService();
+  const workspaceApplication = createWorkspaceApplication({
+    workspace: workspaceService,
+    saveMarkdownFileToPath
+  });
   const workspaceCloseCoordinator = createWorkspaceCloseCoordinator({
     workspaceService,
     promptToSaveWorkspaceTab: async (tab) => {
@@ -609,7 +614,7 @@ app.whenReady().then(async () => {
     }
   );
   ipcMain.handle(UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL, async (_event, input: UpdateWorkspaceTabDraftInput) =>
-    workspaceService.updateTabDraft(input.tabId, input.content)
+    workspaceApplication.updateDraft(input)
   );
   ipcMain.handle(OPEN_MARKDOWN_FILE_CHANNEL, async (event) => {
     const result = await showOpenMarkdownDialog();
@@ -645,16 +650,10 @@ app.whenReady().then(async () => {
     }
   );
   ipcMain.handle(SAVE_MARKDOWN_FILE_CHANNEL, async (event, input: SaveMarkdownFileInput) => {
-    const tabSession = workspaceService.getTabSession(input.tabId);
-
     externalFileWatchService.beginInternalWrite(event.sender, input.path);
-    const result = await saveMarkdownFileToPath({
-      ...input,
-      content: tabSession.content
-    });
+    const result = await workspaceApplication.saveTab(input);
 
     if (result.status === "success") {
-      workspaceService.saveTabDocument(input.tabId, result.document);
       await externalFileWatchService.completeInternalWrite(event.sender, input.path);
       await externalFileWatchService.syncDocumentPath(
         event.sender,

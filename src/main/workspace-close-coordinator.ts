@@ -41,8 +41,7 @@ export function createWorkspaceCloseCoordinator(
   confirmWindowClose: (windowId: string) => Promise<boolean>;
 } {
   async function closeTab(tabId: string): Promise<CloseWorkspaceTabResult> {
-    const tab = dependencies.workspaceService.getTabSession(tabId);
-    const shouldProceed = await confirmDirtyTab(tab);
+    const shouldProceed = await confirmDirtyTab(tabId);
 
     if (!shouldProceed) {
       return { status: "cancelled" };
@@ -56,8 +55,7 @@ export function createWorkspaceCloseCoordinator(
 
   async function confirmWindowClose(windowId: string): Promise<boolean> {
     for (const tabId of dependencies.workspaceService.getWindowTabIds(windowId)) {
-      const tab = dependencies.workspaceService.getTabSession(tabId);
-      const shouldProceed = await confirmDirtyTab(tab);
+      const shouldProceed = await confirmDirtyTab(tabId);
 
       if (!shouldProceed) {
         return false;
@@ -67,7 +65,9 @@ export function createWorkspaceCloseCoordinator(
     return true;
   }
 
-  async function confirmDirtyTab(tab: WorkspaceTabSessionSnapshot): Promise<boolean> {
+  async function confirmDirtyTab(tabId: string): Promise<boolean> {
+    const tab = dependencies.workspaceService.getTabSession(tabId);
+
     if (!tab.isDirty) {
       return true;
     }
@@ -82,17 +82,23 @@ export function createWorkspaceCloseCoordinator(
       return true;
     }
 
+    const latestTab = dependencies.workspaceService.getTabSession(tabId);
+
+    if (!latestTab.isDirty) {
+      return true;
+    }
+
     const result =
-      tab.path === null
+      latestTab.path === null
         ? await dependencies.showSaveMarkdownDialog({
-            tabId: tab.tabId,
+            tabId: latestTab.tabId,
             currentPath: null,
-            content: tab.content
+            content: latestTab.content
           })
         : await dependencies.saveMarkdownFileToPath({
-            tabId: tab.tabId,
-            path: tab.path,
-            content: tab.content
+            tabId: latestTab.tabId,
+            path: latestTab.path,
+            content: latestTab.content
           });
 
     if (result.status === "cancelled") {
@@ -103,7 +109,7 @@ export function createWorkspaceCloseCoordinator(
       throw new Error(result.error.message);
     }
 
-    dependencies.workspaceService.saveTabDocument(tab.tabId, result.document);
+    dependencies.workspaceService.saveTabDocument(latestTab.tabId, result.document);
     return true;
   }
 
