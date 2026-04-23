@@ -67,6 +67,10 @@ export type ThemePackageDescriptor = {
   manifest: ThemePackageManifest;
 };
 
+export const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
+export const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
+export const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
+
 const THEME_MODES = ["light", "dark"] as const;
 const THEME_STYLE_PARTS = ["ui", "editor", "markdown", "titlebar"] as const;
 const THEME_SURFACE_SLOTS = ["workbenchBackground", "titlebarBackdrop", "welcomeHero"] as const;

@@ -40,6 +40,7 @@ import {
 } from "../shared/editor-test-command";
 import {
   INTERRUPT_SCENARIO_RUN_CHANNEL,
+  OPEN_EDITOR_TEST_WINDOW_CHANNEL,
   type RunnerEventEnvelope,
   SCENARIO_RUN_EVENT,
   type ScenarioRunTerminal,
@@ -60,6 +61,7 @@ import {
   UPDATE_PREFERENCES_CHANNEL,
   type PreferencesUpdate
 } from "../shared/preferences";
+import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
 import {
   IMPORT_CLIPBOARD_IMAGE_CHANNEL,
   type ImportClipboardImageInput
@@ -81,6 +83,11 @@ import {
   type AppNotification,
   type AppUpdateState
 } from "../shared/app-update";
+import {
+  LIST_THEME_PACKAGES_CHANNEL,
+  OPEN_THEMES_DIRECTORY_CHANNEL,
+  REFRESH_THEME_PACKAGES_CHANNEL
+} from "../shared/theme-package";
 import {
   ACTIVATE_WORKSPACE_TAB_CHANNEL,
   CLOSE_WORKSPACE_TAB_CHANNEL,
@@ -108,11 +115,6 @@ import {
   type WorkspaceWindowSnapshot
 } from "../shared/workspace";
 
-const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
-const LIST_FONT_FAMILIES_CHANNEL = "fishmark:list-font-families";
-const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
-const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
-const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
 const AUTO_UPDATE_STARTUP_DELAY_MS = 5000;
 registerPreviewAssetScheme({ protocol });
 configureMainProcessRuntime(app, process.env);

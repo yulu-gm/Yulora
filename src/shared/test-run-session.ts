@@ -2,6 +2,7 @@ export const START_SCENARIO_RUN_CHANNEL = "fishmark:start-scenario-run";
 export const INTERRUPT_SCENARIO_RUN_CHANNEL = "fishmark:interrupt-scenario-run";
 export const SCENARIO_RUN_EVENT = "fishmark:scenario-run-event";
 export const SCENARIO_RUN_TERMINAL_EVENT = "fishmark:scenario-run-terminal";
+export const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
 
 export type ScenarioRunId = string;
 export type ScenarioRunStatus =

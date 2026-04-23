@@ -46,6 +46,7 @@ import {
 } from "../shared/external-file-change";
 import {
   INTERRUPT_SCENARIO_RUN_CHANNEL,
+  OPEN_EDITOR_TEST_WINDOW_CHANNEL,
   SCENARIO_RUN_EVENT,
   SCENARIO_RUN_TERMINAL_EVENT,
   START_SCENARIO_RUN_CHANNEL,
@@ -60,6 +61,12 @@ import {
   type AppUpdateState
 } from "../shared/app-update";
 import type { ThemePackageManifest } from "../shared/theme-package";
+import {
+  LIST_THEME_PACKAGES_CHANNEL,
+  OPEN_THEMES_DIRECTORY_CHANNEL,
+  REFRESH_THEME_PACKAGES_CHANNEL
+} from "../shared/theme-package";
+import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
 import {
   ACTIVATE_WORKSPACE_TAB_CHANNEL,
   CLOSE_WORKSPACE_TAB_CHANNEL,
@@ -302,16 +309,16 @@ describe("preload contract", () => {
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput]);
     expect(invoke.mock.calls).toContainEqual([SYNC_WATCHED_MARKDOWN_FILE_CHANNEL, syncWatchedFileInput]);
     expect(invoke.mock.calls).toContainEqual([IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:open-editor-test-window"]);
+    expect(invoke.mock.calls).toContainEqual([OPEN_EDITOR_TEST_WINDOW_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([START_SCENARIO_RUN_CHANNEL, startRunInput]);
     expect(invoke.mock.calls).toContainEqual([INTERRUPT_SCENARIO_RUN_CHANNEL, interruptInput]);
     expect(invoke.mock.calls).toContainEqual([COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, completeInput]);
     expect(invoke.mock.calls).toContainEqual([GET_PREFERENCES_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([UPDATE_PREFERENCES_CHANNEL, updatePreferencesInput]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:list-font-families"]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:list-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:refresh-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:open-themes-directory"]);
+    expect(invoke.mock.calls).toContainEqual([LIST_FONT_FAMILIES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([LIST_THEME_PACKAGES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([REFRESH_THEME_PACKAGES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([OPEN_THEMES_DIRECTORY_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([CHECK_FOR_APP_UPDATES_CHANNEL]);
 
     expect(invoke.mock.calls).not.toContainEqual(["fishmark:list-themes"]);

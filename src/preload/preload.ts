@@ -34,12 +34,18 @@ import type {
   WorkspaceWindowSnapshot
 } from "../shared/workspace";
 import type { HandleDroppedMarkdownFileInput } from "../shared/open-markdown-file";
-import type { ThemePackageDescriptor } from "../shared/theme-package";
+import {
+  LIST_THEME_PACKAGES_CHANNEL,
+  OPEN_THEMES_DIRECTORY_CHANNEL,
+  REFRESH_THEME_PACKAGES_CHANNEL,
+  type ThemePackageDescriptor
+} from "../shared/theme-package";
 import {
   HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
   OPEN_MARKDOWN_FILE_CHANNEL,
   OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL
 } from "../shared/open-markdown-file";
+import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
 
 export type {
   EditorTestCommandEnvelope,
@@ -99,6 +105,7 @@ import {
 } from "../shared/clipboard-image-import";
 import {
   INTERRUPT_SCENARIO_RUN_CHANNEL,
+  OPEN_EDITOR_TEST_WINDOW_CHANNEL,
   SCENARIO_RUN_EVENT,
   SCENARIO_RUN_TERMINAL_EVENT,
   START_SCENARIO_RUN_CHANNEL
@@ -106,11 +113,6 @@ import {
 import { SAVE_MARKDOWN_FILE_AS_CHANNEL, SAVE_MARKDOWN_FILE_CHANNEL } from "../shared/save-markdown-file";
 // Preload runs inside Electron's sandboxed environment, so only preload-local
 // runtime helpers stay here. Contract shapes and IPC names come from shared modules.
-const OPEN_EDITOR_TEST_WINDOW_CHANNEL = "fishmark:open-editor-test-window";
-const LIST_FONT_FAMILIES_CHANNEL = "fishmark:list-font-families";
-const LIST_THEME_PACKAGES_CHANNEL = "fishmark:list-theme-packages";
-const REFRESH_THEME_PACKAGES_CHANNEL = "fishmark:refresh-theme-packages";
-const OPEN_THEMES_DIRECTORY_CHANNEL = "fishmark:open-themes-directory";
 const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
 const STARTUP_OPEN_PATH_ARGUMENT_PREFIX = "--fishmark-startup-open-path=";
 

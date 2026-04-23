@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  LIST_THEME_PACKAGES_CHANNEL,
+  OPEN_THEMES_DIRECTORY_CHANNEL,
+  REFRESH_THEME_PACKAGES_CHANNEL
+} from "../shared/theme-package";
+
 const exposeInMainWorld = vi.fn();
 const invoke = vi.fn();
 const on = vi.fn();
@@ -77,8 +83,8 @@ describe("preload bridge", () => {
     void api.listThemePackages();
     void api.refreshThemePackages();
 
-    expect(invoke.mock.calls).toContainEqual(["fishmark:list-theme-packages"]);
-    expect(invoke.mock.calls).toContainEqual(["fishmark:refresh-theme-packages"]);
+    expect(invoke.mock.calls).toContainEqual([LIST_THEME_PACKAGES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([REFRESH_THEME_PACKAGES_CHANNEL]);
     expect(invoke.mock.calls).not.toContainEqual(["fishmark:list-themes"]);
     expect(invoke.mock.calls).not.toContainEqual(["fishmark:refresh-themes"]);
   });
@@ -145,6 +151,6 @@ describe("preload bridge", () => {
     expect(api).toHaveProperty("openThemesDirectory");
     void api.openThemesDirectory();
 
-    expect(invoke.mock.calls).toContainEqual(["fishmark:open-themes-directory"]);
+    expect(invoke.mock.calls).toContainEqual([OPEN_THEMES_DIRECTORY_CHANNEL]);
   });
 });
