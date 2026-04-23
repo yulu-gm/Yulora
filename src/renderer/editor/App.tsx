@@ -620,6 +620,7 @@ function EditorShell({
   const inFlightSaveOriginRef = useRef<"manual" | "autosave" | null>(null);
   const workspaceDraftSyncQueueRef = useRef(Promise.resolve());
   const workspaceDraftSyncFailureRef = useRef<unknown>(null);
+  const workspaceDraftSyncRetryPendingRef = useRef(false);
   const preferencesRef = useRef<Preferences>(DEFAULT_PREFERENCES);
   const settingsEntryRef = useRef<HTMLButtonElement | null>(null);
   const settingsOpenOriginRef = useRef<"editor" | null>(null);
@@ -851,6 +852,7 @@ function EditorShell({
         });
 
         workspaceDraftSyncFailureRef.current = null;
+        workspaceDraftSyncRetryPendingRef.current = false;
         applyWorkspaceWindowSnapshot(snapshot, { syncUi: false });
       } catch (error) {
         workspaceDraftSyncFailureRef.current = error;
@@ -879,13 +881,12 @@ function EditorShell({
   const flushActiveWorkspaceDraft = useCallback(async (): Promise<void> => {
     while (true) {
       const activeDocument = getActiveDocument(stateRef.current);
+      const shouldForceCanonicalResync = workspaceDraftSyncRetryPendingRef.current;
 
       if (!activeDocument) {
         await workspaceDraftSyncQueueRef.current;
-        if (workspaceDraftSyncFailureRef.current !== null) {
-          const error = workspaceDraftSyncFailureRef.current;
-          workspaceDraftSyncFailureRef.current = null;
-          throw error;
+        if (workspaceDraftSyncFailureRef.current !== null && !shouldForceCanonicalResync) {
+          throw workspaceDraftSyncFailureRef.current;
         }
 
         return;
@@ -893,14 +894,8 @@ function EditorShell({
 
       const currentContent = getEditorContent();
 
-      if (currentContent === activeDocument.content) {
+      if (currentContent === activeDocument.content && !shouldForceCanonicalResync) {
         await workspaceDraftSyncQueueRef.current;
-
-        if (workspaceDraftSyncFailureRef.current !== null) {
-          const error = workspaceDraftSyncFailureRef.current;
-          workspaceDraftSyncFailureRef.current = null;
-          throw error;
-        }
 
         const latestDocument = getActiveDocument(stateRef.current);
 
@@ -910,9 +905,7 @@ function EditorShell({
 
         if (getEditorContent() === latestDocument.content) {
           if (workspaceDraftSyncFailureRef.current !== null) {
-            const error = workspaceDraftSyncFailureRef.current;
-            workspaceDraftSyncFailureRef.current = null;
-            throw error;
+            throw workspaceDraftSyncFailureRef.current;
           }
 
           return;
@@ -1201,6 +1194,7 @@ function EditorShell({
         await flushActiveWorkspaceDraft();
         return true;
       } catch (error) {
+        workspaceDraftSyncRetryPendingRef.current = true;
         showNotification({
           kind: "error",
           message:

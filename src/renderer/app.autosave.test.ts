@@ -1577,11 +1577,25 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledTimes(1);
     expect(saveMarkdownFile).not.toHaveBeenCalled();
-    expect(saveMarkdownFileAs).not.toHaveBeenCalled();
 
-    expect(saveMarkdownFile).not.toHaveBeenCalled();
-    expect(saveMarkdownFileAs).not.toHaveBeenCalled();
+    updateWorkspaceTabDraft.mockResolvedValueOnce(
+      updateWorkspaceDraft("tab-1", "# Manual sync failure\n")
+    );
+
+    await act(async () => {
+      menuCommandListener?.("save-markdown-file");
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledTimes(2);
+    expect(saveMarkdownFile).toHaveBeenCalledTimes(1);
+    expect(saveMarkdownFile).toHaveBeenCalledWith({
+      tabId: "tab-1",
+      path: "C:/notes/today.md"
+    });
     expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
       "draft sync failed"
     );
@@ -2079,9 +2093,21 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledTimes(1);
     expect(saveMarkdownFile).not.toHaveBeenCalled();
 
-    expect(saveMarkdownFile).not.toHaveBeenCalled();
+    updateWorkspaceTabDraft.mockResolvedValueOnce(
+      updateWorkspaceDraft("tab-1", "# Autosave sync failure\n")
+    );
+
+    await act(async () => {
+      codeEditorMock.blur();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledTimes(2);
+    expect(saveMarkdownFile).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[data-fishmark-region="app-notification-banner"]')?.textContent).toContain(
       "Autosave failed"
     );
