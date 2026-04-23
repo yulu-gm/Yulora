@@ -1,13 +1,11 @@
 import type { EditorTestCommand, EditorTestCommandResult } from "../shared/editor-test-command";
 import type { SaveMarkdownFileResult } from "../shared/save-markdown-file";
-import type { OpenWorkspaceFileFromPathResult } from "../shared/workspace";
+import type { OpenWorkspaceFileFromPathResult, WorkspaceWindowSnapshot } from "../shared/workspace";
 import {
-  applyEditorContentChanged,
-  applySaveMarkdownResult,
   applyWorkspaceSnapshot,
   getActiveDocument,
-  type AppState
-} from "./document-state";
+  type EditorShellState
+} from "./editor/editor-shell-state";
 
 type EditorHandle = {
   getContent: () => string;
@@ -23,13 +21,15 @@ type EditorHandle = {
 };
 
 export function createEditorTestDriver(input: {
-  getState: () => AppState;
-  applyState: (updater: (current: AppState) => AppState) => void;
+  getState: () => EditorShellState;
+  applyState: (updater: (current: EditorShellState) => EditorShellState) => void;
   resetAutosaveRuntime: () => void;
   editor: EditorHandle;
   setEditorContentSnapshot: (content: string) => void;
   openWorkspaceFileFromPath: (targetPath: string) => Promise<OpenWorkspaceFileFromPathResult>;
   saveMarkdownFile: (args: { tabId: string; path: string }) => Promise<SaveMarkdownFileResult>;
+  updateWorkspaceTabDraft: (input: { tabId: string; content: string }) => Promise<WorkspaceWindowSnapshot>;
+  getWorkspaceSnapshot: () => Promise<WorkspaceWindowSnapshot>;
 }) {
   type ActiveDocument = NonNullable<ReturnType<typeof getActiveDocument>>;
 
@@ -76,7 +76,11 @@ export function createEditorTestDriver(input: {
 
         input.resetAutosaveRuntime();
         input.setEditorContentSnapshot(activeDocument.content);
-        input.applyState((current) => applyWorkspaceSnapshot(current, response.snapshot));
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, response.snapshot, {
+            currentEditorContent: activeDocument.content
+          })
+        );
 
         return ok("Fixture file opened.", {
           path: activeDocument.path
@@ -91,7 +95,15 @@ export function createEditorTestDriver(input: {
 
         input.editor.setContent(command.content);
         input.setEditorContentSnapshot(command.content);
-        input.applyState((current) => applyEditorContentChanged(current, command.content));
+        const snapshot = await input.updateWorkspaceTabDraft({
+          tabId: activeDocument.tabId,
+          content: command.content
+        });
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: command.content
+          })
+        );
         return ok("Editor content replaced.");
       }
 
@@ -104,7 +116,15 @@ export function createEditorTestDriver(input: {
         input.editor.insertText(command.text);
         const nextContent = input.editor.getContent();
         input.setEditorContentSnapshot(nextContent);
-        input.applyState((current) => applyEditorContentChanged(current, nextContent));
+        const snapshot = await input.updateWorkspaceTabDraft({
+          tabId: activeDocument.tabId,
+          content: nextContent
+        });
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: nextContent
+          })
+        );
         return ok("Editor text inserted.");
       }
 
@@ -127,7 +147,15 @@ export function createEditorTestDriver(input: {
         input.editor.pressEnter();
         const nextContent = input.editor.getContent();
         input.setEditorContentSnapshot(nextContent);
-        input.applyState((current) => applyEditorContentChanged(current, nextContent));
+        const snapshot = await input.updateWorkspaceTabDraft({
+          tabId: activeDocument.tabId,
+          content: nextContent
+        });
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: nextContent
+          })
+        );
         return ok("Editor Enter executed.");
       }
 
@@ -140,7 +168,15 @@ export function createEditorTestDriver(input: {
         input.editor.pressBackspace();
         const nextContent = input.editor.getContent();
         input.setEditorContentSnapshot(nextContent);
-        input.applyState((current) => applyEditorContentChanged(current, nextContent));
+        const snapshot = await input.updateWorkspaceTabDraft({
+          tabId: activeDocument.tabId,
+          content: nextContent
+        });
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: nextContent
+          })
+        );
         return ok("Editor Backspace executed.");
       }
 
@@ -153,7 +189,15 @@ export function createEditorTestDriver(input: {
         input.editor.pressTab(command.shiftKey);
         const nextContent = input.editor.getContent();
         input.setEditorContentSnapshot(nextContent);
-        input.applyState((current) => applyEditorContentChanged(current, nextContent));
+        const snapshot = await input.updateWorkspaceTabDraft({
+          tabId: activeDocument.tabId,
+          content: nextContent
+        });
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: nextContent
+          })
+        );
         return ok(command.shiftKey ? "Editor Shift-Tab executed." : "Editor Tab executed.");
       }
 
@@ -193,7 +237,6 @@ export function createEditorTestDriver(input: {
           tabId: activeDocument.tabId,
           path: activeDocument.path
         });
-        input.applyState((current) => applySaveMarkdownResult(current, result));
 
         if (result.status !== "success") {
           return fail(result.status === "error" ? result.error.message : "Save was cancelled.", {
@@ -203,7 +246,12 @@ export function createEditorTestDriver(input: {
         }
 
         input.setEditorContentSnapshot(content);
-        input.applyState((current) => applyEditorContentChanged(current, content));
+        const snapshot = await input.getWorkspaceSnapshot();
+        input.applyState((current) =>
+          applyWorkspaceSnapshot(current, snapshot, {
+            currentEditorContent: content
+          })
+        );
         return ok("Document saved.");
       }
 

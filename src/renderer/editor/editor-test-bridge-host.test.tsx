@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EditorTestCommandEnvelope } from "../../shared/editor-test-command";
-import { createInitialAppState, type AppState } from "../document-state";
+import { createInitialEditorShellState, type EditorShellState } from "./editor-shell-state";
 import { EditorTestBridgeHost } from "./editor-test-bridge-host";
 
 const { createEditorTestDriver, run } = vi.hoisted(() => {
@@ -74,9 +74,9 @@ describe("EditorTestBridgeHost", () => {
       root.render(
         createElement(EditorTestBridgeHost, {
           fishmarkTest,
-          getState: () => createInitialAppState() as AppState,
+          getState: () => createInitialEditorShellState() as EditorShellState,
           applyState: (updater) => {
-            void updater(createInitialAppState() as AppState);
+            void updater(createInitialEditorShellState() as EditorShellState);
           },
           resetAutosaveRuntime: vi.fn(),
           editor: {
@@ -109,6 +109,18 @@ describe("EditorTestBridgeHost", () => {
               content: "",
               encoding: "utf-8"
             }
+          }),
+          updateWorkspaceTabDraft: vi.fn().mockResolvedValue({
+            windowId: "window-1",
+            activeTabId: null,
+            tabs: [],
+            activeDocument: null
+          }),
+          getWorkspaceSnapshot: vi.fn().mockResolvedValue({
+            windowId: "window-1",
+            activeTabId: null,
+            tabs: [],
+            activeDocument: null
           })
         })
       );

@@ -20,11 +20,9 @@ import {
   type ShortcutGroupId
 } from "@fishmark/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
-import type { ExternalMarkdownFileChangedEvent } from "../../shared/external-file-change";
 import type { AppMenuCommand } from "../../shared/menu-command";
 import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
 import type { ThemePackageManifest, ThemeSurfaceSlot } from "../../shared/theme-package";
-import type { WorkspaceWindowSnapshot } from "../../shared/workspace";
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
@@ -38,21 +36,6 @@ import {
   normalizeThemePackageDescriptor,
   resolveActiveThemePackage
 } from "../theme-package-catalog";
-import {
-  type AppState,
-  type ExternalMarkdownFileState,
-  applyExternalMarkdownFileChanged,
-  applyEditorContentChanged,
-  applySaveMarkdownResult,
-  applyWorkspaceSnapshot,
-  clearExternalMarkdownFileState,
-  createInitialAppState,
-  getActiveDocument,
-  keepExternalMarkdownMemoryVersion,
-  startAutosavingDocument,
-  startManualSavingDocument,
-  startOpeningMarkdownFile
-} from "../document-state";
 import { getDocumentMetrics } from "../document-metrics";
 import {
   applyThemeParameterCssVariables,
@@ -81,7 +64,11 @@ import {
   shouldWarnForThemeDynamicFallback,
   type ThemeDynamicAggregateMode
 } from "./theme-dynamic-mode";
+import { type ExternalMarkdownFileState } from "./editor-shell-state";
 import { ShortcutHintOverlay } from "./shortcut-hint-overlay";
+import { useExternalConflictController } from "./useExternalConflictController";
+import { useSaveController } from "./useSaveController";
+import { useWorkspaceController } from "./useWorkspaceController";
 
 const SettingsView = lazy(async () => {
   const module = await import("./settings-view");
@@ -90,10 +77,6 @@ const SettingsView = lazy(async () => {
 
 type ResolvedThemeMode = Exclude<ThemeMode, "system">;
 type ThemePackageEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
-type OpenWorkspaceFileResult = Awaited<ReturnType<Window["fishmark"]["openWorkspaceFile"]>>;
-
-const AUTOSAVE_FAILED_MESSAGE = "Autosave failed. Changes are still in memory.";
-const MANUAL_SAVE_FAILED_MESSAGE = "Save failed. Changes are still in memory.";
 const EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE =
   "当前文件已被外部修改。请先决定是重载磁盘版本，还是保留当前编辑并另存为。";
 const EXTERNAL_FILE_DELETED_PENDING_MESSAGE =
@@ -120,10 +103,6 @@ type TableToolAction = {
   onClick: () => void;
 };
 
-function isExternalFileConflictActive(state: AppState): boolean {
-  return state.externalFileState.status !== "idle";
-}
-
 function getExternalFileConflictMessage(externalFileState: ExternalMarkdownFileState): string {
   if (externalFileState.status === "idle") {
     return "";
@@ -136,12 +115,6 @@ function getExternalFileConflictMessage(externalFileState: ExternalMarkdownFileS
   return externalFileState.kind === "deleted"
     ? EXTERNAL_FILE_DELETED_PENDING_MESSAGE
     : EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE;
-}
-
-function isCancelledWorkspaceOpenResult(
-  result: OpenWorkspaceFileResult
-): result is Extract<OpenWorkspaceFileResult, { kind: "cancelled" }> {
-  return result.kind === "cancelled";
 }
 
 function RowAboveIcon(props: SVGProps<SVGSVGElement>) {
@@ -573,7 +546,6 @@ function EditorShell({
   fishmark: Window["fishmark"];
   fishmarkTest?: Window["fishmarkTest"];
 }) {
-  const [state, setState] = useState(createInitialAppState);
   const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
@@ -614,13 +586,6 @@ function EditorShell({
   const editorContentRef = useRef("");
   const activeBlockStateRef = useRef<ActiveBlockState | null>(null);
   const startupOpenPathRef = useRef(fishmark.startupOpenPath);
-  const stateRef = useRef(state);
-  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingAutosaveReplayRef = useRef(false);
-  const inFlightSaveOriginRef = useRef<"manual" | "autosave" | null>(null);
-  const workspaceDraftSyncQueueRef = useRef(Promise.resolve());
-  const workspaceDraftSyncFailureRef = useRef<unknown>(null);
-  const workspaceDraftSyncRetryPendingRef = useRef(false);
   const preferencesRef = useRef<Preferences>(DEFAULT_PREFERENCES);
   const settingsEntryRef = useRef<HTMLButtonElement | null>(null);
   const settingsOpenOriginRef = useRef<"editor" | null>(null);
@@ -640,9 +605,80 @@ function EditorShell({
   const pressedShortcutModifiersRef = useRef<Set<string>>(new Set());
   const draggedWorkspaceTabIdRef = useRef<string | null>(null);
   const handledWorkspaceTabDropRef = useRef(false);
-  const activeDocument = getActiveDocument(state);
-  const workspaceTabs = state.workspace.tabs;
-  const activeTabId = state.workspace.activeTabId;
+  const clearNotificationTimers = useCallback((): void => {
+    if (notificationHideTimerRef.current !== null) {
+      clearTimeout(notificationHideTimerRef.current);
+      notificationHideTimerRef.current = null;
+    }
+
+    if (notificationCloseTimerRef.current !== null) {
+      clearTimeout(notificationCloseTimerRef.current);
+      notificationCloseTimerRef.current = null;
+    }
+  }, []);
+
+  const showNotification = useCallback((nextNotification: AppNotification): void => {
+    clearNotificationTimers();
+    setNotification(nextNotification);
+    setNotificationState("open");
+
+    if (nextNotification.kind === "loading") {
+      return;
+    }
+
+    notificationHideTimerRef.current = setTimeout(() => {
+      notificationHideTimerRef.current = null;
+      setNotificationState("closing");
+      notificationCloseTimerRef.current = setTimeout(() => {
+        notificationCloseTimerRef.current = null;
+        setNotificationState("hidden");
+        setNotification(null);
+      }, APP_NOTIFICATION_EXIT_ANIMATION_MS);
+    }, APP_NOTIFICATION_DURATION_MS);
+  }, [clearNotificationTimers]);
+
+  const getEditorContent = useCallback((): string => {
+    return editorRef.current?.getContent() ?? editorContentRef.current;
+  }, []);
+
+  const workspaceController = useWorkspaceController({
+    fishmark,
+    getEditorContent,
+    showNotification
+  });
+  const saveController = useSaveController({
+    fishmark,
+    getActiveDocument: workspaceController.getActiveDocument,
+    getEditorContent,
+    flushActiveWorkspaceDraft: workspaceController.flushActiveWorkspaceDraft,
+    applySuccessfulSaveResult: workspaceController.applySuccessfulSaveResult,
+    hasExternalFileConflict: () => externalConflictController.hasExternalFileConflict(),
+    autosaveDelayMs: preferences.autosave.idleDelayMs,
+    showNotification
+  });
+  const externalConflictController = useExternalConflictController({
+    fishmark,
+    getActiveDocument: workspaceController.getActiveDocument,
+    reloadActiveDocument: async () => {
+      const activeDocument = workspaceController.getActiveDocument();
+
+      if (!activeDocument?.path) {
+        return false;
+      }
+
+      return workspaceController.reloadWorkspaceTabFromPath({
+        tabId: activeDocument.tabId,
+        targetPath: activeDocument.path
+      });
+    },
+    resetAutosaveRuntime: saveController.resetAutosaveRuntime,
+    showNotification
+  });
+  const state = workspaceController.state;
+  const activeDocument = workspaceController.activeDocument;
+  const workspaceTabs = workspaceController.workspaceTabs;
+  const activeTabId = workspaceController.activeTabId;
+  const effectiveSaveState = saveController.getEffectiveSaveState(activeDocument);
   const currentDocumentContent = activeDocument
     ? (editorContentRef.current || activeDocument.content)
     : "";
@@ -654,7 +690,7 @@ function EditorShell({
   const isOutlinePanelVisible = isOutlineOpen || isOutlineClosing;
   const isSettingsDrawerVisible = isSettingsOpen || isSettingsClosing;
   const hintText =
-    state.openState === "opening"
+    workspaceController.openState === "opening"
       ? "Opening document..."
       : "Use File > Open... to load a Markdown document.";
   const headerEyebrow = isDocumentOpen ? "Current document" : "FishMark";
@@ -662,22 +698,24 @@ function EditorShell({
     ? activeDocument?.name ?? "Untitled"
     : "Local-first Markdown writing";
   const headerDetail =
-    state.openState === "opening"
+    workspaceController.openState === "opening"
       ? "Opening document..."
       : isDocumentOpen
         ? activeDocument?.path ?? "Not saved yet."
         : "Markdown remains the source of truth, and the writing canvas stays calm and stable.";
   const saveStatusLabel =
-    activeDocument?.saveState === "manual-saving"
+    effectiveSaveState === "manual-saving"
       ? "Saving changes..."
-      : activeDocument?.saveState === "autosaving"
+      : effectiveSaveState === "autosaving"
         ? "Autosaving..."
         : activeDocument && !activeDocument.path && !activeDocument.isDirty
           ? "Not saved yet"
         : activeDocument?.isDirty
           ? "Unsaved changes"
           : "All changes saved";
-  const externalFileConflictMessage = getExternalFileConflictMessage(state.externalFileState);
+  const externalFileConflictMessage = getExternalFileConflictMessage(
+    externalConflictController.externalFileState
+  );
   const appUpdateStatusLabel = appUpdateState.kind === "downloading"
     ? `正在下载更新${Number.isFinite(appUpdateState.percent) ? ` ${Math.round(appUpdateState.percent)}%` : "…"}`
     : null;
@@ -797,126 +835,14 @@ function EditorShell({
     applyThemeRuntimeEnv(document.documentElement, createThemeRuntimeEnv(themeMode));
   });
 
-  const applyState = useCallback((updater: (current: AppState) => AppState): void => {
-    const next = updater(stateRef.current);
-    stateRef.current = next;
-    setState(next);
-  }, []);
-
-  const syncActiveDocumentUi = useCallback((nextState: AppState): void => {
-    const nextActiveDocument = getActiveDocument(nextState);
-
-    editorContentRef.current = nextActiveDocument?.content ?? "";
+  useEffect(() => {
+    editorContentRef.current = activeDocument?.content ?? "";
     activeBlockStateRef.current = null;
-    setOutlineItems(nextActiveDocument ? deriveOutlineItems(nextActiveDocument.content) : []);
+    setOutlineItems(activeDocument ? deriveOutlineItems(activeDocument.content) : []);
     setActiveHeadingId(null);
     setActiveShortcutGroupId("default-text");
     setActiveTableToolId(null);
-  }, []);
-
-  const applyWorkspaceWindowSnapshot = useCallback((
-    snapshot: WorkspaceWindowSnapshot,
-    options: { syncUi?: boolean; clearExternalFileConflict?: boolean } = {}
-  ): AppState => {
-    let nextState = stateRef.current;
-    const previousState = stateRef.current;
-    const shouldSyncUi = options.syncUi ?? true;
-
-    applyState((current) => {
-      nextState = {
-        ...applyWorkspaceSnapshot(current, snapshot, {
-          clearExternalFileState: options.clearExternalFileConflict ?? false
-        }),
-        openState: "idle"
-      };
-      return nextState;
-    });
-
-    if (shouldSyncUi && previousState.editorLoadRevision !== nextState.editorLoadRevision) {
-      syncActiveDocumentUi(nextState);
-    }
-
-    return nextState;
-  }, [applyState, syncActiveDocumentUi]);
-
-  const getEditorContent = useCallback((): string => {
-    return editorRef.current?.getContent() ?? editorContentRef.current;
-  }, []);
-
-  const syncActiveWorkspaceDraft = useCallback(
-    async (tabId: string, content: string): Promise<void> => {
-      try {
-        const snapshot = await fishmark.updateWorkspaceTabDraft({
-          tabId,
-          content
-        });
-
-        workspaceDraftSyncFailureRef.current = null;
-        workspaceDraftSyncRetryPendingRef.current = false;
-        applyWorkspaceWindowSnapshot(snapshot, { syncUi: false });
-      } catch (error) {
-        workspaceDraftSyncFailureRef.current = error;
-        throw error;
-      }
-    },
-    [applyWorkspaceWindowSnapshot, fishmark]
-  );
-
-  const queueWorkspaceDraftSync = useCallback(
-    (tabId: string, content: string): Promise<void> => {
-      const nextSync = workspaceDraftSyncQueueRef.current.then(() =>
-        syncActiveWorkspaceDraft(tabId, content)
-      );
-
-      workspaceDraftSyncQueueRef.current = nextSync.then(
-        () => undefined,
-        () => undefined
-      );
-
-      return nextSync;
-    },
-    [syncActiveWorkspaceDraft]
-  );
-
-  const flushActiveWorkspaceDraft = useCallback(async (): Promise<void> => {
-    while (true) {
-      const activeDocument = getActiveDocument(stateRef.current);
-      const shouldForceCanonicalResync = workspaceDraftSyncRetryPendingRef.current;
-
-      if (!activeDocument) {
-        await workspaceDraftSyncQueueRef.current;
-        if (workspaceDraftSyncFailureRef.current !== null && !shouldForceCanonicalResync) {
-          throw workspaceDraftSyncFailureRef.current;
-        }
-
-        return;
-      }
-
-      const currentContent = getEditorContent();
-
-      if (currentContent === activeDocument.content && !shouldForceCanonicalResync) {
-        await workspaceDraftSyncQueueRef.current;
-
-        const latestDocument = getActiveDocument(stateRef.current);
-
-        if (!latestDocument) {
-          return;
-        }
-
-        if (getEditorContent() === latestDocument.content) {
-          if (workspaceDraftSyncFailureRef.current !== null) {
-            throw workspaceDraftSyncFailureRef.current;
-          }
-
-          return;
-        }
-
-        continue;
-      }
-
-      await queueWorkspaceDraftSync(activeDocument.tabId, currentContent);
-    }
-  }, [getEditorContent, queueWorkspaceDraftSync]);
+  }, [activeDocument, workspaceController.editorLoadRevision]);
 
   const insertTableRowAbove = useCallback(() => {
     editorRef.current?.insertTableRowAbove();
@@ -1043,13 +969,6 @@ function EditorShell({
     }
   }, [activeShortcutGroup.id]);
 
-  const clearAutosaveTimer = useCallback((): void => {
-    if (autosaveTimerRef.current !== null) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-  }, []);
-
   function clearOutlineCloseTimer(): void {
     if (outlineCloseTimerRef.current !== null) {
       clearTimeout(outlineCloseTimerRef.current);
@@ -1063,18 +982,6 @@ function EditorShell({
       settingsCloseTimerRef.current = null;
     }
   }
-
-  const clearNotificationTimers = useCallback((): void => {
-    if (notificationHideTimerRef.current !== null) {
-      clearTimeout(notificationHideTimerRef.current);
-      notificationHideTimerRef.current = null;
-    }
-
-    if (notificationCloseTimerRef.current !== null) {
-      clearTimeout(notificationCloseTimerRef.current);
-      notificationCloseTimerRef.current = null;
-    }
-  }, []);
 
   const enterEditingMode = useCallback((): void => {
     pendingEditorOpenBlurTokenRef.current += 1;
@@ -1113,17 +1020,22 @@ function EditorShell({
   }, [blurFocusedEditorElement]);
 
   const enterReadingMode = useCallback((): void => {
-    if (!getActiveDocument(stateRef.current) || isSettingsOpen || isSettingsClosing) {
+    if (!workspaceController.getActiveDocument() || isSettingsOpen || isSettingsClosing) {
       return;
     }
 
     setShellMode("reading");
     blurFocusedEditorElement();
-  }, [blurFocusedEditorElement, isSettingsClosing, isSettingsOpen]);
+  }, [
+    blurFocusedEditorElement,
+    isSettingsClosing,
+    isSettingsOpen,
+    workspaceController.getActiveDocument
+  ]);
 
   const handleAppWorkspaceMouseDownCapture = useCallback(
     (event: React.MouseEvent<HTMLElement>): void => {
-      if (event.button !== 0 || !getActiveDocument(stateRef.current)) {
+      if (event.button !== 0 || !workspaceController.getActiveDocument()) {
         return;
       }
 
@@ -1158,7 +1070,7 @@ function EditorShell({
       event.stopPropagation();
       enterReadingMode();
     },
-    [enterReadingMode]
+    [enterReadingMode, workspaceController.getActiveDocument]
   );
 
   function clearShortcutHintHoldTimer(): void {
@@ -1168,174 +1080,10 @@ function EditorShell({
     }
   }
 
-  const showNotification = useCallback((nextNotification: AppNotification): void => {
-    clearNotificationTimers();
-    setNotification(nextNotification);
-    setNotificationState("open");
-
-    if (nextNotification.kind === "loading") {
-      return;
-    }
-
-    notificationHideTimerRef.current = setTimeout(() => {
-      notificationHideTimerRef.current = null;
-      setNotificationState("closing");
-      notificationCloseTimerRef.current = setTimeout(() => {
-        notificationCloseTimerRef.current = null;
-        setNotificationState("hidden");
-        setNotification(null);
-      }, APP_NOTIFICATION_EXIT_ANIMATION_MS);
-      }, APP_NOTIFICATION_DURATION_MS);
-  }, [clearNotificationTimers]);
-
-  const ensureActiveWorkspaceDraftSynced = useCallback(
-    async (saveKind: "manual" | "autosave"): Promise<boolean> => {
-      try {
-        await flushActiveWorkspaceDraft();
-        return true;
-      } catch (error) {
-        workspaceDraftSyncRetryPendingRef.current = true;
-        showNotification({
-          kind: "error",
-          message:
-            saveKind === "autosave"
-              ? AUTOSAVE_FAILED_MESSAGE
-              : error instanceof Error && error.message.trim().length > 0
-                ? error.message
-                : MANUAL_SAVE_FAILED_MESSAGE
-        });
-        return false;
-      }
-    },
-    [flushActiveWorkspaceDraft, showNotification]
-  );
-
-  const resetAutosaveRuntime = useCallback((): void => {
-    clearAutosaveTimer();
-    pendingAutosaveReplayRef.current = false;
-    inFlightSaveOriginRef.current = null;
-  }, [clearAutosaveTimer]);
-
-  const runAutosave = useCallback(async (): Promise<void> => {
-    clearAutosaveTimer();
-    if (!(await ensureActiveWorkspaceDraftSynced("autosave"))) {
-      return;
-    }
-
-    const snapshot = stateRef.current;
-    const currentDocument = getActiveDocument(snapshot);
-
-    if (
-      !currentDocument ||
-      !currentDocument.path ||
-      !currentDocument.isDirty ||
-      isExternalFileConflictActive(snapshot) ||
-      inFlightSaveOriginRef.current
-    ) {
-      return;
-    }
-
-    inFlightSaveOriginRef.current = "autosave";
-    pendingAutosaveReplayRef.current = false;
-    applyState((current) => startAutosavingDocument(current));
-
-    const result = await fishmark.saveMarkdownFile({
-      tabId: currentDocument.tabId,
-      path: currentDocument.path
-    });
-
-    if (result.status === "error") {
-      showNotification({ kind: "error", message: AUTOSAVE_FAILED_MESSAGE });
-    }
-
-    const currentEditorContent = getEditorContent();
-
-    applyState((current) => {
-      const savedState = applySaveMarkdownResult(current, result);
-
-      return result.status === "success"
-        ? applyEditorContentChanged(savedState, currentEditorContent)
-        : savedState;
-    });
-    inFlightSaveOriginRef.current = null;
-
-    if (pendingAutosaveReplayRef.current) {
-      pendingAutosaveReplayRef.current = false;
-      void runAutosave();
-    }
-  }, [applyState, clearAutosaveTimer, ensureActiveWorkspaceDraftSynced, fishmark, getEditorContent, showNotification]);
-
-  const scheduleAutosave = useCallback((nextState: AppState): void => {
-    clearAutosaveTimer();
-    const activeDocument = getActiveDocument(nextState);
-
-    if (
-      !activeDocument ||
-      !activeDocument.path ||
-      !activeDocument.isDirty ||
-      isExternalFileConflictActive(nextState)
-    ) {
-      pendingAutosaveReplayRef.current = false;
-      return;
-    }
-
-    if (inFlightSaveOriginRef.current) {
-      pendingAutosaveReplayRef.current = true;
-      return;
-    }
-
-    autosaveTimerRef.current = setTimeout(() => {
-      autosaveTimerRef.current = null;
-      void runAutosave();
-    }, preferencesRef.current.autosave.idleDelayMs);
-  }, [clearAutosaveTimer, runAutosave]);
-
-  async function runManualSave(
-    request: () => ReturnType<typeof window.fishmark.saveMarkdownFile>
-  ): Promise<void> {
-    if (!(await ensureActiveWorkspaceDraftSynced("manual"))) {
-      return;
-    }
-
-    const snapshot = stateRef.current;
-    const currentDocument = getActiveDocument(snapshot);
-
-    if (!currentDocument || inFlightSaveOriginRef.current) {
-      return;
-    }
-
-    clearAutosaveTimer();
-    inFlightSaveOriginRef.current = "manual";
-    pendingAutosaveReplayRef.current = false;
-    applyState((current) => startManualSavingDocument(current));
-
-    const result = await request();
-
-    if (result.status === "error") {
-      showNotification({ kind: "error", message: result.error.message });
-    }
-
-    const currentEditorContent = getEditorContent();
-
-    applyState((current) => {
-      const savedState = applySaveMarkdownResult(current, result);
-
-      return result.status === "success"
-        ? applyEditorContentChanged(savedState, currentEditorContent)
-        : savedState;
-    });
-    inFlightSaveOriginRef.current = null;
-
-    if (pendingAutosaveReplayRef.current) {
-      pendingAutosaveReplayRef.current = false;
-      scheduleAutosave(stateRef.current);
-    }
-  }
-
   const handlePreferencesSync = useEffectEvent((nextPreferences: Preferences): void => {
     preferencesRef.current = nextPreferences;
     setPreferences(nextPreferences);
-    scheduleAutosave(stateRef.current);
+    saveController.scheduleAutosave();
   });
 
   const handleAppMenuCommand = useEffectEvent((command: AppMenuCommand): void => {
@@ -1394,12 +1142,12 @@ function EditorShell({
     const result = await fishmark.updatePreferences(patch);
     preferencesRef.current = result.preferences;
     setPreferences(result.preferences);
-    scheduleAutosave(stateRef.current);
+    saveController.scheduleAutosave();
     return result;
   }
 
   function openSettingsDrawer(): void {
-    if (getActiveDocument(stateRef.current)) {
+    if (workspaceController.getActiveDocument()) {
       setShellMode("editing");
     }
     const activeElement = document.activeElement;
@@ -1459,162 +1207,83 @@ function EditorShell({
   }
 
   async function handleOpenMarkdown(): Promise<void> {
-    applyState((current) => startOpeningMarkdownFile(current));
-    resetAutosaveRuntime();
+    saveController.resetAutosaveRuntime();
+    const result = await workspaceController.openMarkdown();
 
-    try {
-      const result = await fishmark.openWorkspaceFile();
-
-      if (isCancelledWorkspaceOpenResult(result)) {
-        applyState((current) => ({
-          ...current,
-          openState: "idle"
-        }));
-        return;
-      }
-
-      if (result.kind === "error") {
-        throw new Error(result.error.message);
-      }
-
-      applyWorkspaceWindowSnapshot(result.snapshot, { clearExternalFileConflict: true });
+    if (result === "opened") {
       setShellMode("reading");
       blurFocusedEditorElementAfterOpen();
-    } catch (error) {
-      applyState((current) => ({
-        ...current,
-        openState: "idle"
-      }));
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
     }
   }
 
   async function handleNewMarkdown(): Promise<void> {
-    resetAutosaveRuntime();
+    saveController.resetAutosaveRuntime();
+    const created = await workspaceController.createUntitledMarkdown();
 
-    const snapshot = await fishmark.createWorkspaceTab({
-      kind: "untitled"
-    });
-
-    applyWorkspaceWindowSnapshot(snapshot, { clearExternalFileConflict: true });
-    setShellMode("editing");
+    if (created) {
+      setShellMode("editing");
+    }
   }
 
   const handleOpenMarkdownFromPath = useCallback(async (targetPath: string): Promise<void> => {
-    applyState((current) => startOpeningMarkdownFile(current));
-    resetAutosaveRuntime();
+    saveController.resetAutosaveRuntime();
+    const opened = await workspaceController.openMarkdownFromPath(targetPath);
 
-    try {
-      const snapshot = await fishmark.openWorkspaceFileFromPath(targetPath);
-      if (snapshot.kind === "error") {
-        throw new Error(snapshot.error.message);
-      }
-      applyWorkspaceWindowSnapshot(snapshot.snapshot, { clearExternalFileConflict: true });
+    if (opened) {
       setShellMode("reading");
       blurFocusedEditorElementAfterOpen();
-    } catch (error) {
-      applyState((current) => ({
-        ...current,
-        openState: "idle"
-      }));
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
     }
   }, [
-    applyState,
-    applyWorkspaceWindowSnapshot,
     blurFocusedEditorElementAfterOpen,
-    fishmark,
-    resetAutosaveRuntime,
-    showNotification
+    saveController.resetAutosaveRuntime,
+    workspaceController.openMarkdownFromPath
   ]);
 
   async function handleActivateWorkspaceTab(tabId: string): Promise<void> {
-    if (stateRef.current.workspace.activeTabId === tabId) {
+    if (workspaceController.getActiveTabId() === tabId) {
       return;
     }
 
-    await flushActiveWorkspaceDraft();
-    resetAutosaveRuntime();
-
-    try {
-      const snapshot = await fishmark.activateWorkspaceTab({ tabId });
-      const nextState = applyWorkspaceWindowSnapshot(snapshot);
-      scheduleAutosave(nextState);
-    } catch (error) {
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
+    saveController.resetAutosaveRuntime();
+    await workspaceController.activateWorkspaceTab(tabId);
+    saveController.scheduleAutosave();
   }
 
   const handleCloseWorkspaceTab = useCallback(async (tabId: string): Promise<void> => {
-    await flushActiveWorkspaceDraft();
-    const isClosingActiveTab = stateRef.current.workspace.activeTabId === tabId;
+    const isClosingActiveTab = workspaceController.getActiveTabId() === tabId;
 
     if (isClosingActiveTab) {
-      resetAutosaveRuntime();
+      saveController.resetAutosaveRuntime();
     }
 
-    try {
-      const snapshot = await fishmark.closeWorkspaceTab({ tabId });
-      const nextState = applyWorkspaceWindowSnapshot(snapshot);
-      if (isClosingActiveTab) {
-        scheduleAutosave(nextState);
-      }
-    } catch (error) {
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
+    await workspaceController.closeWorkspaceTab(tabId);
+
+    if (isClosingActiveTab) {
+      saveController.scheduleAutosave();
     }
   }, [
-    applyWorkspaceWindowSnapshot,
-    fishmark,
-    flushActiveWorkspaceDraft,
-    resetAutosaveRuntime,
-    scheduleAutosave,
-    showNotification
+    saveController.resetAutosaveRuntime,
+    saveController.scheduleAutosave,
+    workspaceController.closeWorkspaceTab,
+    workspaceController.getActiveTabId
   ]);
 
   const handleReorderWorkspaceTab = useCallback(
     async (tabId: string, toIndex: number): Promise<void> => {
-      await flushActiveWorkspaceDraft();
-
-      try {
-        const snapshot = await fishmark.reorderWorkspaceTab({ tabId, toIndex });
-        applyWorkspaceWindowSnapshot(snapshot, { syncUi: false });
-      } catch (error) {
-        showNotification({
-          kind: "error",
-          message: error instanceof Error ? error.message : String(error)
-        });
-      }
+      await workspaceController.reorderWorkspaceTab(tabId, toIndex);
     },
-    [applyWorkspaceWindowSnapshot, fishmark, flushActiveWorkspaceDraft, showNotification]
+    [workspaceController.reorderWorkspaceTab]
   );
 
   const handleDetachWorkspaceTab = useCallback(async (tabId: string): Promise<void> => {
-    await flushActiveWorkspaceDraft();
-    resetAutosaveRuntime();
-
-    try {
-      const snapshot = await fishmark.detachWorkspaceTabToNewWindow({ tabId });
-      const nextState = applyWorkspaceWindowSnapshot(snapshot);
-      scheduleAutosave(nextState);
-    } catch (error) {
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }, [applyWorkspaceWindowSnapshot, fishmark, flushActiveWorkspaceDraft, resetAutosaveRuntime, scheduleAutosave, showNotification]);
+    saveController.resetAutosaveRuntime();
+    await workspaceController.detachWorkspaceTab(tabId);
+    saveController.scheduleAutosave();
+  }, [
+    saveController.resetAutosaveRuntime,
+    saveController.scheduleAutosave,
+    workspaceController.detachWorkspaceTab
+  ]);
 
   const handleWorkspaceTabDragStart = useCallback(
     (tabId: string, event: React.DragEvent<HTMLElement>): void => {
@@ -1671,54 +1340,6 @@ function EditorShell({
     [handleDetachWorkspaceTab]
   );
 
-  const handleExternalMarkdownFileChanged = useEffectEvent(
-    (event: ExternalMarkdownFileChangedEvent): void => {
-      clearAutosaveTimer();
-      pendingAutosaveReplayRef.current = false;
-
-      applyState((current) => applyExternalMarkdownFileChanged(current, event));
-    }
-  );
-
-  function handleKeepExternalFileMemoryVersion(): void {
-    clearAutosaveTimer();
-    pendingAutosaveReplayRef.current = false;
-    applyState((current) => keepExternalMarkdownMemoryVersion(current));
-  }
-
-  function handleDismissExternalFileConflict(): void {
-    applyState((current) => clearExternalMarkdownFileState(current));
-  }
-
-  async function handleReloadExternalFile(): Promise<void> {
-    const activeDocument = getActiveDocument(stateRef.current);
-
-    if (!activeDocument?.path) {
-      return;
-    }
-
-    applyState((current) => startOpeningMarkdownFile(current));
-    resetAutosaveRuntime();
-
-    try {
-      const snapshot = await fishmark.reloadWorkspaceTabFromPath({
-        tabId: activeDocument.tabId,
-        targetPath: activeDocument.path
-      });
-      applyWorkspaceWindowSnapshot(snapshot, { clearExternalFileConflict: true });
-      setShellMode("reading");
-    } catch (error) {
-      applyState((current) => ({
-        ...current,
-        openState: "idle"
-      }));
-      showNotification({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
-
   const handleWindowDragOver = useEffectEvent((event: globalThis.DragEvent): void => {
     if (!hasFileDrag(event.dataTransfer)) {
       return;
@@ -1745,7 +1366,7 @@ function EditorShell({
     void fishmark
       .handleDroppedMarkdownFile({
         targetPaths,
-        hasOpenDocument: getActiveDocument(stateRef.current) !== null
+        hasOpenDocument: workspaceController.getActiveDocument() !== null
       })
       .then(async (result) => {
         if (result.disposition === "open-in-place") {
@@ -1767,46 +1388,23 @@ function EditorShell({
   }, []);
 
   async function handleSaveMarkdown(): Promise<void> {
-    const currentDocument = getActiveDocument(stateRef.current);
+    const currentDocument = workspaceController.getActiveDocument();
 
     if (!currentDocument) {
       return;
     }
 
-    const currentPath = currentDocument.path;
-    const shouldForceSaveAs = isExternalFileConflictActive(stateRef.current);
-
-    if (!currentPath || shouldForceSaveAs) {
-      await runManualSave(() =>
-        fishmark.saveMarkdownFileAs({
-          tabId: currentDocument.tabId,
-          currentPath
-        })
-      );
-      return;
-    }
-
-    await runManualSave(() =>
-      fishmark.saveMarkdownFile({
-        tabId: currentDocument.tabId,
-        path: currentPath
-      })
-    );
+    await saveController.runManualSave();
   }
 
   async function handleSaveMarkdownAs(): Promise<void> {
-    const currentDocument = getActiveDocument(stateRef.current);
+    const currentDocument = workspaceController.getActiveDocument();
 
     if (!currentDocument) {
       return;
     }
 
-    await runManualSave(() =>
-      fishmark.saveMarkdownFileAs({
-        tabId: currentDocument.tabId,
-        currentPath: currentDocument.path
-      })
-    );
+    await saveController.runManualSave({ forceSaveAs: true });
   }
 
   async function handleImportClipboardImage(
@@ -1826,9 +1424,9 @@ function EditorShell({
 
   const editorTestBridge = useMemo(
     () => ({
-      getState: () => stateRef.current,
-      applyState,
-      resetAutosaveRuntime,
+      getState: workspaceController.getState,
+      applyState: workspaceController.applyState,
+      resetAutosaveRuntime: saveController.resetAutosaveRuntime,
       editor: {
         getContent: getEditorContent,
         setContent: (content: string) => {
@@ -1866,9 +1464,18 @@ function EditorShell({
       },
       openWorkspaceFileFromPath: (targetPath: string) =>
         fishmark.openWorkspaceFileFromPath(targetPath),
-      saveMarkdownFile: (input: { tabId: string; path: string }) => fishmark.saveMarkdownFile(input)
+      saveMarkdownFile: (input: { tabId: string; path: string }) => fishmark.saveMarkdownFile(input),
+      updateWorkspaceTabDraft: (input: { tabId: string; content: string }) =>
+        fishmark.updateWorkspaceTabDraft(input),
+      getWorkspaceSnapshot: () => fishmark.getWorkspaceSnapshot()
     }),
-    [applyState, fishmark, getEditorContent, resetAutosaveRuntime]
+    [
+      fishmark,
+      getEditorContent,
+      saveController.resetAutosaveRuntime,
+      workspaceController.applyState,
+      workspaceController.getState
+    ]
   );
 
   useEffect(() => {
@@ -1884,12 +1491,6 @@ function EditorShell({
   }, [fishmark, handleOpenMarkdownFromPath]);
 
   useEffect(() => {
-    return fishmark.onExternalMarkdownFileChanged((event) => {
-      handleExternalMarkdownFileChanged(event);
-    });
-  }, [fishmark]);
-
-  useEffect(() => {
     void fishmark.syncWatchedMarkdownFile({
       tabId: activeDocument?.tabId ?? null
     });
@@ -1898,32 +1499,25 @@ function EditorShell({
   useEffect(() => {
     let isCancelled = false;
 
-    void fishmark
-      .getWorkspaceSnapshot()
-      .then(async (snapshot) => {
-        if (isCancelled) {
-          return;
-        }
+    void workspaceController.loadInitialWorkspaceSnapshot().then(async () => {
+      if (isCancelled) {
+        return;
+      }
 
-        applyWorkspaceWindowSnapshot(snapshot);
+      const startupOpenPath = startupOpenPathRef.current;
 
-        const startupOpenPath = startupOpenPathRef.current;
+      if (!startupOpenPath) {
+        return;
+      }
 
-        if (!startupOpenPath) {
-          return;
-        }
-
-        startupOpenPathRef.current = null;
-        await handleOpenMarkdownFromPath(startupOpenPath);
-      })
-      .catch(() => {
-        // Keep the local empty state if the workspace snapshot is temporarily unavailable.
-      });
+      startupOpenPathRef.current = null;
+      await handleOpenMarkdownFromPath(startupOpenPath);
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [applyWorkspaceWindowSnapshot, fishmark, handleOpenMarkdownFromPath]);
+  }, [handleOpenMarkdownFromPath, workspaceController.loadInitialWorkspaceSnapshot]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -2023,7 +1617,7 @@ function EditorShell({
         lastEditorPointerIntentRef.current = isEditingContentClick ? "editing" : "blank";
 
         if (isEditingContentClick) {
-          if (getActiveDocument(stateRef.current)) {
+          if (workspaceController.getActiveDocument()) {
             enterEditingMode();
           }
           return;
@@ -2049,7 +1643,7 @@ function EditorShell({
           return;
         }
 
-        if (getActiveDocument(stateRef.current)) {
+        if (workspaceController.getActiveDocument()) {
           enterEditingMode();
         }
       }
@@ -2311,7 +1905,7 @@ function EditorShell({
 
   useEffect(
     () => () => {
-      clearAutosaveTimer();
+      saveController.resetAutosaveRuntime();
       clearOutlineCloseTimer();
       clearSettingsCloseTimer();
       clearNotificationTimers();
@@ -2320,7 +1914,7 @@ function EditorShell({
       clearThemeRuntimeEnv(document.documentElement);
       clearDocumentPreferences(document.documentElement);
     },
-    [clearAutosaveTimer, clearNotificationTimers]
+    [clearNotificationTimers, saveController.resetAutosaveRuntime]
   );
 
   return (
@@ -2342,6 +1936,8 @@ function EditorShell({
         setEditorContentSnapshot={editorTestBridge.setEditorContentSnapshot}
         openWorkspaceFileFromPath={editorTestBridge.openWorkspaceFileFromPath}
         saveMarkdownFile={editorTestBridge.saveMarkdownFile}
+        updateWorkspaceTabDraft={editorTestBridge.updateWorkspaceTabDraft}
+        getWorkspaceSnapshot={editorTestBridge.getWorkspaceSnapshot}
       />
       {controlledTitlebarEnabled ? (
         <TitlebarHost
@@ -2498,11 +2094,11 @@ function EditorShell({
               </p>
             </div>
           ) : null}
-          {state.externalFileState.status !== "idle" ? (
+          {externalConflictController.externalFileState.status !== "idle" ? (
             <section
               className="external-file-conflict-banner"
               data-fishmark-region="external-file-conflict-banner"
-              data-status={state.externalFileState.status}
+              data-status={externalConflictController.externalFileState.status}
               role="status"
               aria-live="polite"
             >
@@ -2512,16 +2108,18 @@ function EditorShell({
                   type="button"
                   className="external-file-conflict-button"
                   onClick={() => {
-                    void handleReloadExternalFile();
+                    void externalConflictController.reloadFromDisk().then(() => {
+                      setShellMode("reading");
+                    });
                   }}
                 >
                   重载磁盘版本
                 </button>
-                {state.externalFileState.status === "pending" ? (
+                {externalConflictController.externalFileState.status === "pending" ? (
                   <button
                     type="button"
                     className="external-file-conflict-button"
-                    onClick={handleKeepExternalFileMemoryVersion}
+                    onClick={externalConflictController.keepMemoryVersion}
                   >
                     保留当前编辑
                   </button>
@@ -2535,11 +2133,11 @@ function EditorShell({
                 >
                   另存为新文件
                 </button>
-                {state.externalFileState.status === "keeping-memory" ? (
+                {externalConflictController.externalFileState.status === "keeping-memory" ? (
                   <button
                     type="button"
                     className="external-file-conflict-button is-secondary"
-                    onClick={handleDismissExternalFileConflict}
+                    onClick={externalConflictController.dismissConflict}
                   >
                     关闭提示
                   </button>
@@ -2694,25 +2292,16 @@ function EditorShell({
                       onChange={(nextContent) => {
                         editorContentRef.current = nextContent;
                         setOutlineItems(deriveOutlineItems(nextContent));
-                        let nextState: AppState = stateRef.current;
+                        saveController.scheduleAutosave();
 
-                        applyState((current) => {
-                          nextState = applyEditorContentChanged(current, nextContent);
-                          return nextState;
-                        });
-
-                        const draftTabId = nextState.workspace.activeTabId;
-
-                        if (draftTabId) {
-                          void queueWorkspaceDraftSync(draftTabId, nextContent).catch(() => {
+                        void workspaceController
+                          .updateDraft(nextContent)
+                          .catch(() => {
                             // Keep the renderer draft responsive even if workspace sync lags briefly.
                           });
-                        }
-
-                        scheduleAutosave(nextState);
                       }}
                       onBlur={() => {
-                        void runAutosave();
+                        void saveController.runAutosave();
                       }}
                     />
                   </div>

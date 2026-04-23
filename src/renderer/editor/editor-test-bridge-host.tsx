@@ -2,9 +2,9 @@ import { useEffect, useEffectEvent } from "react";
 
 import type { EditorTestCommandEnvelope } from "../../shared/editor-test-command";
 import type { SaveMarkdownFileResult } from "../../shared/save-markdown-file";
-import type { OpenWorkspaceFileFromPathResult } from "../../shared/workspace";
+import type { OpenWorkspaceFileFromPathResult, WorkspaceWindowSnapshot } from "../../shared/workspace";
 import { createEditorTestDriver } from "../editor-test-driver";
-import type { AppState } from "../document-state";
+import type { EditorShellState } from "./editor-shell-state";
 
 type EditorBridge = {
   getContent: () => string;
@@ -21,13 +21,15 @@ type EditorBridge = {
 
 export type EditorTestBridgeHostProps = {
   fishmarkTest?: Window["fishmarkTest"];
-  getState: () => AppState;
-  applyState: (updater: (current: AppState) => AppState) => void;
+  getState: () => EditorShellState;
+  applyState: (updater: (current: EditorShellState) => EditorShellState) => void;
   resetAutosaveRuntime: () => void;
   editor: EditorBridge;
   setEditorContentSnapshot: (content: string) => void;
   openWorkspaceFileFromPath: (targetPath: string) => Promise<OpenWorkspaceFileFromPathResult>;
   saveMarkdownFile: (input: { tabId: string; path: string }) => Promise<SaveMarkdownFileResult>;
+  updateWorkspaceTabDraft: (input: { tabId: string; content: string }) => Promise<WorkspaceWindowSnapshot>;
+  getWorkspaceSnapshot: () => Promise<WorkspaceWindowSnapshot>;
 };
 
 export function EditorTestBridgeHost(props: EditorTestBridgeHostProps): null {
@@ -43,7 +45,9 @@ export function EditorTestBridgeHost(props: EditorTestBridgeHostProps): null {
       editor: props.editor,
       setEditorContentSnapshot: props.setEditorContentSnapshot,
       openWorkspaceFileFromPath: props.openWorkspaceFileFromPath,
-      saveMarkdownFile: props.saveMarkdownFile
+      saveMarkdownFile: props.saveMarkdownFile,
+      updateWorkspaceTabDraft: props.updateWorkspaceTabDraft,
+      getWorkspaceSnapshot: props.getWorkspaceSnapshot
     });
 
     try {
