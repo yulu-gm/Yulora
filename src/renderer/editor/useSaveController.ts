@@ -159,6 +159,11 @@ export function useSaveController(input: {
     clearAutosaveTimer();
     const activeDocument = getActiveDocument();
 
+    if (inFlightSaveOriginRef.current) {
+      pendingAutosaveReplayRef.current = true;
+      return;
+    }
+
     if (
       !activeDocument ||
       !activeDocument.path ||
@@ -166,11 +171,6 @@ export function useSaveController(input: {
       hasExternalFileConflictRef.current()
     ) {
       pendingAutosaveReplayRef.current = false;
-      return;
-    }
-
-    if (inFlightSaveOriginRef.current) {
-      pendingAutosaveReplayRef.current = true;
       return;
     }
 

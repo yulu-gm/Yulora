@@ -20,7 +20,7 @@ function createActiveDocument(
 ): WorkspaceDocumentSnapshot {
   return {
     tabId: input.tabId ?? "tab-1",
-    path: input.path ?? "C:/notes/note.md",
+    path: input.path === undefined ? "C:/notes/note.md" : input.path,
     name: input.name ?? "note.md",
     content: input.content ?? "# Note\n",
     encoding: "utf-8",
@@ -301,6 +301,111 @@ describe("useSaveController", () => {
     expect(saveMarkdownFile).toHaveBeenCalledWith({
       tabId: "tab-1",
       path: "C:/notes/note.md"
+    });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("replays autosave after first Save As when edits happen while the document is still untitled", async () => {
+    vi.useFakeTimers();
+
+    let resolveSaveAs!: (value: {
+      status: "success";
+      document: {
+        path: string;
+        name: string;
+        content: string;
+        encoding: "utf-8";
+      };
+    }) => void;
+    const saveAsPromise = new Promise<{
+      status: "success";
+      document: {
+        path: string;
+        name: string;
+        content: string;
+        encoding: "utf-8";
+      };
+    }>((resolve) => {
+      resolveSaveAs = resolve;
+    });
+    const flushActiveWorkspaceDraft = vi.fn(async () => {});
+    const saveMarkdownFileAs = vi.fn(() => saveAsPromise);
+    const saveMarkdownFile = vi.fn(async () => ({
+      status: "success" as const,
+      document: {
+        path: "C:/notes/untitled.md",
+        name: "untitled.md",
+        content: "# Newer draft\n",
+        encoding: "utf-8" as const
+      }
+    }));
+    const refreshWorkspaceSnapshot = vi.fn(async () => null);
+    let activeDocument = createActiveDocument({
+      path: null,
+      content: "# Saved draft\n",
+      isDirty: true
+    });
+    let editorContent = "# Saved draft\n";
+
+    const { latestRef, root } = renderController({
+      fishmark: {
+        saveMarkdownFile,
+        saveMarkdownFileAs
+      } as unknown as Window["fishmark"],
+      getActiveDocument: () => activeDocument,
+      getEditorContent: () => editorContent,
+      flushActiveWorkspaceDraft,
+      refreshWorkspaceSnapshot: async () => {
+        activeDocument = createActiveDocument({
+          path: "C:/notes/untitled.md",
+          name: "untitled.md",
+          content: editorContent,
+          isDirty: true
+        });
+        return refreshWorkspaceSnapshot();
+      },
+      hasExternalFileConflict: () => false,
+      autosaveDelayMs: 25,
+      showNotification: vi.fn()
+    });
+
+    const saveAsRun = act(async () => {
+      await latestRef.current?.runManualSave();
+    });
+
+    await vi.waitFor(() => {
+      expect(saveMarkdownFileAs).toHaveBeenCalledTimes(1);
+    });
+
+    editorContent = "# Newer draft\n";
+
+    act(() => {
+      latestRef.current?.scheduleAutosave();
+    });
+
+    resolveSaveAs({
+      status: "success",
+      document: {
+        path: "C:/notes/untitled.md",
+        name: "untitled.md",
+        content: "# Saved draft\n",
+        encoding: "utf-8"
+      }
+    });
+
+    await saveAsRun;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(25);
+    });
+
+    expect(saveMarkdownFile).toHaveBeenCalledTimes(1);
+    expect(saveMarkdownFile).toHaveBeenCalledWith({
+      tabId: "tab-1",
+      path: "C:/notes/untitled.md"
     });
 
     act(() => {
