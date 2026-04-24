@@ -1,15 +1,11 @@
 import {
-  Suspense,
-  lazy,
   useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactElement,
-  type SVGProps
+  type CSSProperties
 } from "react";
 
 import {
@@ -21,70 +17,52 @@ import {
 } from "@fishmark/editor-core";
 import type { AppNotification, AppUpdateState } from "../../shared/app-update";
 import type { AppMenuCommand } from "../../shared/menu-command";
-import { createPreviewAssetUrl } from "../../shared/preview-asset-url";
-import type { ThemePackageManifest, ThemeSurfaceSlot } from "../../shared/theme-package";
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
   type PreferencesUpdate,
-  type ThemeMode
 } from "../../shared/preferences";
-import { CodeEditorView, type CodeEditorHandle } from "../code-editor-view";
+import type { CodeEditorHandle } from "../code-editor-view";
 import { deriveOutlineItems, type OutlineItem } from "../outline";
 import { createThemePackageRuntime } from "../theme-package-runtime";
-import {
-  normalizeThemePackageDescriptor,
-  resolveActiveThemePackage
-} from "../theme-package-catalog";
 import { getDocumentMetrics } from "../document-metrics";
 import {
   applyThemeParameterCssVariables,
   clearThemeParameterCssVariables,
-  resolveEffectiveThemeParameterValue
 } from "../theme-style-runtime";
 import {
   applyThemeRuntimeEnv,
-  buildThemeRuntimeEnv,
   clearThemeRuntimeEnv,
-  type ThemeRuntimeEnv
 } from "../theme-runtime-env";
-import {
-  ThemeSurfaceHost,
-  type ThemeSurfaceHostDescriptor
-} from "./ThemeSurfaceHost";
 import { EditorTestBridgeHost } from "./editor-test-bridge-host";
-import { TitlebarHost } from "./TitlebarHost";
 import {
   normalizeTitlebarLayout,
   resolveDefaultTitlebarLayout
 } from "./titlebar-layout";
-import type { ThemeSurfaceRuntimeMode } from "../shader/theme-surface-runtime";
 import {
-  resolveThemeDynamicAggregateMode,
+  type ThemeDynamicAggregateMode,
   shouldWarnForThemeDynamicFallback,
-  type ThemeDynamicAggregateMode
 } from "./theme-dynamic-mode";
 import { type ExternalMarkdownFileState } from "./editor-shell-state";
-import { ShortcutHintOverlay } from "./shortcut-hint-overlay";
+import type { ThemeSurfaceRuntimeMode } from "../shader/theme-surface-runtime";
+import { WorkspaceShell } from "./WorkspaceShell";
 import { useEditorWorkflowController } from "./useEditorWorkflowController";
 import { useExternalConflictController } from "./useExternalConflictController";
 import { useSaveController } from "./useSaveController";
+import { useSettingsController } from "./useSettingsController";
+import {
+  resolveActiveThemePackageManifest,
+  useThemeController,
+  type ResolvedThemeMode
+} from "./useThemeController";
 import { useWorkspaceController } from "./useWorkspaceController";
 
-const SettingsView = lazy(async () => {
-  const module = await import("./settings-view");
-  return { default: module.SettingsView };
-});
-
-type ResolvedThemeMode = Exclude<ThemeMode, "system">;
-type ThemePackageEntry = Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>[number];
 const EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE =
   "当前文件已被外部修改。请先决定是重载磁盘版本，还是保留当前编辑并另存为。";
 const EXTERNAL_FILE_DELETED_PENDING_MESSAGE =
   "当前文件已在磁盘上被删除或移走。你可以重载、保留当前编辑，或另存为新文件。";
 const EXTERNAL_FILE_KEEPING_MEMORY_MESSAGE =
   "正在保留当前内存版本，autosave 已暂停。请另存为新文件，避免覆盖外部变化。";
-const DARK_MODE_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 const THEME_ATTRIBUTE = "data-fishmark-theme";
 const UI_FONT_FAMILY_CSS_VAR = "--fishmark-ui-font-family";
 const UI_FONT_SIZE_CSS_VAR = "--fishmark-ui-font-size";
@@ -94,15 +72,6 @@ const DOCUMENT_FONT_SIZE_CSS_VAR = "--fishmark-document-font-size";
 const THEME_DYNAMIC_MODE_ATTRIBUTE = "data-fishmark-theme-dynamic-mode";
 const OUTLINE_EXIT_ANIMATION_MS = 180;
 const SETTINGS_DRAWER_EXIT_ANIMATION_MS = 180;
-type TableToolTone = "default" | "danger";
-type TableToolIconComponent = (props: SVGProps<SVGSVGElement>) => ReactElement;
-type TableToolAction = {
-  id: string;
-  label: string;
-  tone: TableToolTone;
-  icon: TableToolIconComponent;
-  onClick: () => void;
-};
 
 function getExternalFileConflictMessage(externalFileState: ExternalMarkdownFileState): string {
   if (externalFileState.status === "idle") {
@@ -118,64 +87,6 @@ function getExternalFileConflictMessage(externalFileState: ExternalMarkdownFileS
     : EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE;
 }
 
-function RowAboveIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M12 3v4M10 5h4M4 9h16M4 9v11M20 9v11M8 9v11M16 9v11M4 14.5h16" />
-    </svg>
-  );
-}
-
-function RowBelowIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M4 4h16M4 4v11M20 4v11M8 4v11M16 4v11M4 9.5h16M12 17v4M10 19h4" />
-    </svg>
-  );
-}
-
-function ColumnLeftIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M4 4h14M4 20h14M8 4v16M13 4v16M18 4v16M2 12h4M4 10v4" />
-    </svg>
-  );
-}
-
-function ColumnRightIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M6 4h14M6 20h14M6 4v16M11 4v16M16 4v16M18 12h4M20 10v4" />
-    </svg>
-  );
-}
-
-function DeleteRowIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M4 4h16M4 4v16M20 4v16M8 4v16M16 4v16M4 9.5h16M9 14.5h6" />
-      <path d="M18 12l3 3M21 12l-3 3" />
-    </svg>
-  );
-}
-
-function DeleteColumnIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M4 4h16M4 20h16M4 4v16M9 4v16M14 4v16M4 9.5h16M4 14.5h16" />
-      <path d="M17 3l3 3M20 3l-3 3" />
-    </svg>
-  );
-}
-
-function DeleteTableIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
-      <path d="M5 5h14M5 5v14M19 5v14M9.5 5v14M14.5 5v14M5 9.5h14M5 14.5h14" />
-      <path d="M7 7l10 10M17 7L7 17" />
-    </svg>
-  );
-}
 const APP_NOTIFICATION_DURATION_MS = 3000;
 const APP_NOTIFICATION_EXIT_ANIMATION_MS = 180;
 const THEME_DYNAMIC_FALLBACK_MESSAGE = "主题动态效果已自动关闭，已回退到静态样式。";
@@ -314,22 +225,6 @@ function supportsControlledTitlebar(platform: NodeJS.Platform): boolean {
   return platform === "darwin";
 }
 
-function resolveThemeMode(mode: ThemeMode): ResolvedThemeMode {
-  if (mode === "light" || mode === "dark") {
-    return mode;
-  }
-
-  const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
-  return mediaQuery?.matches ? "dark" : "light";
-}
-
-function getWindowViewport(): ThemeRuntimeEnv["viewport"] {
-  return {
-    width: window.innerWidth,
-    height: window.innerHeight
-  };
-}
-
 function applyPreferencesToDocument(
   root: HTMLElement,
   preferences: Preferences,
@@ -391,140 +286,6 @@ function clearThemeDynamicModeFromDocument(root: HTMLElement): void {
   root.removeAttribute(THEME_DYNAMIC_MODE_ATTRIBUTE);
 }
 
-function resolveThemeWarningMessage(
-  resolution: ReturnType<typeof resolveActiveThemePackage>
-): string | null {
-  if (resolution.fallbackReason === "unsupported-mode") {
-    return `该主题不支持${resolution.resolvedMode === "light" ? "浅色" : "深色"}模式，已回退到 FishMark 默认。`;
-  }
-
-  if (resolution.fallbackReason === "missing-theme") {
-    return "已配置主题未找到，已回退到 FishMark 默认。";
-  }
-
-  return null;
-}
-
-function resolveSurfaceChannels(
-  channels: ThemeSurfaceHostDescriptor["channels"] | undefined
-): ThemeSurfaceHostDescriptor["channels"] | undefined {
-  const channel0 = channels?.["0"];
-
-  if (!channel0 || channel0.type !== "image") {
-    return undefined;
-  }
-
-  return {
-    "0": {
-      type: "image",
-      src: createPreviewAssetUrl(channel0.src)
-    }
-  };
-}
-
-/**
- * Compose the effective shader uniform map for a theme by layering:
- *   1. `scene.sharedUniforms` declared in the manifest,
- *   2. defaults from each shader-bound parameter (keyed by `uniform`),
- *   3. user overrides from `preferences.theme.parameters[themeId]` (keyed by
- *      parameter id, mapped to the parameter's `uniform`).
- *
- * Parameters without a `uniform` remain UI/CSS-only and are intentionally
- * excluded from the shader pipeline.
- */
-function composeEffectiveUniforms(
-  manifest: ThemePackageManifest,
-  parameterOverrides: Record<string, number> | undefined
-): Record<string, number> {
-  const uniforms: Record<string, number> = {
-    ...(manifest.scene?.sharedUniforms ?? {})
-  };
-
-  const parameters = manifest.parameters ?? [];
-  for (const parameter of parameters) {
-    if (!parameter.uniform) {
-      continue;
-    }
-
-    uniforms[parameter.uniform] = resolveEffectiveThemeParameterValue(parameter, parameterOverrides);
-  }
-
-  return uniforms;
-}
-
-function resolveActiveThemePackageManifest(
-  selectedId: string | null,
-  themePackages: ThemePackageEntry[],
-  mode: ResolvedThemeMode
-): ThemePackageManifest | null {
-  if (!selectedId) {
-    return null;
-  }
-
-  const activeThemePackage = themePackages.find((entry) => entry.id === selectedId) ?? null;
-
-  if (!activeThemePackage || !activeThemePackage.manifest.supports[mode]) {
-    return null;
-  }
-
-  return activeThemePackage.manifest;
-}
-
-function resolveActiveThemeSurface(
-  selectedId: string | null,
-  themePackages: ThemePackageEntry[],
-  mode: ResolvedThemeMode,
-  surface: ThemeSurfaceSlot,
-  parameterOverrides: Record<string, number> | undefined
-): ThemeSurfaceHostDescriptor | null {
-  if (!selectedId) {
-    return null;
-  }
-
-  const activeThemePackage = themePackages.find((entry) => entry.id === selectedId) ?? null;
-
-  if (!activeThemePackage || !activeThemePackage.manifest.supports[mode]) {
-    return null;
-  }
-
-  const fragmentSurface = activeThemePackage.manifest.surfaces[surface];
-  const scene = activeThemePackage.manifest.scene;
-
-  if (!fragmentSurface || fragmentSurface.kind !== "fragment" || !scene) {
-    return null;
-  }
-
-  if (fragmentSurface.scene !== scene.id) {
-    return null;
-  }
-
-  return {
-    kind: "fragment",
-    sceneId: scene.id,
-    shaderUrl: createPreviewAssetUrl(fragmentSurface.shader),
-    channels: resolveSurfaceChannels(fragmentSurface.channels),
-    renderSettings: {
-      ...(scene.render ? { scene: scene.render } : {}),
-      ...(fragmentSurface.render ? { surface: fragmentSurface.render } : {})
-    },
-    sharedUniforms: composeEffectiveUniforms(activeThemePackage.manifest, parameterOverrides)
-  };
-}
-
-function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "closing" }) {
-  return (
-    <section
-      className="settings-shell"
-      data-fishmark-panel="settings-drawer"
-      data-fishmark-surface="floating-drawer"
-      data-state={surfaceState}
-      role="dialog"
-      aria-modal="true"
-      aria-busy="true"
-    />
-  );
-}
-
 export default function EditorApp() {
   const fishmark = window.fishmark;
 
@@ -551,8 +312,6 @@ function EditorShell({
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isOutlineClosing, setIsOutlineClosing] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isSettingsClosing, setIsSettingsClosing] = useState(false);
   const [shellMode, setShellMode] = useState<ShellMode>("reading");
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [fontFamilies, setFontFamilies] = useState<string[]>([]);
@@ -574,9 +333,6 @@ function EditorShell({
   const [titlebarSurfaceRuntimeMode, setTitlebarSurfaceRuntimeMode] = useState<
     ThemeSurfaceRuntimeMode | null
   >(null);
-  const [systemThemeMode, setSystemThemeMode] = useState<ResolvedThemeMode>(() =>
-    resolveThemeMode("system")
-  );
   const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [isShortcutHintArmed, setIsShortcutHintArmed] = useState(false);
   const [activeShortcutGroupId, setActiveShortcutGroupId] =
@@ -589,12 +345,8 @@ function EditorShell({
   const startupOpenPathRef = useRef(fishmark.startupOpenPath);
   const preferencesRef = useRef<Preferences>(DEFAULT_PREFERENCES);
   const settingsEntryRef = useRef<HTMLButtonElement | null>(null);
-  const settingsOpenOriginRef = useRef<"editor" | null>(null);
-  const shouldRestoreEditorFocusRef = useRef(false);
-  const pendingFocusRestoreRef = useRef<"editor" | "settings-entry" | null>(null);
   const themePackageRuntimeRef = useRef<ReturnType<typeof createThemePackageRuntime> | null>(null);
   const outlineCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const settingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shortcutHintHoldTimerRef = useRef<number | null>(null);
@@ -701,8 +453,6 @@ function EditorShell({
   const {
     state,
     activeDocument,
-    workspaceTabs,
-    activeTabId,
     openState,
     editorLoadRevision,
     getActiveDocument: getWorkspaceActiveDocument,
@@ -726,11 +476,29 @@ function EditorShell({
     : "";
   const currentDocumentMetrics = activeDocument ? getDocumentMetrics(currentDocumentContent) : null;
   const currentDocumentWordCount = currentDocumentMetrics?.meaningfulCharacterCount ?? 0;
+  const settingsController = useSettingsController({
+    activeDocument,
+    editorContainerRef,
+    editorRef,
+    settingsEntryRef,
+    exitAnimationMs: SETTINGS_DRAWER_EXIT_ANIMATION_MS,
+    onOpenWithActiveDocument: () => {
+      setShellMode("editing");
+    }
+  });
+  const {
+    captureSettingsOpenOrigin,
+    clearSettingsCloseTimer,
+    closeSettingsDrawer,
+    isSettingsClosing,
+    isSettingsOpen,
+    isSettingsDrawerVisible,
+    openSettingsDrawer
+  } = settingsController;
   const isDocumentOpen = activeDocument !== null;
   const isReadingMode = shellMode === "reading";
   const isDocumentReadingMode = isDocumentOpen && isReadingMode;
   const isOutlinePanelVisible = isOutlineOpen || isOutlineClosing;
-  const isSettingsDrawerVisible = isSettingsOpen || isSettingsClosing;
   const hintText =
     openState === "opening"
       ? "Opening document..."
@@ -763,96 +531,29 @@ function EditorShell({
     : null;
   const appVersionLabel = `FishMark v${__FISHMARK_APP_VERSION__}`;
   const controlledTitlebarEnabled = supportsControlledTitlebar(fishmark.platform);
-  const resolvedThemeMode =
-    preferences.theme.mode === "system" ? systemThemeMode : preferences.theme.mode;
-  const themeRuntimeEnv = useMemo<ThemeRuntimeEnv>(
-    () =>
-      buildThemeRuntimeEnv({
-        wordCount: currentDocumentWordCount,
-        isReadingMode: isDocumentReadingMode,
-        themeMode: resolvedThemeMode,
-        viewport: getWindowViewport()
-      }),
-    [currentDocumentWordCount, isDocumentReadingMode, resolvedThemeMode]
-  );
-  const activeThemePackages = themePackages.map(normalizeThemePackageDescriptor);
-  const activeThemePackageResolution = resolveActiveThemePackage(
-    preferences.theme.selectedId,
-    activeThemePackages,
-    resolvedThemeMode
-  );
-  const themeWarningMessage =
-    activeThemePackageResolution.fallbackReason === "missing-theme" &&
-    (themePackageCatalogState !== "loaded" || isRefreshingThemePackages)
-      ? null
-      : resolveThemeWarningMessage(activeThemePackageResolution);
-  const activeThemeParameterOverrides = useMemo<Record<string, number> | undefined>(() => {
-    if (!preferences.theme.selectedId) {
-      return undefined;
-    }
-
-    return preferences.theme.parameters?.[preferences.theme.selectedId];
-  }, [preferences.theme.parameters, preferences.theme.selectedId]);
-  const activeWorkbenchSurface = useMemo(
-    () =>
-      preferences.theme.effectsMode === "off"
-        ? null
-        : resolveActiveThemeSurface(
-            preferences.theme.selectedId,
-            themePackages,
-            resolvedThemeMode,
-            "workbenchBackground",
-            activeThemeParameterOverrides
-          ),
-    [
-      preferences.theme.effectsMode,
-      preferences.theme.selectedId,
-      resolvedThemeMode,
-      themePackages,
-      activeThemeParameterOverrides
-    ]
-  );
-  const activeTitlebarSurface = useMemo(
-    () =>
-      !controlledTitlebarEnabled || preferences.theme.effectsMode === "off"
-        ? null
-        : resolveActiveThemeSurface(
-            preferences.theme.selectedId,
-            themePackages,
-            resolvedThemeMode,
-            "titlebarBackdrop",
-            activeThemeParameterOverrides
-          ),
-    [
-      preferences.theme.effectsMode,
-      preferences.theme.selectedId,
-      resolvedThemeMode,
-      themePackages,
-      controlledTitlebarEnabled,
-      activeThemeParameterOverrides
-    ]
-  );
+  const {
+    activeThemeParameterOverrides,
+    activeThemePackageResolution,
+    activeTitlebarSurface,
+    activeWorkbenchSurface,
+    createThemeRuntimeEnv,
+    resolvedThemeMode,
+    themeDynamicMode,
+    themeRuntimeEnv,
+    themeWarningMessage
+  } = useThemeController({
+    preferences,
+    themePackages,
+    themePackageCatalogState,
+    isRefreshingThemePackages,
+    currentDocumentWordCount,
+    isDocumentReadingMode,
+    controlledTitlebarEnabled,
+    workbenchSurfaceRuntimeMode,
+    titlebarSurfaceRuntimeMode
+  });
   const activeWorkbenchChannel0Src = activeWorkbenchSurface?.channels?.["0"]?.src ?? null;
   const activeTitlebarChannel0Src = activeTitlebarSurface?.channels?.["0"]?.src ?? null;
-  const themeDynamicMode = useMemo<ThemeDynamicAggregateMode>(
-    () =>
-      resolveThemeDynamicAggregateMode({
-        workbench: {
-          active: activeWorkbenchSurface !== null,
-          mode: workbenchSurfaceRuntimeMode
-        },
-        titlebar: {
-          active: activeTitlebarSurface !== null,
-          mode: titlebarSurfaceRuntimeMode
-        }
-      }),
-    [
-      activeTitlebarSurface,
-      activeWorkbenchSurface,
-      titlebarSurfaceRuntimeMode,
-      workbenchSurfaceRuntimeMode
-    ]
-  );
   const titlebarLayout = useMemo(
     () => normalizeTitlebarLayout(resolveDefaultTitlebarLayout(fishmark.platform)),
     [fishmark.platform]
@@ -863,15 +564,6 @@ function EditorShell({
       ? TABLE_EDITING_SHORTCUT_GROUP
       : DEFAULT_TEXT_SHORTCUT_GROUP;
   const isShortcutHintVisible = isDocumentOpen && isEditorFocused && isShortcutHintArmed;
-
-  function createThemeRuntimeEnv(themeMode: ResolvedThemeMode = resolvedThemeMode): ThemeRuntimeEnv {
-    return buildThemeRuntimeEnv({
-      wordCount: currentDocumentWordCount,
-      isReadingMode: isDocumentReadingMode,
-      themeMode,
-      viewport: getWindowViewport()
-    });
-  }
 
   const syncThemeRuntimeEnv = useEffectEvent((themeMode: ResolvedThemeMode = resolvedThemeMode): void => {
     applyThemeRuntimeEnv(document.documentElement, createThemeRuntimeEnv(themeMode));
@@ -914,69 +606,6 @@ function EditorShell({
     editorRef.current?.deleteTable();
   }, []);
 
-  const tableToolActions = useMemo<TableToolAction[]>(
-    () => [
-      {
-        id: "row-above",
-        label: "Row Above",
-        tone: "default",
-        icon: RowAboveIcon,
-        onClick: insertTableRowAbove
-      },
-      {
-        id: "row-below",
-        label: "Row Below",
-        tone: "default",
-        icon: RowBelowIcon,
-        onClick: insertTableRowBelow
-      },
-      {
-        id: "column-left",
-        label: "Column Left",
-        tone: "default",
-        icon: ColumnLeftIcon,
-        onClick: insertTableColumnLeft
-      },
-      {
-        id: "column-right",
-        label: "Column Right",
-        tone: "default",
-        icon: ColumnRightIcon,
-        onClick: insertTableColumnRight
-      },
-      {
-        id: "delete-row",
-        label: "Delete Row",
-        tone: "danger",
-        icon: DeleteRowIcon,
-        onClick: deleteTableRow
-      },
-      {
-        id: "delete-column",
-        label: "Delete Column",
-        tone: "danger",
-        icon: DeleteColumnIcon,
-        onClick: deleteTableColumn
-      },
-      {
-        id: "delete-table",
-        label: "Delete Table",
-        tone: "danger",
-        icon: DeleteTableIcon,
-        onClick: deleteTable
-      }
-    ],
-    [
-      deleteTable,
-      deleteTableColumn,
-      deleteTableRow,
-      insertTableColumnLeft,
-      insertTableColumnRight,
-      insertTableRowAbove,
-      insertTableRowBelow
-    ]
-  );
-
   const handleWorkbenchSurfaceRuntimeModeChange = useCallback((mode: ThemeSurfaceRuntimeMode) => {
     setWorkbenchSurfaceRuntimeMode((current) => (current === mode ? current : mode));
   }, []);
@@ -1018,13 +647,6 @@ function EditorShell({
     }
   }
 
-  function clearSettingsCloseTimer(): void {
-    if (settingsCloseTimerRef.current !== null) {
-      clearTimeout(settingsCloseTimerRef.current);
-      settingsCloseTimerRef.current = null;
-    }
-  }
-
   const enterEditingMode = useCallback((): void => {
     pendingEditorOpenBlurTokenRef.current += 1;
     setShellMode("editing");
@@ -1062,17 +684,21 @@ function EditorShell({
   }, [blurFocusedEditorElement]);
 
   const enterReadingMode = useCallback((): void => {
-    if (!activeDocument || isSettingsOpen || isSettingsClosing) {
+    if (
+      !activeDocument ||
+      isSettingsOpen ||
+      isSettingsClosing
+    ) {
       return;
     }
 
     setShellMode("reading");
     blurFocusedEditorElement();
   }, [
+    activeDocument,
     blurFocusedEditorElement,
     isSettingsClosing,
-    isSettingsOpen,
-    activeDocument
+    isSettingsOpen
   ]);
 
   const handleAppWorkspaceMouseDownCapture = useCallback(
@@ -1186,46 +812,6 @@ function EditorShell({
     setPreferences(result.preferences);
     scheduleAutosave();
     return result;
-  }
-
-  function openSettingsDrawer(): void {
-    if (activeDocument) {
-      setShellMode("editing");
-    }
-    const activeElement = document.activeElement;
-    shouldRestoreEditorFocusRef.current =
-      settingsOpenOriginRef.current === "editor" ||
-      (activeElement instanceof Node ? !!editorContainerRef.current?.contains(activeElement) : false);
-    settingsOpenOriginRef.current = null;
-    clearSettingsCloseTimer();
-    setIsSettingsClosing(false);
-    setIsSettingsOpen(true);
-  }
-
-  function captureSettingsOpenOrigin(): void {
-    const activeElement = document.activeElement;
-    settingsOpenOriginRef.current =
-      activeElement instanceof Node && editorContainerRef.current?.contains(activeElement)
-        ? "editor"
-        : null;
-  }
-
-  function closeSettingsDrawer(): void {
-    clearSettingsCloseTimer();
-    setIsSettingsOpen(false);
-    setIsSettingsClosing(true);
-
-    if (shouldRestoreEditorFocusRef.current) {
-      shouldRestoreEditorFocusRef.current = false;
-      pendingFocusRestoreRef.current = "editor";
-    } else {
-      pendingFocusRestoreRef.current = "settings-entry";
-    }
-
-    settingsCloseTimerRef.current = setTimeout(() => {
-      settingsCloseTimerRef.current = null;
-      setIsSettingsClosing(false);
-    }, SETTINGS_DRAWER_EXIT_ANIMATION_MS);
   }
 
   const handleEscapeCloseSettings = useEffectEvent((): void => {
@@ -1592,22 +1178,6 @@ function EditorShell({
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.(DARK_MODE_MEDIA_QUERY);
-
-    if (!mediaQuery) {
-      return undefined;
-    }
-
-    const applySystemThemeMode = () => {
-      setSystemThemeMode(mediaQuery.matches ? "dark" : "light");
-    };
-
-    applySystemThemeMode();
-    mediaQuery.addEventListener("change", applySystemThemeMode);
-    return () => mediaQuery.removeEventListener("change", applySystemThemeMode);
-  }, []);
-
-  useEffect(() => {
     const handleResize = () => syncThemeRuntimeEnv();
 
     window.addEventListener("resize", handleResize);
@@ -1773,13 +1343,6 @@ function EditorShell({
 
     const applyCurrentTheme = () => {
       const root = document.documentElement;
-      const resolvedThemeMode = resolveThemeMode(preferences.theme.mode);
-      const activeThemePackages = themePackages.map(normalizeThemePackageDescriptor);
-      const activeThemePackageResolution = resolveActiveThemePackage(
-        preferences.theme.selectedId,
-        activeThemePackages,
-        resolvedThemeMode
-      );
       const activeThemeManifest = resolveActiveThemePackageManifest(
         preferences.theme.selectedId,
         themePackages,
@@ -1795,7 +1358,13 @@ function EditorShell({
     };
 
     applyCurrentTheme();
-  }, [activeThemeParameterOverrides, preferences, resolvedThemeMode, themePackages]);
+  }, [
+    activeThemePackageResolution.descriptor,
+    activeThemeParameterOverrides,
+    preferences,
+    resolvedThemeMode,
+    themePackages
+  ]);
 
   useEffect(() => {
     return fishmark.onAppUpdateState((nextState) => {
@@ -1886,20 +1455,6 @@ function EditorShell({
   }, [activeDocument?.path, isDocumentOpen, shellMode, state.editorLoadRevision]);
 
   useEffect(() => {
-    if (isSettingsOpen || isSettingsClosing || pendingFocusRestoreRef.current === null) {
-      return;
-    }
-
-    if (pendingFocusRestoreRef.current === "editor") {
-      editorRef.current?.focus();
-    } else {
-      settingsEntryRef.current?.focus();
-    }
-
-    pendingFocusRestoreRef.current = null;
-  }, [isSettingsClosing, isSettingsOpen]);
-
-  useEffect(() => {
     if (!isSettingsOpen) {
       return undefined;
     }
@@ -1915,7 +1470,11 @@ function EditorShell({
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    if (!isDocumentOpen || isSettingsOpen || isSettingsClosing) {
+    if (
+      !isDocumentOpen ||
+      isSettingsOpen ||
+      isSettingsClosing
+    ) {
       return undefined;
     }
 
@@ -1927,7 +1486,13 @@ function EditorShell({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enterReadingMode, isDocumentOpen, isSettingsClosing, isSettingsOpen, shellMode]);
+  }, [
+    enterReadingMode,
+    isDocumentOpen,
+    isSettingsClosing,
+    isSettingsOpen,
+    shellMode
+  ]);
 
   useEffect(
     () => () => {
@@ -1940,19 +1505,35 @@ function EditorShell({
       clearThemeRuntimeEnv(document.documentElement);
       clearDocumentPreferences(document.documentElement);
     },
-    [clearNotificationTimers, resetAutosaveRuntime]
+    [clearNotificationTimers, clearSettingsCloseTimer, resetAutosaveRuntime]
   );
 
+  const handleActiveBlockChange = useCallback((nextActiveBlockState: ActiveBlockState): void => {
+    activeBlockStateRef.current = nextActiveBlockState;
+    setActiveShortcutGroupId(resolveEditorShortcutGroup(nextActiveBlockState).id);
+    setActiveHeadingId(
+      nextActiveBlockState.activeBlock?.type === "heading"
+        ? nextActiveBlockState.activeBlock.id
+        : null
+    );
+  }, []);
+
+  const handleReloadExternalFile = useCallback((): void => {
+    void externalConflictController.reloadFromDisk().then(() => {
+      setShellMode("reading");
+    });
+  }, [externalConflictController]);
+
+  function handleSaveMarkdownAsCommand(): void {
+    void handleSaveMarkdownAs();
+  }
+
+  const handleTableToolHoverChange = useCallback((toolId: string | null): void => {
+    setActiveTableToolId((current) => (current === toolId ? current : toolId));
+  }, []);
+
   return (
-    <main
-      className="app-shell"
-      data-fishmark-shell-mode={shellMode}
-      style={
-        {
-          "--fishmark-titlebar-height": controlledTitlebarEnabled ? `${titlebarLayout.height}px` : "0px"
-        } as CSSProperties
-      }
-    >
+    <>
       <EditorTestBridgeHost
         fishmarkTest={fishmarkTest}
         getState={editorTestBridge.getState}
@@ -1965,531 +1546,91 @@ function EditorShell({
         updateWorkspaceTabDraft={editorTestBridge.updateWorkspaceTabDraft}
         getWorkspaceSnapshot={editorTestBridge.getWorkspaceSnapshot}
       />
-      {controlledTitlebarEnabled ? (
-        <TitlebarHost
-          platform={fishmark.platform}
-          layout={titlebarLayout}
-          title={headerTitle}
-          isDirty={activeDocument?.isDirty ?? false}
-          themeMode={resolvedThemeMode}
-          runtimeEnv={themeRuntimeEnv}
-          effectsMode={preferences.theme.effectsMode}
-          titlebarSurface={activeTitlebarSurface}
-          onTitlebarSurfaceRuntimeModeChange={handleTitlebarSurfaceRuntimeModeChange}
-        />
-      ) : null}
-      <div
-        className="app-layout"
-        data-fishmark-shell-mode={shellMode}
-        data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
-      >
-        {activeWorkbenchSurface ? (
-          <ThemeSurfaceHost
-            surface="workbenchBackground"
-            descriptor={activeWorkbenchSurface}
-            themeMode={resolvedThemeMode}
-            runtimeEnv={themeRuntimeEnv}
-            effectsMode={preferences.theme.effectsMode}
-            onRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
-          />
-        ) : null}
-        <aside
-          className="app-rail"
-          data-fishmark-layout="rail"
-          data-fishmark-rail-mode={activeShortcutGroup.id}
-          data-visibility={isDocumentOpen && isReadingMode ? "collapsed" : "visible"}
-        >
-          <div className="app-rail-brand">
-            <p className="app-name">FishMark</p>
-            <p className="app-subtitle">Desktop editor</p>
-          </div>
-          <div className="app-rail-content">
-            <div
-              className="app-rail-mode-group app-rail-mode-group-default"
-              data-state={activeShortcutGroup.id === "default-text" ? "open" : "closing"}
-              aria-hidden={activeShortcutGroup.id !== "default-text"}
-            >
-              <div
-                className="app-rail-spacer"
-                aria-hidden="true"
-              />
-            </div>
-            <div
-              className="app-rail-mode-group app-rail-mode-group-table"
-              data-state={activeShortcutGroup.id === "table-editing" ? "open" : "closing"}
-              aria-hidden={activeShortcutGroup.id !== "table-editing"}
-            >
-              <div className="table-tool-strip" data-fishmark-region="table-tool-strip">
-                {tableToolActions.map((action) => {
-                  const Icon = action.icon;
-                  const isTooltipVisible = activeTableToolId === action.id;
-
-                  return (
-                    <button
-                      key={action.id}
-                      type="button"
-                      className="table-tool-button"
-                      data-tone={action.tone}
-                      data-fishmark-region="table-tool-button"
-                      aria-label={action.label}
-                      onClick={action.onClick}
-                      onMouseEnter={() => setActiveTableToolId(action.id)}
-                      onMouseLeave={() => {
-                        setActiveTableToolId((current) => (current === action.id ? null : current));
-                      }}
-                      onFocus={() => setActiveTableToolId(action.id)}
-                      onBlur={() => {
-                        setActiveTableToolId((current) => (current === action.id ? null : current));
-                      }}
-                    >
-                      <Icon className="table-tool-button-icon" />
-                      {isTooltipVisible ? (
-                        <span
-                          className="table-tool-tooltip"
-                          data-fishmark-region="table-tool-tooltip"
-                          role="tooltip"
-                        >
-                          {action.label}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="settings-entry"
-            ref={settingsEntryRef}
-            onMouseDown={captureSettingsOpenOrigin}
-            onClick={openSettingsDrawer}
-            aria-label="打开偏好设置"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M19.14 12.94a7.94 7.94 0 0 0 .05-.94 7.94 7.94 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.94 7.94 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.9 7.9 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <circle
-                cx="12"
-                cy="12"
-                r="2.8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-            </svg>
-            <span>设置</span>
-          </button>
-        </aside>
-
-        <div
-          className="app-workspace"
-          data-fishmark-layout="workspace"
-          data-fishmark-shell-mode={shellMode}
-          data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
-          onMouseDownCapture={handleAppWorkspaceMouseDownCapture}
-        >
-          {notification && notificationState !== "hidden" ? (
-            <div
-              className={`app-notification-banner is-${notification.kind}`}
-              data-fishmark-region="app-notification-banner"
-              data-state={notificationState}
-              role="status"
-              aria-live="polite"
-            >
-              <p className="app-notification-message">
-                {notification.kind === "loading" ? (
-                  <span
-                    className="app-notification-spinner"
-                    data-fishmark-region="app-notification-spinner"
-                    aria-hidden="true"
-                  />
-                ) : null}
-                <span>{notification.message}</span>
-              </p>
-            </div>
-          ) : null}
-          {externalConflictController.externalFileState.status !== "idle" ? (
-            <section
-              className="external-file-conflict-banner"
-              data-fishmark-region="external-file-conflict-banner"
-              data-status={externalConflictController.externalFileState.status}
-              role="status"
-              aria-live="polite"
-            >
-              <p className="external-file-conflict-message">{externalFileConflictMessage}</p>
-              <div className="external-file-conflict-actions">
-                <button
-                  type="button"
-                  className="external-file-conflict-button"
-                  onClick={() => {
-                    void externalConflictController.reloadFromDisk().then(() => {
-                      setShellMode("reading");
-                    });
-                  }}
-                >
-                  重载磁盘版本
-                </button>
-                {externalConflictController.externalFileState.status === "pending" ? (
-                  <button
-                    type="button"
-                    className="external-file-conflict-button"
-                    onClick={externalConflictController.keepMemoryVersion}
-                  >
-                    保留当前编辑
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="external-file-conflict-button"
-                  onClick={() => {
-                    void handleSaveMarkdownAs();
-                  }}
-                >
-                  另存为新文件
-                </button>
-                {externalConflictController.externalFileState.status === "keeping-memory" ? (
-                  <button
-                    type="button"
-                    className="external-file-conflict-button is-secondary"
-                    onClick={externalConflictController.dismissConflict}
-                  >
-                    关闭提示
-                  </button>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-          {workspaceTabs.length > 0 ? (
-            <nav
-              className="workspace-tab-strip"
-              data-fishmark-region="workspace-tab-strip"
-              data-visibility={isReadingMode && isDocumentOpen ? "collapsed" : "visible"}
-              aria-label="Open documents"
-            >
-              <div className="workspace-tab-strip-scroll">
-                {workspaceTabs.map((tab, index) => {
-                  const isActive = tab.tabId === activeTabId;
-                  const tooltip = tab.path ?? tab.name;
-
-                  return (
-                    <div
-                      key={tab.tabId}
-                      className={`workspace-tab-shell ${isActive ? "is-active" : ""}`}
-                      data-fishmark-region="workspace-tab-shell"
-                      data-active={isActive ? "true" : "false"}
-                      data-dirty={tab.isDirty ? "true" : "false"}
-                    >
-                      <button
-                        type="button"
-                        className={`workspace-tab ${isActive ? "is-active" : ""}`}
-                        data-fishmark-region="workspace-tab"
-                        data-active={isActive ? "true" : "false"}
-                        data-dirty={tab.isDirty ? "true" : "false"}
-                        title={tooltip}
-                        draggable
-                        onClick={() => {
-                          void handleActivateWorkspaceTab(tab.tabId);
-                        }}
-                        onAuxClick={(event) => {
-                          if (event.button === 1) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            void handleCloseWorkspaceTab(tab.tabId);
-                          }
-                        }}
-                        onDragStart={(event) => {
-                          handleWorkspaceTabDragStart(tab.tabId, event);
-                        }}
-                        onDragOver={handleWorkspaceTabDragOver}
-                        onDrop={(event) => {
-                          handleWorkspaceTabDrop(tab.tabId, index, event);
-                        }}
-                        onDragEnd={() => {
-                          handleWorkspaceTabDragEnd(tab.tabId);
-                        }}
-                      >
-                        <span className="workspace-tab-label">{tab.name}</span>
-                        <span
-                          className="workspace-tab-dirty-indicator"
-                          data-visibility={tab.isDirty ? "visible" : "hidden"}
-                          aria-hidden="true"
-                        >
-                          •
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="workspace-tab-close"
-                        data-fishmark-region="workspace-tab-close"
-                        aria-label={`Close ${tab.name}`}
-                        title={`Close ${tab.name}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleCloseWorkspaceTab(tab.tabId);
-                        }}
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          aria-hidden="true"
-                          focusable="false"
-                        >
-                          <path
-                            d="M3 3 L9 9 M9 3 L3 9"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </nav>
-          ) : null}
-          <header
-            className="app-header workspace-header"
-            data-fishmark-region="workspace-header"
-            data-visibility={isReadingMode ? "collapsed" : "visible"}
-          >
-            <div className="workspace-title-group">
-              <p className="workspace-kicker">{headerEyebrow}</p>
-              <h1 className="workspace-title">{headerTitle}</h1>
-              <p className="workspace-detail">{headerDetail}</p>
-            </div>
-            {!isDocumentOpen ? <p className="app-hint">{hintText}</p> : null}
-          </header>
-
-          <section
-            className={`workspace-canvas ${activeDocument ? "is-editor-open" : ""}`}
-            data-fishmark-region="workspace-canvas"
-            data-fishmark-shell-mode={shellMode}
-            data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
-          >
-            {activeDocument ? (
-              <>
-                <div
-                  data-fishmark-region="shortcut-hint-overlay-shell"
-                  className="shortcut-hint-overlay-shell"
-                  data-shortcut-hint-state={isShortcutHintVisible ? "visible" : "hidden"}
-                >
-                  <ShortcutHintOverlay
-                    visible={isShortcutHintVisible}
-                    platform={fishmark.platform}
-                    group={activeShortcutGroup}
-                  />
-                </div>
-                <section className={`workspace-shell ${isOutlineOpen ? "is-outline-open" : ""}`}>
-                  <div
-                    className="document-canvas"
-                    ref={editorContainerRef}
-                  >
-                    <CodeEditorView
-                      ref={editorRef}
-                      initialContent={activeDocument.content}
-                      documentPath={activeDocument.path}
-                      loadRevision={state.editorLoadRevision}
-                      importClipboardImage={handleImportClipboardImage}
-                      onActiveBlockChange={(nextActiveBlockState) => {
-                        activeBlockStateRef.current = nextActiveBlockState;
-                        setActiveShortcutGroupId(
-                          resolveEditorShortcutGroup(nextActiveBlockState).id
-                        );
-                        setActiveHeadingId(
-                          nextActiveBlockState.activeBlock?.type === "heading"
-                            ? nextActiveBlockState.activeBlock.id
-                            : null
-                        );
-                      }}
-                      onChange={handleEditorContentChange}
-                      onBlur={handleEditorBlur}
-                    />
-                  </div>
-                  {isOutlinePanelVisible ? (
-                    <aside
-                      className="outline-panel"
-                      data-fishmark-region="outline-panel"
-                      data-state={isOutlineOpen ? "open" : "closing"}
-                      aria-label="Document outline"
-                    >
-                      <div
-                        className="outline-panel-header"
-                        data-fishmark-region="outline-panel-header"
-                      >
-                        <p className="outline-panel-title">Outline</p>
-                        <button
-                          type="button"
-                          className="outline-panel-close"
-                          aria-label="Collapse outline"
-                          onClick={closeOutlinePanel}
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                            focusable="false"
-                          >
-                            <path
-                              d="M9 6l6 6-6 6"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                      <div
-                        className="outline-panel-body"
-                        data-fishmark-region="outline-panel-body"
-                      >
-                        {outlineItems.length > 0 ? (
-                          <ol className="outline-panel-list">
-                            {outlineItems.map((item) => (
-                              <li key={item.id}>
-                                <button
-                                  type="button"
-                                  className={`outline-panel-item ${activeHeadingId === item.id ? "is-current" : ""}`}
-                                  style={{
-                                    paddingInlineStart: `${10 + Math.max(item.depth - 1, 0) * 10}px`
-                                  }}
-                                  onClick={() => {
-                                    editorRef.current?.navigateToOffset(item.startOffset);
-                                  }}
-                                >
-                                  <span className="outline-panel-item-label">{item.label}</span>
-                                </button>
-                              </li>
-                            ))}
-                          </ol>
-                        ) : (
-                          <p className="outline-panel-empty">No headings yet.</p>
-                        )}
-                      </div>
-                    </aside>
-                  ) : (
-                    <button
-                      type="button"
-                      className="outline-entry"
-                      data-fishmark-region="outline-toggle"
-                      aria-label="Expand outline"
-                      onClick={openOutlinePanel}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <path
-                          d="M15 6l-6 6 6 6"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </section>
-              </>
-            ) : (
-              <section
-                className="empty-workspace"
-                data-fishmark-region="empty-state"
-              >
-                <div className="empty-inner">
-                  <p className="empty-kicker">Ready</p>
-                  <h1>Open a Markdown document from the File menu.</h1>
-                  <p className="empty-copy">
-                    FishMark keeps Markdown text as the source of truth and writes it back without
-                    reformatting the whole document.
-                  </p>
-                  <p className="empty-meta">Shortcut: Ctrl/Cmd+O</p>
-                </div>
-              </section>
-            )}
-          </section>
-
-          <footer
-            className="app-status-bar"
-            data-fishmark-region="app-status-bar"
-            data-visibility={isReadingMode && isDocumentOpen ? "collapsed" : "visible"}
-          >
-            <div data-fishmark-region="status-strip">
-              {isDocumentOpen ? (
-                <>
-                  {appUpdateStatusLabel ? (
-                    <p className="app-update-status">{appUpdateStatusLabel}</p>
-                  ) : null}
-                  <p
-                    className={`save-status ${activeDocument?.isDirty ? "is-dirty" : "is-clean"}`}
-                  >
-                    {saveStatusLabel}
-                  </p>
-                  <p className="document-word-count">
-                    字数 {currentDocumentMetrics?.meaningfulCharacterCount ?? 0}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="app-version-label">{appVersionLabel}</p>
-                  {appUpdateStatusLabel ? (
-                    <p className="app-update-status">{appUpdateStatusLabel}</p>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </footer>
-        </div>
-      </div>
-
-      {isSettingsDrawerVisible ? (
-        <div
-          data-fishmark-dialog="settings-drawer"
-          data-fishmark-overlay-style="floating-drawer"
-          data-state={isSettingsOpen ? "open" : "closing"}
-          onClick={closeSettingsDrawer}
-        >
-          <div onClick={(event) => event.stopPropagation()}>
-            <Suspense
-              fallback={
-                <SettingsDrawerFallback surfaceState={isSettingsOpen ? "open" : "closing"} />
-              }
-            >
-              <SettingsView
-                surfaceState={isSettingsOpen ? "open" : "closing"}
-                preferences={preferences}
-                fontFamilies={fontFamilies}
-                themePackages={themePackages}
-                isRefreshingThemes={isRefreshingThemePackages}
-                onRefreshThemes={handleRefreshThemePackages}
-                onUpdate={handleUpdatePreferences}
-                onClose={closeSettingsDrawer}
-              />
-            </Suspense>
-          </div>
-        </div>
-      ) : null}
-    </main>
+      <WorkspaceShell
+        workspaceSnapshot={state.workspaceSnapshot}
+        activeHeadingId={activeHeadingId}
+        activeShortcutGroup={activeShortcutGroup}
+        activeTableToolId={activeTableToolId}
+        activeTitlebarSurface={activeTitlebarSurface}
+        activeWorkbenchSurface={activeWorkbenchSurface}
+        appUpdateStatusLabel={appUpdateStatusLabel}
+        appVersionLabel={appVersionLabel}
+        controlledTitlebarEnabled={controlledTitlebarEnabled}
+        currentDocumentMetrics={currentDocumentMetrics}
+        effectiveSaveState={effectiveSaveState}
+        editorContainerRef={editorContainerRef}
+        editorLoadRevision={state.editorLoadRevision}
+        editorRef={editorRef}
+        externalFileConflictMessage={externalFileConflictMessage}
+        externalFileState={externalConflictController.externalFileState}
+        fishmarkPlatform={fishmark.platform}
+        fontFamilies={fontFamilies}
+        headerDetail={headerDetail}
+        headerEyebrow={headerEyebrow}
+        headerTitle={headerTitle}
+        hintText={hintText}
+        isDocumentOpen={isDocumentOpen}
+        isOutlineOpen={isOutlineOpen}
+        isOutlinePanelVisible={isOutlinePanelVisible}
+        isReadingMode={isReadingMode}
+        isRefreshingThemePackages={isRefreshingThemePackages}
+        isSettingsDrawerVisible={isSettingsDrawerVisible}
+        isSettingsOpen={isSettingsOpen}
+        isShortcutHintVisible={isShortcutHintVisible}
+        notification={notification}
+        notificationState={notificationState}
+        outlineItems={outlineItems}
+        preferences={preferences}
+        preferencesThemeEffectsMode={preferences.theme.effectsMode}
+        resolvedThemeMode={resolvedThemeMode}
+        saveStatusLabel={saveStatusLabel}
+        settingsEntryRef={settingsEntryRef}
+        shellMode={shellMode}
+        themePackages={themePackages}
+        themeRuntimeEnv={themeRuntimeEnv}
+        titlebarHeight={titlebarLayout.height}
+        titlebarLayout={titlebarLayout}
+        onActiveBlockChange={handleActiveBlockChange}
+        onAppWorkspaceMouseDownCapture={handleAppWorkspaceMouseDownCapture}
+        onCaptureSettingsOpenOrigin={captureSettingsOpenOrigin}
+        onCloseOutlinePanel={closeOutlinePanel}
+        onCloseSettingsDrawer={closeSettingsDrawer}
+        onCloseWorkspaceTab={(tabId) => {
+          void handleCloseWorkspaceTab(tabId);
+        }}
+        onDismissExternalFileConflict={externalConflictController.dismissConflict}
+        onDraftChange={handleEditorContentChange}
+        onEditorBlur={handleEditorBlur}
+        onImportClipboardImage={handleImportClipboardImage}
+        onInsertTableColumnLeft={insertTableColumnLeft}
+        onInsertTableColumnRight={insertTableColumnRight}
+        onInsertTableRowAbove={insertTableRowAbove}
+        onInsertTableRowBelow={insertTableRowBelow}
+        onDeleteTable={deleteTable}
+        onDeleteTableColumn={deleteTableColumn}
+        onDeleteTableRow={deleteTableRow}
+        onKeepMemoryVersion={externalConflictController.keepMemoryVersion}
+        onOpenOutlinePanel={openOutlinePanel}
+        onReloadExternalFile={handleReloadExternalFile}
+        onRefreshThemePackages={handleRefreshThemePackages}
+        onSave={() => {
+          void handleSaveMarkdown();
+        }}
+        onSaveAs={handleSaveMarkdownAsCommand}
+        onSettingsOpen={openSettingsDrawer}
+        onTableToolHoverChange={handleTableToolHoverChange}
+        onTabActivate={(tabId) => {
+          void handleActivateWorkspaceTab(tabId);
+        }}
+        onTabDragEnd={handleWorkspaceTabDragEnd}
+        onTabDragOver={handleWorkspaceTabDragOver}
+        onTabDragStart={handleWorkspaceTabDragStart}
+        onTabDrop={handleWorkspaceTabDrop}
+        onTitlebarSurfaceRuntimeModeChange={handleTitlebarSurfaceRuntimeModeChange}
+        onUpdatePreferences={handleUpdatePreferences}
+        onWorkbenchSurfaceRuntimeModeChange={handleWorkbenchSurfaceRuntimeModeChange}
+      />
+    </>
   );
 }
 

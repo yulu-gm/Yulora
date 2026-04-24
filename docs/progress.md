@@ -15,10 +15,11 @@
 - Task 2：workspace canonical truth 已收敛到 main，save / close 的 in-flight draft race 已修复并补测试。
 - Task 3：`window.fishmark` 已收缩为 product bridge，`window.fishmarkTest` 已隔离到 test-workbench / editor-test runtime；preload bridge mode contract 已提到 shared 层。
 - Task 4：renderer workflow orchestration 已拆到 `useWorkspaceController` / `useSaveController` / `useExternalConflictController` / `useEditorWorkflowController`，`document-state.ts` 已删除；save-success refresh、in-flight draft、Save As replay 等竞态已通过 spec + quality review。
+- Task 5：`src/renderer/editor/App.tsx` 已收缩为 composition/orchestration root，workspace shell UI 已迁到 presentation-only `WorkspaceShell`；settings drawer 状态已抽到 `useSettingsController`，主题派生已抽到 `useThemeController`，`app.autosave.test.ts` 中直接检查 App JSX 的覆盖已迁移到新 shell 文件。
 
 当前进行中：
-- Task 5：继续把 `src/renderer/editor/App.tsx` 瘦身为 composition root + presentation components。
-- 下一步：拆出 workspace chrome、editor canvas、notification/conflict/sidebar 等展示组件，保持 controller 边界不回流；不要再引入 renderer-local workspace truth。
+- Task 6：继续按架构重构计划推进下一阶段验收/收口。
+- 下一步：保持 Task 4 controller 边界不回流，继续避免 renderer-local workspace truth；Task 6 开始前先复核 `docs/superpowers/plans/2026-04-23-fishmark-architecture-reset.md` 的剩余步骤。
 
 接手注意：
 - `package-lock.json` 在 worktree 中有既有无关脏变更，不要回滚也不要纳入本轮提交。

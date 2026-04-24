@@ -4643,7 +4643,10 @@ describe("App autosave", () => {
 
   it("defines compact icon rail tool styles and tooltip positioning", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
-    const appSource = readFileSync(join(process.cwd(), "src/renderer/editor/App.tsx"), "utf-8");
+    const workspaceShellSource = readFileSync(
+      join(process.cwd(), "src/renderer/editor/WorkspaceShell.tsx"),
+      "utf-8"
+    );
     const railRule = getCssRule(appUiStylesheet, ".app-rail");
     const stripRule = getCssRule(appUiStylesheet, ".table-tool-strip");
     const buttonRule = getCssRule(appUiStylesheet, ".table-tool-button");
@@ -4659,7 +4662,7 @@ describe("App autosave", () => {
     expect(tooltipRule).toContain("left: calc(100% + var(--fishmark-space-2));");
     expect(tooltipRule).toContain("transform: translateY(-50%);");
     expect(tooltipRule).toContain("z-index: 3;");
-    expect(appSource).not.toContain('data-fishmark-region="table-tool-tooltip-layer"');
+    expect(workspaceShellSource).not.toContain('data-fishmark-region="table-tool-tooltip-layer"');
     expect(dangerRule).toContain("color:");
   });
 
@@ -4968,7 +4971,10 @@ describe("App autosave", () => {
   it("defines a compact floating outline panel with a fixed header and glass styling", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const baseStylesheet = readFileSync(baseStylesheetPath, "utf-8");
-    const appSource = readFileSync(join(process.cwd(), "src/renderer/editor/App.tsx"), "utf-8");
+    const workspaceShellSource = readFileSync(
+      join(process.cwd(), "src/renderer/editor/WorkspaceShell.tsx"),
+      "utf-8"
+    );
 
     expect(appUiStylesheet).toContain("--fishmark-outline-column-width: 0px;");
     expect(appUiStylesheet).toContain("grid-template-columns: minmax(0, 1fr) var(--fishmark-outline-column-width);");
@@ -4987,8 +4993,8 @@ describe("App autosave", () => {
     expect(appUiStylesheet).toContain('.outline-panel[data-state="closing"]');
     expect(appUiStylesheet).toContain("@keyframes outline-panel-exit");
     expect(appUiStylesheet).toContain("@keyframes outline-toggle-enter");
-    expect(appSource).toContain('d="M15 6l-6 6 6 6"');
-    expect(appSource).toContain('d="M9 6l6 6-6 6"');
+    expect(workspaceShellSource).toContain('d="M15 6l-6 6 6 6"');
+    expect(workspaceShellSource).toContain('d="M9 6l6 6-6 6"');
   });
 
   it("keeps the reading shell full width so the scrollbar and outline controls stay on the far right", () => {
