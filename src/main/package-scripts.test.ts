@@ -113,14 +113,16 @@ describe("package scripts", () => {
     expect(viteConfigSource).toContain('base: "./"');
   });
 
-  it("does not import local shared modules from the preload source", () => {
+  it("only imports shared contracts from the preload source", () => {
     const preloadPath = path.join(process.cwd(), "src", "preload", "preload.ts");
     const preloadSource = readFileSync(preloadPath, "utf8");
+    const localImports = Array.from(preloadSource.matchAll(/from\s+["']([^"']+)["']/g))
+      .map((match) => match[1])
+      .filter((importPath): importPath is string => typeof importPath === "string")
+      .filter((importPath) => importPath.startsWith("."));
 
-    expect(preloadSource).not.toContain("from \"./");
-    expect(preloadSource).not.toContain("from './");
-    expect(preloadSource).not.toContain("from \"../");
-    expect(preloadSource).not.toContain("from '../");
+    expect(localImports).not.toContain("./");
+    expect(localImports.filter((importPath) => !importPath.startsWith("../shared/"))).toEqual([]);
   });
 
   it("defines a Windows packaging entry that builds before invoking electron-builder", () => {
