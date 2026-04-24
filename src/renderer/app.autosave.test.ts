@@ -252,6 +252,10 @@ const rainGlassUiStylesheetPath = join(
   process.cwd(),
   "fixtures/themes/rain-glass/styles/ui.css"
 );
+const rainGlassTitlebarStylesheetPath = join(
+  process.cwd(),
+  "fixtures/themes/rain-glass/styles/titlebar.css"
+);
 const pearlDriftUiStylesheetPath = join(
   process.cwd(),
   "fixtures/themes/pearl-drift/styles/ui.css"
@@ -2834,6 +2838,7 @@ describe("App autosave", () => {
     const titlebar = container.querySelector('[data-fishmark-role="titlebar"]');
 
     expect(titlebar).not.toBeNull();
+    expect(titlebar?.getAttribute("data-fishmark-surface")).toBe("titlebar");
     expect(titlebar?.querySelector('[data-fishmark-titlebar-item="document-title"]')?.textContent).toContain(
       "Local-first Markdown writing"
     );
@@ -3288,6 +3293,7 @@ describe("App autosave", () => {
     expect(outlineToggle).not.toBeNull();
     expect(outlinePanel).toBeNull();
     expect(workspaceHeader?.textContent).toContain("today.md");
+    expect(workspaceHeader?.getAttribute("data-fishmark-surface")).toBe("workspace-header");
     expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
     expect(statusStrip?.textContent).toContain("All changes saved");
     expect(statusStrip?.textContent).toContain("字数 6");
@@ -4945,7 +4951,7 @@ describe("App autosave", () => {
     const drawerPanel = container.querySelector<HTMLElement>('[data-fishmark-panel="settings-drawer"]');
 
     expect(overlay?.getAttribute("data-fishmark-overlay-style")).toBe("floating-drawer");
-    expect(drawerPanel?.getAttribute("data-fishmark-surface")).toBe("floating-drawer");
+    expect(drawerPanel?.getAttribute("data-fishmark-surface")).toBe("settings-drawer");
   });
 
   it("anchors the rail to the viewport so the settings trigger stays visible", () => {
@@ -5110,17 +5116,17 @@ describe("App autosave", () => {
 
     const rainGlassHeaderRule = getCssRule(
       rainGlassUiStylesheet,
-      '[data-fishmark-layout="workspace"] .workspace-header'
+      '[data-fishmark-surface="workspace-header"]'
     );
     const rainGlassEditorRule = getCssRule(rainGlassUiStylesheet, ".document-editor");
     const emberHeaderRule = getCssRule(
       emberAscendUiStylesheet,
-      '[data-fishmark-layout="workspace"] .workspace-header'
+      '[data-fishmark-surface="workspace-header"]'
     );
     const emberEditorRule = getCssRule(emberAscendUiStylesheet, ".document-editor");
     const pearlHeaderRule = getCssRule(
       pearlDriftUiStylesheet,
-      '[data-fishmark-layout="workspace"] .workspace-header'
+      '[data-fishmark-surface="workspace-header"]'
     );
     const pearlEditorRule = getCssRule(pearlDriftUiStylesheet, ".document-editor");
 
@@ -5170,6 +5176,42 @@ describe("App autosave", () => {
     expect(appStatusBarRule).not.toContain("backdrop-filter:");
     expect(statusStripRule).toContain("background: transparent;");
     expect(statusStripRule).not.toContain("border:");
+  });
+
+  it("keeps bundled themes on public fishmark surface hooks instead of shell-private selectors", () => {
+    const themeSurfaceStylesheets = [
+      {
+        path: rainGlassUiStylesheetPath,
+        stylesheet: readFileSync(rainGlassUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n")
+      },
+      {
+        path: rainGlassTitlebarStylesheetPath,
+        stylesheet: readFileSync(rainGlassTitlebarStylesheetPath, "utf-8").replace(/\r\n/g, "\n")
+      },
+      {
+        path: emberAscendUiStylesheetPath,
+        stylesheet: readFileSync(emberAscendUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n")
+      },
+      {
+        path: pearlDriftUiStylesheetPath,
+        stylesheet: readFileSync(pearlDriftUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n")
+      }
+    ] as const;
+
+    for (const { stylesheet } of themeSurfaceStylesheets) {
+      expect(stylesheet).not.toContain(".workspace-header");
+      expect(stylesheet).not.toContain(".settings-shell");
+      expect(stylesheet).not.toContain(".app-titlebar");
+      expect(stylesheet).not.toContain(".theme-surface-host");
+    }
+
+    for (const { path, stylesheet } of themeSurfaceStylesheets) {
+      if (path.endsWith("/ui.css")) {
+        expect(stylesheet).toContain('[data-fishmark-surface="workspace-header"]');
+        expect(stylesheet).toContain('[data-fishmark-surface="settings-drawer"]');
+      }
+      expect(stylesheet).toContain('[data-fishmark-surface="titlebar"]');
+    }
   });
 
   it("does not paint active paragraphs with block fills or accent rails", () => {

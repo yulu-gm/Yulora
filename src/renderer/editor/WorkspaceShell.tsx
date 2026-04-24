@@ -109,7 +109,7 @@ function SettingsDrawerFallback({ surfaceState }: { surfaceState: "open" | "clos
     <section
       className="settings-shell"
       data-fishmark-panel="settings-drawer"
-      data-fishmark-surface="floating-drawer"
+      data-fishmark-surface="settings-drawer"
       data-state={surfaceState}
       role="dialog"
       aria-modal="true"
@@ -654,6 +654,7 @@ export function WorkspaceShell({
           <header
             className="app-header workspace-header"
             data-fishmark-region="workspace-header"
+            data-fishmark-surface="workspace-header"
             data-visibility={isReadingMode ? "collapsed" : "visible"}
           >
             <div className="workspace-title-group">

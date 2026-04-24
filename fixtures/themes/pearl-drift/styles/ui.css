@@ -137,7 +137,7 @@
   -webkit-backdrop-filter: blur(26px) saturate(1.06);
 }
 
-[data-fishmark-layout="workspace"] .workspace-header {
+[data-fishmark-surface="workspace-header"] {
   background:
     linear-gradient(
       180deg,
@@ -167,8 +167,7 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.05);
 }
 
-.settings-shell,
-[data-fishmark-panel="settings-drawer"] {
+[data-fishmark-surface="settings-drawer"] {
   background:
     linear-gradient(
       180deg,
@@ -214,8 +213,7 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.08);
 }
 
-.app-titlebar,
-[data-fishmark-titlebar] {
+[data-fishmark-surface="titlebar"] {
   background:
     linear-gradient(
       180deg,

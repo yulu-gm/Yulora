@@ -439,7 +439,7 @@ export function SettingsView({
     <section
       className="settings-shell"
       data-fishmark-panel="settings-drawer"
-      data-fishmark-surface="floating-drawer"
+      data-fishmark-surface="settings-drawer"
       data-state={surfaceState}
       role="dialog"
       aria-modal="true"

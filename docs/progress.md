@@ -16,15 +16,16 @@
 - Task 3：`window.fishmark` 已收缩为 product bridge，`window.fishmarkTest` 已隔离到 test-workbench / editor-test runtime；preload bridge mode contract 已提到 shared 层。
 - Task 4：renderer workflow orchestration 已拆到 `useWorkspaceController` / `useSaveController` / `useExternalConflictController` / `useEditorWorkflowController`，`document-state.ts` 已删除；save-success refresh、in-flight draft、Save As replay 等竞态已通过 spec + quality review。
 - Task 5：`src/renderer/editor/App.tsx` 已收缩为 composition/orchestration root，workspace shell UI 已迁到 presentation-only `WorkspaceShell`；settings drawer 状态已抽到 `useSettingsController`，主题派生已抽到 `useThemeController`，`app.autosave.test.ts` 中直接检查 App JSX 的覆盖已迁移到新 shell 文件。Task 5 已通过 spec review + code quality re-review；review 中发现的未授权 header Save 按钮已移除，outline navigation 已改为 App 层 callback 代理。
+- Task 6：`docs/design.md` 已同步为 tabbed workspace + main canonical workspace truth，崩溃恢复 / workspace session restore 已明确回到 backlog；`docs/theme-authoring-guide.md`、renderer markup 与 bundled theme fixtures 已统一到公开 `data-fishmark-surface` / `data-fishmark-theme-surface` hook，不再把 shell-private class selectors 当作主题 API。Task 6 已通过 spec review + code quality re-review。
 
 当前进行中：
-- Task 6：继续按架构重构计划推进下一阶段验收/收口。
-- 下一步：进入 `docs/superpowers/plans/2026-04-23-fishmark-architecture-reset.md` 的 Task 6，同步 `docs/design.md` / `docs/theme-authoring-guide.md` 与 bundled theme fixtures，去掉主题对 `.workspace-header` / `.settings-shell` / `.app-titlebar` 等 shell-private selectors 的依赖。
+- Task 7：运行架构重构最终全量验证，并写出 handoff 总结。
+- 下一步：进入 `docs/superpowers/plans/2026-04-23-fishmark-architecture-reset.md` 的 Task 7，跑 focused refactor tests、完整 repo gates，并创建 `docs/plans/2026-04-23-architecture-reset-handoff.md`。
 
 接手注意：
 - `package-lock.json` 在 worktree 中有既有无关脏变更，不要回滚也不要纳入本轮提交。
 - `WorkspaceShellProps` 仍然偏宽，这是 Task 5 code-quality review 留下的非阻塞 P2；后续如果继续拆 renderer shell，可以优先按 workspace chrome / editor canvas / settings drawer / theme surface host 分组收口 props。
-- 每个任务继续执行 spec review -> code quality review 两段验收；Task 6 完成后再进入 Task 7 全量验证与 handoff。
+- 每个任务继续执行 spec review -> code quality review 两段验收；Task 7 完成后再做最终 code review / release-branch 收尾选择。
 
 截至 2026-04-16，项目处于“可运行编辑器 + 偏好设置与主题运行时基础能力”阶段，而不是“完整 Markdown 编辑器”阶段。
 

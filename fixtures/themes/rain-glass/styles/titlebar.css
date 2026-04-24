@@ -1,4 +1,4 @@
-.app-titlebar {
+[data-fishmark-surface="titlebar"] {
   border-bottom-color: color-mix(in srgb, var(--fishmark-border-faint) 72%, transparent);
   background:
     linear-gradient(
@@ -8,10 +8,10 @@
     );
 }
 
-.app-titlebar .theme-surface-host {
+[data-fishmark-surface="titlebar"] [data-fishmark-theme-surface="titlebarBackdrop"] {
   opacity: 0.92;
 }
 
-.app-titlebar-slot[data-fishmark-drag-region="true"] {
+[data-fishmark-titlebar-slot][data-fishmark-drag-region="true"] {
   backdrop-filter: blur(18px) saturate(1.15);
 }

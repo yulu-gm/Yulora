@@ -119,6 +119,7 @@ export function TitlebarHost({
     <header
       className="app-titlebar"
       data-fishmark-role="titlebar"
+      data-fishmark-surface="titlebar"
       data-platform={platform}
       data-compact-when-narrow={layout.compactWhenNarrow ? "true" : "false"}
       style={{ height: `${layout.height}px` }}

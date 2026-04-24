@@ -290,8 +290,10 @@ manifest 中出现的所有路径都必须留在主题包根目录内部。
 同时请把它当成“视觉层”，不要拿来接管 app 自己的壳层几何：
 
 - 可以改颜色、材质、边框、阴影、滤镜
-- 不要给 `.app-workspace`、`.workspace-header`、`.workspace-canvas`、`.app-status-bar` 这类 app-owned 容器写 `width`、`height`、`margin`、`padding`、`position`、`grid-template-*`
-- 如果想做玻璃或卡片感，优先挂在 `.document-editor`、`.empty-inner`、`.app-rail` 或正式 `--fishmark-*` semantic slots 上
+- 主题可以依赖公开 surface hook，例如 `[data-fishmark-surface="workspace-header"]`、`[data-fishmark-surface="settings-drawer"]`、`[data-fishmark-surface="titlebar"]`
+- 不要依赖 workspace header、settings drawer、titlebar 的 shell-private class selector；这些 class 只是 renderer 实现细节，不属于主题合同
+- 不要给 `.app-workspace`、`.workspace-canvas`、`.app-status-bar` 这类 app-owned 容器写 `width`、`height`、`margin`、`padding`、`position`、`grid-template-*`
+- 如果想做玻璃或卡片感，优先挂在 `.document-editor`、`.empty-inner`、`.app-rail`、公开 `data-fishmark-surface` hook 或正式 `--fishmark-*` semantic slots 上
 
 ### `styles/editor.css`
 

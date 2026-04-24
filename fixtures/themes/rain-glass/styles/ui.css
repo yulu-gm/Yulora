@@ -115,7 +115,7 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.08) brightness(1.05);
 }
 
-[data-fishmark-layout="workspace"] .workspace-header {
+[data-fishmark-surface="workspace-header"] {
   background:
     linear-gradient(
       180deg,
@@ -146,8 +146,7 @@
 }
 
 /* Settings drawer — heavier blur so content behind reads as soft watercolour. */
-.settings-shell,
-[data-fishmark-panel="settings-drawer"] {
+[data-fishmark-surface="settings-drawer"] {
   background:
     linear-gradient(
       180deg,
@@ -197,8 +196,7 @@
 }
 
 /* Titlebar when controlled by the theme — match the workbench rail weight. */
-.app-titlebar,
-[data-fishmark-titlebar] {
+[data-fishmark-surface="titlebar"] {
   background:
     linear-gradient(
       180deg,
