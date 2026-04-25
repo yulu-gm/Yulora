@@ -188,11 +188,18 @@ export function useThemeController({
       }),
     [currentDocumentWordCount, isDocumentReadingMode, resolvedThemeMode]
   );
-  const activeThemePackages = themePackages.map(normalizeThemePackageDescriptor);
-  const activeThemePackageResolution = resolveActiveThemePackage(
-    preferences.theme.selectedId,
-    activeThemePackages,
-    resolvedThemeMode
+  const activeThemePackages = useMemo(
+    () => themePackages.map(normalizeThemePackageDescriptor),
+    [themePackages]
+  );
+  const activeThemePackageResolution = useMemo(
+    () =>
+      resolveActiveThemePackage(
+        preferences.theme.selectedId,
+        activeThemePackages,
+        resolvedThemeMode
+      ),
+    [activeThemePackages, preferences.theme.selectedId, resolvedThemeMode]
   );
   const themeWarningMessage =
     activeThemePackageResolution.fallbackReason === "missing-theme" &&

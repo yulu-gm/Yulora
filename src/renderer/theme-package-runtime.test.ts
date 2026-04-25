@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createPreviewAssetUrl } from "../shared/preview-asset-url";
 import {
@@ -87,6 +87,32 @@ describe("theme package runtime", () => {
       createPreviewAssetUrl("/theme/ui.css"),
       createPreviewAssetUrl("/theme/markdown.css")
     ]);
+  });
+
+  it("does not remount stylesheet links when the same package is applied again", () => {
+    const runtime = createThemePackageRuntime(document);
+    const descriptor = {
+      id: "default",
+      styles: {
+        ui: createPreviewAssetUrl("/theme/ui.css"),
+        titlebar: createPreviewAssetUrl("/theme/titlebar.css"),
+        editor: createPreviewAssetUrl("/theme/editor.css"),
+        markdown: createPreviewAssetUrl("/theme/markdown.css")
+      },
+      tokens: {
+        dark: createPreviewAssetUrl("/theme/tokens-dark.css")
+      }
+    };
+
+    runtime.applyPackage(descriptor, "dark");
+
+    const appendChild = vi.spyOn(document.head, "appendChild");
+    const insertBefore = vi.spyOn(document.head, "insertBefore");
+
+    runtime.applyPackage(descriptor, "dark");
+
+    expect(appendChild).not.toHaveBeenCalled();
+    expect(insertBefore).not.toHaveBeenCalled();
   });
 
   it("applies runtime env CSS variables to the root element", () => {

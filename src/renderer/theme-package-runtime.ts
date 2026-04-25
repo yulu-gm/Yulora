@@ -14,12 +14,68 @@ type ThemePackageRuntime = {
   clear: () => void;
 };
 
+const THEME_RUNTIME_LINK_SELECTOR = 'link[data-fishmark-theme-runtime="active"]';
+
 function createThemeLink(document: Document, part: ThemeStylePart): HTMLLinkElement {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.dataset.fishmarkThemePart = part;
   link.setAttribute("data-fishmark-theme-runtime", "active");
   return link;
+}
+
+function getFirstThemeLink(document: Document): HTMLLinkElement | null {
+  return document.head.querySelector<HTMLLinkElement>(THEME_RUNTIME_LINK_SELECTOR);
+}
+
+function getPreviousThemeLink(link: HTMLLinkElement): HTMLLinkElement | null {
+  let sibling = link.previousElementSibling;
+
+  while (sibling) {
+    if (sibling.matches(THEME_RUNTIME_LINK_SELECTOR)) {
+      return sibling as HTMLLinkElement;
+    }
+
+    sibling = sibling.previousElementSibling;
+  }
+
+  return null;
+}
+
+function placeThemeLink(
+  document: Document,
+  link: HTMLLinkElement,
+  previousNode: HTMLLinkElement | null
+): void {
+  if (!link.isConnected) {
+    if (previousNode) {
+      document.head.insertBefore(link, previousNode.nextSibling);
+      return;
+    }
+
+    const firstThemeLink = getFirstThemeLink(document);
+    if (firstThemeLink) {
+      document.head.insertBefore(link, firstThemeLink);
+      return;
+    }
+
+    document.head.appendChild(link);
+    return;
+  }
+
+  if (getPreviousThemeLink(link) === previousNode) {
+    return;
+  }
+
+  if (previousNode) {
+    document.head.insertBefore(link, previousNode.nextSibling);
+    return;
+  }
+
+  const firstThemeLink = getFirstThemeLink(document);
+  if (firstThemeLink && firstThemeLink !== link) {
+    document.head.insertBefore(link, firstThemeLink);
+  }
 }
 
 function syncThemeLink(
@@ -44,17 +100,7 @@ function syncThemeLink(
     link.setAttribute("href", nextUrl);
   }
 
-  if (!link.isConnected) {
-    document.head.appendChild(link);
-  }
-
-  if (previousNode === null) {
-    if (document.head.lastChild !== link) {
-      document.head.appendChild(link);
-    }
-  } else if (link.previousSibling !== previousNode) {
-    document.head.insertBefore(link, previousNode.nextSibling);
-  }
+  placeThemeLink(document, link, previousNode);
 
   mountedLinks.set(part, link);
   return link;
