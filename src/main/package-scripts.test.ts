@@ -172,6 +172,51 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["release:win"]).toContain("node scripts/build-win-release.mjs release");
   });
 
+  it("defines a macOS release entry that reuses the dedicated release script", () => {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["release:mac"]).toContain("npm run build");
+    expect(packageJson.scripts?.["release:mac"]).toContain("npm run generate:icons");
+    expect(packageJson.scripts?.["release:mac"]).toContain("node scripts/build-mac-release.mjs release");
+  });
+
+  it("defines a macOS beta release entry that publishes a dmg-only prerelease", () => {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["release:mac:beta"]).toContain("npm run build");
+    expect(packageJson.scripts?.["release:mac:beta"]).toContain("npm run generate:icons");
+    expect(packageJson.scripts?.["release:mac:beta"]).toContain("node scripts/build-mac-release.mjs beta");
+  });
+
+  it("declares macOS distributable release targets for dmg, zip, and updater metadata", () => {
+    const configPath = path.join(process.cwd(), "electron-builder.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+      mac?: {
+        target?: Array<{
+          target?: string;
+          arch?: string[];
+        }>;
+      };
+    };
+
+    expect(config.mac?.target).toEqual([
+      {
+        target: "dmg",
+        arch: ["arm64"]
+      },
+      {
+        target: "zip",
+        arch: ["arm64"]
+      }
+    ]);
+  });
+
   it("defines a dedicated icon generation script", () => {
     const packageJsonPath = path.join(process.cwd(), "package.json");
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
@@ -361,10 +406,14 @@ describe("package scripts", () => {
   it("uses a dedicated Windows packaging script that disables the unstable asar integrity write and handles GitHub release upload", () => {
     const scriptPath = path.join(process.cwd(), "scripts", "build-win-release.mjs");
     const scriptSource = readFileSync(scriptPath, "utf8");
+    const githubReleaseScriptPath = path.join(process.cwd(), "scripts", "release-github.mjs");
+    const githubReleaseScriptSource = readFileSync(githubReleaseScriptPath, "utf8");
 
     expect(scriptSource).toContain("disableAsarIntegrity: true");
-    expect(scriptSource).toContain("git credential fill");
-    expect(scriptSource).toContain("Published GitHub Release");
+    expect(scriptSource).toContain("release-github.mjs");
+    expect(githubReleaseScriptSource).toContain('"git", ["credential", "fill"]');
+    expect(githubReleaseScriptSource).toContain('"gh", ["auth", "token"]');
+    expect(githubReleaseScriptSource).toContain("Published GitHub Release");
     expect(scriptSource).toContain("patchWindowsExecutableIcon");
   });
 
@@ -470,7 +519,7 @@ describe("package scripts", () => {
     expect(windowsReleaseSource).toContain("call npm.cmd run release:win");
     expect(macosReleaseSource).toContain("#!/usr/bin/env bash");
     expect(macosReleaseSource).toContain('cd "$(dirname "$0")/.."');
-    expect(macosReleaseSource).toContain("macOS release is not implemented yet");
-    expect(macosReleaseSource).toContain("exit 1");
+    expect(macosReleaseSource).toContain("npm run release:mac");
+    expect(macosReleaseSource).not.toContain("macOS release is not implemented yet");
   });
 });

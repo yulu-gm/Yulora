@@ -14,6 +14,18 @@
 | 2026-04-26 | github-homepage | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，新增结构测试未破坏测试编译边界。 |
 | 2026-04-26 | github-homepage | `npm.cmd run test` | 通过 | Vitest 全量通过，当前 88 个测试文件、821 条测试通过。 |
 | 2026-04-26 | github-homepage | `npm.cmd run build` | 通过 | renderer / electron / cli 构建通过；仍仅保留既有 Vite chunk size warning。 |
+| 2026-04-26 | TASK-038 | `codesign --verify --deep --strict --verbose=4 /Volumes/FishMark/FishMark.app` | 通过 | 复现旧 macOS beta DMG 中 `FishMark.app` 的签名错误 `code has no resources but signature indicates they must be present` 后，将 beta 构建改为 ad-hoc signing；重新发布的 `FishMark-0.2.2-arm64.dmg` 挂载后通过 codesign deep/strict 校验。 |
+| 2026-04-26 | TASK-038 | `npm run release:mac:beta` | 通过 | 重新构建并替换上传 `v0.2.2-mac-beta` GitHub prerelease 资产；新产物 SHA-256 为 `f2956a3fa12b5add799ec850026c549d74c0a5ed23bef5464a612179f80e230c`，Release 资产更新时间为 2026-04-26T12:07:27Z。 |
+| 2026-04-26 | TASK-038 | `npm run lint && npm run typecheck && npm test` | 通过 | lint 仅保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning；typecheck 通过；Vitest 全量 89 个文件、834 条测试通过。 |
+| 2026-04-26 | TASK-038 | `npm run test -- src/main/package-scripts.test.ts src/main/build-mac-release.test.ts src/main/build-win-release.test.ts` | 通过 | macOS beta DMG 发布入口、正式 macOS 发布入口、共享 GitHub 发布模块与 Windows release 兼容性目标测试通过；共 3 个文件、44 条测试通过。 |
+| 2026-04-26 | TASK-038 | `npm run release:mac:beta` | 阻塞 | beta 入口已完成 build、icon generation 与未签名 DMG 构建，生成 `release/FishMark-0.2.1-arm64.dmg` 与 `.dmg.blockmap`；上传 `v0.2.1-mac-beta` GitHub prerelease 时因本机缺少 `GH_TOKEN` / `GITHUB_TOKEN` 且 `git credential fill` 无法返回 GitHub token 而停止。 |
+| 2026-04-26 | TASK-038 | `gh auth login --hostname github.com --git-protocol ssh --web --scopes repo && npm run release:mac:beta` | 通过 | 安装并授权 GitHub CLI 后，发布脚本通过 `gh auth token` fallback 获取 GitHub API token，已上传 `FishMark-0.2.1-arm64.dmg` 与 `.dmg.blockmap` 到 `https://github.com/yulu-gm/FishMark/releases/tag/v0.2.1-mac-beta`。 |
+| 2026-04-26 | TASK-038 | `npm run test -- src/main/package-scripts.test.ts src/main/build-mac-release.test.ts src/main/build-win-release.test.ts` | 通过 | macOS release 脚本、共享 GitHub 发布模块与 Windows release 兼容性目标测试通过；共 3 个文件、40 条测试通过。 |
+| 2026-04-26 | TASK-038 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，新增 `build-mac-release.mjs` 动态导入测试未破坏类型边界。 |
+| 2026-04-26 | TASK-038 | `npm run lint` | 通过 | 发布脚本与测试通过 ESLint；保留既有 `src/renderer/editor/App.tsx` fast-refresh warning，无新增 lint error。 |
+| 2026-04-26 | TASK-038 | `npm test` | 通过 | Vitest 全量通过，当前 87 个测试文件、826 条测试通过。 |
+| 2026-04-26 | TASK-038 | `npm run build` | 通过 | renderer / electron / cli 构建通过；仍仅保留既有 Vite chunk size warning，不阻塞本轮发布脚本交付。 |
+| 2026-04-26 | TASK-038 | `./tools/release-macos.sh` | 阻塞 | release 入口已执行 build 与 icon generation，但正式发布前因缺少 Developer ID Application 签名身份和 Apple notarization 凭据停止，未生成或上传 macOS GitHub Release 资产。 |
 
 | 2026-04-22 | TASK-043 | `npm run test -- src/main/workspace-service.test.ts src/main/workspace-close-coordinator.test.ts src/main/save-markdown-file.test.ts src/main/application-menu.test.ts src/main/main.test.ts src/preload/preload.contract.test.ts src/preload/preload.test.ts src/renderer/document-state.test.ts src/renderer/editor-test-driver.test.ts src/renderer/app.autosave.test.ts src/renderer/test-workbench.test.tsx` | 通过 | 覆盖 workspace service、workspace close coordinator、tabId 维度保存链路、preload 合同、renderer 标签栏交互与 autosave / watcher 回归；当前 11 个文件、198 条测试通过。 |
 | 2026-04-22 | TASK-043 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，workspace close coordinator、tabId 保存 / watcher bridge 与 renderer 关闭流程未破坏编译边界。 |

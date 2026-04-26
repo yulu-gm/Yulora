@@ -38,6 +38,14 @@ let ensureRelease: (input: {
     body: string;
   };
 }) => Promise<{ html_url?: string }>;
+let resolveGitHubToken: (input?: {
+  env?: Record<string, string | undefined>;
+  spawnSyncImpl?: (command: string, args: string[], options?: unknown) => {
+    status: number | null;
+    stdout?: string;
+    stderr?: string;
+  };
+}) => string;
 
 beforeAll(async () => {
   const moduleUrl = pathToFileURL(path.join(process.cwd(), "scripts", "build-win-release.mjs")).href;
@@ -49,6 +57,7 @@ beforeAll(async () => {
   writeLatestReleaseMetadata = releaseScriptModule.writeLatestReleaseMetadata as typeof writeLatestReleaseMetadata;
   loadReleaseNotes = releaseScriptModule.loadReleaseNotes as typeof loadReleaseNotes;
   ensureRelease = releaseScriptModule.ensureRelease as typeof ensureRelease;
+  resolveGitHubToken = releaseScriptModule.resolveGitHubToken as typeof resolveGitHubToken;
 });
 
 afterEach(() => {
@@ -288,5 +297,24 @@ describe("build-win-release", () => {
     });
 
     vi.unstubAllGlobals();
+  });
+
+  it("uses GitHub CLI authentication as a release token fallback", () => {
+    const spawnSyncImpl = vi.fn((command: string) => {
+      if (command === "git") {
+        return {
+          status: 128,
+          stderr: "fatal: could not read Username"
+        };
+      }
+
+      return {
+        status: 0,
+        stdout: "gho_example\n"
+      };
+    });
+
+    expect(resolveGitHubToken({ env: {}, spawnSyncImpl })).toBe("gho_example");
+    expect(spawnSyncImpl).toHaveBeenCalledWith("gh", ["auth", "token"], expect.any(Object));
   });
 });

@@ -40,6 +40,16 @@ describe("GitHub Pages site", () => {
     }
   });
 
+  it("points macOS downloads to the current Apple Silicon beta release", () => {
+    const siteIndexPath = path.join(process.cwd(), "site", "index.html");
+    const siteIndexSource = readFileSync(siteIndexPath, "utf8");
+
+    expect(siteIndexSource).toContain("https://github.com/yulu-gm/FishMark/releases/tag/v0.2.2-mac-beta");
+    expect(siteIndexSource).toContain("macOS Beta");
+    expect(siteIndexSource).toContain("Apple Silicon");
+    expect(siteIndexSource).not.toContain("Apple Silicon · Intel");
+  });
+
   it("publishes the static site directory through GitHub Pages Actions", () => {
     const workflowPath = path.join(process.cwd(), ".github", "workflows", "pages.yml");
 

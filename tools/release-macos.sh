@@ -18,6 +18,4 @@ if [[ "$(uname)" != "Darwin" ]]; then
   exit 1
 fi
 
-echo "[FishMark] macOS release is not implemented yet."
-echo "[FishMark] This entrypoint is reserved for the future release:mac flow."
-exit 1
+exec npm run release:mac

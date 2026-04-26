@@ -121,9 +121,86 @@ tools\release-win.bat
 
 - `./tools/package-macos.sh` 会先做 Node/npm 与平台检查，再调用 `npm run package:mac`
 - `npm run package:mac` 会执行 `build`、`generate:icons`，然后用 `electron-builder --mac --dir` 产出本地调试用的 unpacked `.app`
-- `./tools/release-macos.sh` 目前仍是预留入口，后续补上 `.dmg` / `.zip`、签名、notarize 与正式发版链路时继续沿用
+- `./tools/release-macos.sh` 会先做 Node/npm 与平台检查，再调用 `npm run release:mac`
+- `npm run release:mac` 会执行 `build`、`generate:icons`，然后用 `scripts/build-mac-release.mjs release` 产出正式 macOS 发布资产并上传到 GitHub Release
 
-未来 macOS 正式发版也应复用同一份 `release-metadata/release-notes.json`，避免不同平台各自维护一份 Release 正文。
+macOS 正式发版复用同一份 `release-metadata/release-notes.json`，避免不同平台各自维护一份 Release 正文。
+
+## macOS GitHub Release 发版
+
+当前仓库提供 macOS GitHub Release 发版入口：
+
+```bash
+npm run release:mac
+```
+
+或使用 `tools/` 目录下的 shell 入口：
+
+```bash
+./tools/release-macos.sh
+```
+
+这条命令会依次执行：
+
+1. `npm run build`
+2. `npm run generate:icons`
+3. `node scripts/build-mac-release.mjs release`
+
+其中发布脚本会：
+
+1. 校验当前平台必须是 macOS
+2. 读取 `release-metadata/release-notes.json`，并校验其版本号与 `package.json` 一致
+3. 要求存在 Developer ID Application 签名材料
+4. 要求存在 Apple notarization 凭据
+5. 清理本地 `release/` 目录
+6. 用 `electron-builder` 生成 arm64 `.dmg`、`.zip` 和 `latest-mac.yml`
+7. 使用 `GH_TOKEN` / `GITHUB_TOKEN`，或回退到本机 `git credential fill` 中的 GitHub 凭据
+8. 创建或复用 `v<version>` GitHub Release，并以元数据中的标题和正文同步 Release 页面
+9. 上传：
+   - `latest-mac.yml`
+   - `FishMark-<version>-arm64.dmg`
+   - `FishMark-<version>-arm64.zip`
+   - `.dmg.blockmap`（若 `electron-builder` 生成）
+
+macOS 正式发布要求满足以下任一组 notarization 凭据：
+
+- `APPLE_API_KEY`、`APPLE_API_KEY_ID`、`APPLE_API_ISSUER`
+- `APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`
+- `APPLE_KEYCHAIN_PROFILE`（可选配 `APPLE_KEYCHAIN`）
+
+签名材料要求满足以下任一条件：
+
+- `CSC_LINK` 与 `CSC_KEY_PASSWORD`
+- `CSC_NAME`
+- 当前 Keychain 中可用的 `Developer ID Application` 证书
+
+## macOS Beta DMG 发版
+
+如果还没有 Apple Developer ID 签名和 notarization 凭据，可以先发布明确标记为 beta 的 ad-hoc signed DMG：
+
+```bash
+npm run release:mac:beta
+```
+
+这条命令会依次执行：
+
+1. `npm run build`
+2. `npm run generate:icons`
+3. `node scripts/build-mac-release.mjs beta`
+
+其中 beta 发布脚本会：
+
+1. 读取 `release-metadata/release-notes.json`，并校验其版本号与 `package.json` 一致
+2. 清理本地 `release/` 目录
+3. 用 `electron-builder` 生成 Apple Silicon `FishMark-<version>-arm64.dmg`
+4. 使用 ad-hoc signing，跳过 Developer ID 签名、notarization、`.zip` 和 `latest-mac.yml`
+5. 使用 `GH_TOKEN` / `GITHUB_TOKEN`，或回退到本机 `git credential fill` 中的 GitHub 凭据
+6. 创建或复用 `v<version>-mac-beta` GitHub prerelease
+7. 上传：
+   - `FishMark-<version>-arm64.dmg`
+   - `.dmg.blockmap`（若 `electron-builder` 生成）
+
+beta DMG 是测试分发包，不接入自动更新，也不标记为 GitHub latest。它不做 Apple notarization，用户首次打开时可能需要在 macOS System Settings 中手动允许。
 
 ### 产物输出
 
@@ -135,15 +212,16 @@ release/
 
 ### 当前限制
 
-- 当前 macOS 只覆盖本地 unpacked `.app`，不包含 `.dmg` / `.zip`
-- macOS `.dmg` / `.zip` 仍属于 `TASK-038` 后续切片
-- 当前未配置正式开发者签名；本地 `package:mac` 会在可用时回退到 ad-hoc 签名
+- `package:mac` 仍只覆盖本地 unpacked `.app`
+- `release:mac` 只发布 Apple Silicon `arm64` 产物
+- `release:mac:beta` 只发布 ad-hoc signed、未公证的 Apple Silicon `.dmg`
+- 正式发版必须配置 Developer ID 签名与 notarization 凭据
 - macOS `.icns` 仍未生成
 
 ### 后续扩展位
 
 - Windows / macOS 代码签名
-- macOS `.dmg` / `.zip` 打包产物
+- macOS `x64` 或 `universal` 打包产物
 - `.icns` 生成与安装器视觉定制
 
 ## Package Size Guardrails

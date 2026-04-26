@@ -28,6 +28,8 @@
     "generate:icons": "node scripts/generate-icons.mjs",
     "package:mac": "npm run build && npm run generate:icons && electron-builder --config electron-builder.json --mac --dir",
     "package:win": "npm run build && npm run generate:icons && node scripts/build-win-release.mjs package",
+    "release:mac:beta": "npm run build && npm run generate:icons && node scripts/build-mac-release.mjs beta",
+    "release:mac": "npm run build && npm run generate:icons && node scripts/build-mac-release.mjs release",
     "release:win": "npm run build && npm run generate:icons && node scripts/build-win-release.mjs release",
     "pretest:scenario": "npm run build:cli",
     "test:scenario": "node dist-cli/cli/bin.js"
