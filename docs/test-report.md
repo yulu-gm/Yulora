@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-04-26 | github-homepage | `npm.cmd run test -- src/main/github-pages-site.test.ts` | 通过 | 新增 GitHub Pages 静态主页结构测试；覆盖 `site/index.html` 独立于 renderer 入口、GitHub / releases 链接、站内锚点、外链 `rel` 安全属性，以及 Pages workflow 关键配置；当前 1 个文件、4 条测试通过。 |
+| 2026-04-26 | github-homepage | `npm.cmd run lint` | 通过 | 无新增 lint error；仓库仍保留既有 `src/renderer/editor/App.tsx` 的 React Fast Refresh warning。 |
+| 2026-04-26 | github-homepage | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，新增结构测试未破坏测试编译边界。 |
+| 2026-04-26 | github-homepage | `npm.cmd run test` | 通过 | Vitest 全量通过，当前 88 个测试文件、821 条测试通过。 |
+| 2026-04-26 | github-homepage | `npm.cmd run build` | 通过 | renderer / electron / cli 构建通过；仍仅保留既有 Vite chunk size warning。 |
+
 | 2026-04-22 | TASK-043 | `npm run test -- src/main/workspace-service.test.ts src/main/workspace-close-coordinator.test.ts src/main/save-markdown-file.test.ts src/main/application-menu.test.ts src/main/main.test.ts src/preload/preload.contract.test.ts src/preload/preload.test.ts src/renderer/document-state.test.ts src/renderer/editor-test-driver.test.ts src/renderer/app.autosave.test.ts src/renderer/test-workbench.test.tsx` | 通过 | 覆盖 workspace service、workspace close coordinator、tabId 维度保存链路、preload 合同、renderer 标签栏交互与 autosave / watcher 回归；当前 11 个文件、198 条测试通过。 |
 | 2026-04-22 | TASK-043 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，workspace close coordinator、tabId 保存 / watcher bridge 与 renderer 关闭流程未破坏编译边界。 |
 | 2026-04-22 | TASK-043 | `npm run lint` | 通过 | 标签页工作区完整四条执行切片相关改动通过 ESLint。 |

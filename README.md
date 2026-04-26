@@ -47,6 +47,10 @@ npm run test:scenario -- --id app-shell-startup
 npm run package:win         # 打包 Windows 安装产物
 ```
 
+## 项目主页
+
+仓库内的静态主页位于 `site/index.html`，可直接在浏览器中打开预览。`.github/workflows/pages.yml` 会在 `main` 分支更新 `site/` 后通过 GitHub Pages Actions 发布主页；仓库 Pages 设置需要选择 `GitHub Actions` 作为发布源。
+
 ## 目录结构
 
 - `src/main/`：Electron main 进程、菜单、窗口与文件系统入口
@@ -55,6 +59,7 @@ npm run package:win         # 打包 Windows 安装产物
 - `packages/editor-core/`：编辑器状态与纯逻辑
 - `packages/markdown-engine/`：Markdown 解析与 block map
 - `packages/test-harness/`：场景注册表、CLI 与测试运行基础设施
+- `site/`：GitHub Pages 静态项目主页
 - `docs/`：设计、计划、验收与进展文档
 
 ## 开发原则

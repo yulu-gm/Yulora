@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FishMark — 本地优先的 Markdown 编辑器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #111111;
+      --bg3: #191919;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f0;
+      --muted: #666666;
+      --accent: #ffffff;
+      --accent2: #cccccc;
+      --accent-dim: rgba(255,255,255,0.06);
+      --radius: 12px;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px;
+      height: 60px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-logo svg { width: 28px; height: 28px; }
+    .nav-logo span { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: #ffffff; color: #000 !important;
+      padding: 7px 18px; border-radius: 7px; font-weight: 600 !important;
+      transition: opacity 0.2s !important;
+    }
+    .nav-cta:hover { opacity: 0.85 !important; color: #000 !important; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: 700px; height: 700px;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      font-size: 12px; font-weight: 500; font-family: var(--mono);
+      padding: 4px 12px; border-radius: 100px;
+      margin-bottom: 32px;
+      letter-spacing: 0.04em;
+    }
+    .hero-logo {
+      width: 88px; height: 88px;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(44px, 6vw, 76px);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+    .hero h1 em {
+      font-style: normal;
+      border-bottom: 2px solid rgba(255,255,255,0.3);
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--muted);
+      max-width: 540px;
+      line-height: 1.65;
+      margin-bottom: 44px;
+      font-weight: 300;
+    }
+    .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #ffffff; color: #000;
+      padding: 13px 28px; border-radius: 9px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.87; transform: translateY(-1px); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 12px 24px; border-radius: 9px;
+      font-size: 15px; font-weight: 500;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+    .hero-platforms {
+      margin-top: 28px;
+      display: flex; align-items: center; gap: 18px;
+      color: var(--muted); font-size: 13px;
+    }
+    .platform-tag {
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* ── EDITOR PREVIEW ── */
+    .preview-section {
+      padding: 0 24px 100px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .editor-frame {
+      width: 100%; max-width: 900px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .editor-titlebar {
+      display: flex; align-items: center;
+      padding: 12px 16px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+    .traffic-light {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #febc2e; }
+    .tl-green { background: #28c840; }
+    .titlebar-tabs {
+      display: flex; align-items: center; gap: 2px;
+      margin-left: 12px; flex: 1;
+    }
+    .tab {
+      padding: 4px 14px; border-radius: 6px;
+      font-size: 12px; font-family: var(--mono);
+      color: var(--muted);
+    }
+    .tab.active {
+      background: var(--bg2); color: var(--text);
+    }
+    .editor-body {
+      display: grid; grid-template-columns: 1fr auto;
+    }
+    .editor-content {
+      padding: 36px 48px;
+      font-family: var(--mono); font-size: 14px;
+      line-height: 1.9; color: var(--text);
+      min-height: 420px;
+    }
+    .md-h1 { font-size: 22px; font-weight: 600; font-family: var(--font); margin-bottom: 16px; letter-spacing: -0.02em; }
+    .md-h2 { font-size: 17px; font-weight: 600; font-family: var(--font); margin: 20px 0 8px; color: var(--text); }
+    .md-p { color: #c5cdd8; margin-bottom: 12px; font-family: var(--font); font-size: 14px; }
+    .md-blockquote {
+      border-left: 3px solid rgba(255,255,255,0.2);
+      padding: 2px 0 2px 16px;
+      margin: 12px 0;
+      color: var(--muted); font-family: var(--font); font-size: 14px;
+      font-style: italic;
+    }
+    .md-code {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #a8d8b9;
+      margin: 12px 0;
+    }
+    .md-code .kw { color: #ffffff; }
+    .md-code .fn { color: #e8b97a; }
+    .md-list { margin: 8px 0 12px 0; }
+    .md-list li { list-style: none; padding: 2px 0; font-family: var(--font); font-size: 14px; color: #c5cdd8; display: flex; align-items: center; gap: 8px; }
+    .md-list li::before { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.35); flex-shrink: 0; }
+    .md-task { list-style: none; padding: 2px 0; font-family: var(--font); font-size: 14px; color: #c5cdd8; display: flex; align-items: center; gap: 8px; }
+    .md-check { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--muted); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .md-check.done { background: #ffffff; border-color: #ffffff; }
+    .md-check.done::after { content: '✓'; font-size: 9px; color: #000; }
+    .md-bold { font-weight: 600; color: var(--text); }
+    .md-italic { font-style: italic; color: var(--muted); }
+    .cursor {
+      display: inline-block; width: 2px; height: 15px;
+      background: var(--accent); margin-left: 1px;
+      animation: blink 1.1s step-end infinite;
+      vertical-align: middle;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .editor-outline {
+      width: 180px;
+      border-left: 1px solid var(--border);
+      padding: 20px 16px;
+      font-size: 12px;
+    }
+    .outline-title {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--muted); letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .outline-item {
+      padding: 3px 0;
+      color: var(--muted); font-size: 12px;
+      cursor: pointer; transition: color 0.15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .outline-item:hover { color: var(--text); }
+    .outline-item.active { color: #ffffff; }
+    .outline-item.h2 { padding-left: 10px; font-size: 11px; }
+
+    /* ── PHILOSOPHY ── */
+    .section {
+      padding: 100px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600; letter-spacing: -0.025em;
+      line-height: 1.2; margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 17px; color: var(--muted);
+      max-width: 520px; line-height: 1.7; font-weight: 300;
+    }
+
+    .philosophy-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+      margin-top: 60px;
+    }
+    .phil-card {
+      background: var(--bg2);
+      padding: 36px 32px;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .phil-card:first-child { border-radius: 12px 0 0 12px; }
+    .phil-card:last-child { border-radius: 0 12px 12px 0; }
+    .phil-card:hover { background: var(--bg3); }
+    .phil-icon {
+      width: 40px; height: 40px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    .phil-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+    .phil-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── FEATURES ── */
+    .features-section {
+      padding: 0 24px 100px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+      margin-top: 60px;
+    }
+    .feat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feat-card:hover {
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-2px);
+    }
+    .feat-card.wide { grid-column: span 2; }
+    .feat-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+    .feat-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); margin-top: 7px; flex-shrink: 0;
+    }
+    .feat-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .feat-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+    .feat-tag {
+      display: inline-block;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--muted); background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 7px; margin-top: 10px;
+    }
+
+    /* ── SHORTCUTS ── */
+    .shortcuts-section {
+      padding: 0 24px 100px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .shortcuts-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 0; margin-top: 48px;
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    }
+    .shortcut-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .shortcut-row:hover { background: var(--bg2); }
+    .shortcut-desc { font-size: 14px; color: var(--muted); }
+    .shortcut-keys { display: flex; gap: 4px; }
+    .kbd {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--bg3); color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px; padding: 3px 7px;
+    }
+
+    /* ── TECH STACK ── */
+    .tech-section {
+      padding: 0 24px 100px;
+      max-width: 1100px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .tech-chips {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin-top: 36px;
+    }
+    .tech-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 7px 18px;
+      font-size: 13px; font-family: var(--mono);
+      color: var(--muted);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tech-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .tech-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+
+    /* ── DOWNLOAD / CTA ── */
+    .cta-section {
+      padding: 100px 24px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .cta-glow {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 600; letter-spacing: -0.025em; margin-bottom: 16px;
+    }
+    .cta-section p {
+      color: var(--muted); font-size: 17px; margin-bottom: 40px;
+      font-weight: 300;
+    }
+    .download-buttons {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    }
+    .btn-download {
+      display: inline-flex; flex-direction: column; align-items: flex-start;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 24px;
+      text-decoration: none; color: var(--text);
+      transition: border-color 0.2s, transform 0.15s;
+      min-width: 180px;
+    }
+    .btn-download:hover { border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
+    .dl-os { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
+    .dl-label { font-size: 16px; font-weight: 600; }
+    .dl-fmt { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 48px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-left { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .footer-right { display: flex; gap: 24px; }
+    .footer-right a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color 0.2s; }
+    .footer-right a:hover { color: var(--text); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(to right, transparent, var(--border), transparent);
+      margin: 0 auto; max-width: 1100px;
+    }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 700px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .philosophy-grid, .features-grid { grid-template-columns: 1fr; }
+      .feat-card.wide { grid-column: auto; }
+      .shortcuts-grid { grid-template-columns: 1fr; }
+      .editor-outline { display: none; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(0,600) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+        <path d="M2850 5983 c-393 -37 -629 -87 -890 -190 -719 -283 -1291 -812 -1630 -1508 -306 -628 -378 -1311 -210 -1980 159 -632 539 -1216 1055 -1619 370 -289 810 -496 1246 -585 208 -43 336 -55 584 -55 256 0 364 11 600 60 961 203 1795 909 2154 1824 349 889 260 1829 -249 2651 -198 320 -511 650 -826 871 -371 261 -809 437 -1251 503 -200 30 -443 42 -583 28z m914 -1938 c167 -29 307 -93 314 -144 5 -33 -21 -56 -91 -82 -84 -30 -161 -70 -228 -116 -66 -45 -144 -111 -138 -117 2 -2 41 -26 86 -54 97 -59 209 -141 314 -229 43 -34 80 -63 84 -63 4 0 64 35 133 78 168 105 402 238 479 274 51 24 65 27 83 18 18 -9 21 -18 16 -41 -3 -16 -62 -149 -131 -295 -69 -145 -125 -269 -125 -275 0 -5 38 -81 84 -167 182 -342 193 -374 131 -380 -35 -3 -202 93 -502 290 l-184 121 -31 -23 c-183 -135 -325 -229 -462 -305 l-69 -38 29 -24 c16 -13 71 -44 123 -71 51 -26 100 -57 108 -68 43 -66 -68 -135 -308 -194 -215 -52 -316 -65 -534 -64 -217 0 -297 10 -504 64 -488 127 -1001 482 -1220 843 l-23 38 40 52 c276 363 695 633 1147 740 121 29 333 57 435 57 59 0 75 6 181 59 178 89 346 128 560 130 64 1 156 -6 203 -14z"></path>
+        <path d="M2490 3503 c-73 -7 -236 -46 -319 -75 -110 -39 -225 -96 -328 -165 -84 -56 -283 -228 -291 -251 -7 -23 206 -223 320 -299 251 -168 460 -231 733 -220 231 9 409 60 670 192 207 104 571 336 582 372 6 18 -228 168 -388 247 -285 142 -543 207 -802 204 -78 0 -158 -3 -177 -5z m-344 -332 c31 -19 64 -74 64 -108 0 -10 -9 -36 -19 -59 -31 -68 -114 -94 -178 -54 -64 39 -84 111 -49 178 31 60 120 81 182 43z"></path>
+      </g>
+    </svg>
+    <span>FishMark</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">特性</a>
+    <a href="#shortcuts">快捷键</a>
+    <a href="#tech">技术栈</a>
+    <a href="https://github.com/yulu-gm/FishMark" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <a href="#download" class="nav-cta">下载</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">MVP · 开发中</div>
+  <svg class="hero-logo" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" style="color: #ffffff; opacity: 0.9;">
+    <g transform="translate(0,600) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+      <path d="M2850 5983 c-393 -37 -629 -87 -890 -190 -719 -283 -1291 -812 -1630 -1508 -306 -628 -378 -1311 -210 -1980 159 -632 539 -1216 1055 -1619 370 -289 810 -496 1246 -585 208 -43 336 -55 584 -55 256 0 364 11 600 60 961 203 1795 909 2154 1824 349 889 260 1829 -249 2651 -198 320 -511 650 -826 871 -371 261 -809 437 -1251 503 -200 30 -443 42 -583 28z m914 -1938 c167 -29 307 -93 314 -144 5 -33 -21 -56 -91 -82 -84 -30 -161 -70 -228 -116 -66 -45 -144 -111 -138 -117 2 -2 41 -26 86 -54 97 -59 209 -141 314 -229 43 -34 80 -63 84 -63 4 0 64 35 133 78 168 105 402 238 479 274 51 24 65 27 83 18 18 -9 21 -18 16 -41 -3 -16 -62 -149 -131 -295 -69 -145 -125 -269 -125 -275 0 -5 38 -81 84 -167 182 -342 193 -374 131 -380 -35 -3 -202 93 -502 290 l-184 121 -31 -23 c-183 -135 -325 -229 -462 -305 l-69 -38 29 -24 c16 -13 71 -44 123 -71 51 -26 100 -57 108 -68 43 -66 -68 -135 -308 -194 -215 -52 -316 -65 -534 -64 -217 0 -297 10 -504 64 -488 127 -1001 482 -1220 843 l-23 38 40 52 c276 363 695 633 1147 740 121 29 333 57 435 57 59 0 75 6 181 59 178 89 346 128 560 130 64 1 156 -6 203 -14z"></path>
+      <path d="M2490 3503 c-73 -7 -236 -46 -319 -75 -110 -39 -225 -96 -328 -165 -84 -56 -283 -228 -291 -251 -7 -23 206 -223 320 -299 251 -168 460 -231 733 -220 231 9 409 60 670 192 207 104 571 336 582 372 6 18 -228 168 -388 247 -285 142 -543 207 -802 204 -78 0 -158 -3 -177 -5z m-344 -332 c31 -19 64 -74 64 -108 0 -10 -9 -36 -19 -59 -31 -68 -114 -94 -178 -54 -64 39 -84 111 -49 178 31 60 120 81 182 43z"></path>
+    </g>
+  </svg>
+  <h1>专注写作，<em>文本为本</em></h1>
+  <p class="hero-sub">FishMark 是一款面向 macOS 与 Windows 的本地优先 Markdown 桌面编辑器。单栏沉浸式写作，Markdown 文本永远是唯一事实来源。</p>
+  <div class="hero-actions">
+    <a href="#download" class="btn-primary">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+      </svg>
+      下载 FishMark
+    </a>
+    <a href="https://github.com/yulu-gm/FishMark" target="_blank" rel="noopener noreferrer" class="btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      查看源码
+    </a>
+  </div>
+  <div class="hero-platforms">
+    <span class="platform-tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+      Windows
+    </span>
+    <span style="color: var(--border)">·</span>
+    <span class="platform-tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09z"/><path d="M15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+      macOS
+    </span>
+  </div>
+</section>
+
+<!-- EDITOR PREVIEW -->
+<section class="preview-section">
+  <div class="editor-frame fade-up">
+    <div class="editor-titlebar">
+      <div class="traffic-light tl-red"></div>
+      <div class="traffic-light tl-yellow"></div>
+      <div class="traffic-light tl-green"></div>
+      <div class="titlebar-tabs">
+        <div class="tab active">README.md</div>
+        <div class="tab">notes.md</div>
+        <div class="tab">journal.md</div>
+      </div>
+    </div>
+    <div class="editor-body">
+      <div class="editor-content">
+        <div class="md-h1">FishMark 使用手册</div>
+        <p class="md-p">一款专注于<span class="md-bold">写作体验</span>的 Markdown 编辑器，Markdown 文本永远是唯一事实来源。</p>
+
+        <div class="md-h2">核心理念</div>
+        <div class="md-blockquote">写作时不应该被工具打扰——光标在哪，源码就在哪。</div>
+
+        <div class="md-h2">快速开始</div>
+        <div class="md-code"><span class="kw">npm</span> <span class="fn">install</span><br><span class="kw">npm</span> <span class="fn">run dev</span></div>
+
+        <div class="md-h2">待办事项</div>
+        <ul class="md-list" style="list-style:none; padding:0;">
+          <li class="md-task"><span class="md-check done"></span> 打开与保存文件</li>
+          <li class="md-task"><span class="md-check done"></span> 标题 / 列表 / 引用块渲染</li>
+          <li class="md-task"><span class="md-check done"></span> 多标签页工作区</li>
+          <li class="md-task"><span class="md-check"></span> 查找替换<span class="cursor"></span></li>
+        </ul>
+      </div>
+      <div class="editor-outline">
+        <div class="outline-title">大纲</div>
+        <div class="outline-item active">FishMark 使用手册</div>
+        <div class="outline-item h2">核心理念</div>
+        <div class="outline-item h2">快速开始</div>
+        <div class="outline-item h2">待办事项</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<div class="divider"></div>
+<section class="section" id="features">
+  <div class="section-label">设计哲学</div>
+  <h2 class="section-title">少即是多，<br>文字为先</h2>
+  <p class="section-sub">FishMark 不追求功能的堆叠，而是专注于让写作本身更稳定、更可靠。</p>
+
+  <div class="philosophy-grid">
+    <div class="phil-card fade-up">
+      <div class="phil-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.7)" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <div class="phil-title">Markdown 是事实来源</div>
+      <div class="phil-desc">不自动重排文档，保存时忠实还原你的 Markdown 风格——缩进、换行、标点，一字不改。</div>
+    </div>
+    <div class="phil-card fade-up" style="transition-delay:0.1s">
+      <div class="phil-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.7)" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+        </svg>
+      </div>
+      <div class="phil-title">WYSIWYM，而非 WYSIWYG</div>
+      <div class="phil-desc">光标所在之处即回到 Markdown 源码。离开后渲染为阅读态。写作与阅读切换零摩擦。</div>
+    </div>
+    <div class="phil-card fade-up" style="transition-delay:0.2s">
+      <div class="phil-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.7)" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div class="phil-title">本地优先，数据自主</div>
+      <div class="phil-desc">文件存储在你的硬盘上，无需账号，无需云端同步，离线永远可用。你的文字，你来掌控。</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES GRID -->
+<div class="divider"></div>
+<section class="features-section">
+  <div class="section-label" style="margin-top:100px">功能特性</div>
+  <h2 class="section-title">稳定、克制、<br>够用就好</h2>
+
+  <div class="features-grid">
+    <div class="feat-card fade-up">
+      <div class="feat-header">
+        <div class="feat-dot"></div>
+        <div>
+          <div class="feat-title">块级渲染切换</div>
+          <div class="feat-desc">标题、段落、列表、任务列表、引用块、代码块、分割线——非激活态渲染为视觉呈现，光标移入即回到源码。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up" style="transition-delay:0.05s">
+      <div class="feat-header">
+        <div class="feat-dot" ></div>
+        <div>
+          <div class="feat-title">多标签页工作区</div>
+          <div class="feat-desc">单窗口内同时打开多个文档，支持标签排序、拖出成新窗口，每个标签独立管理保存状态。</div>
+          <div class="feat-tag">新功能</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up" style="transition-delay:0.1s">
+      <div class="feat-header">
+        <div class="feat-dot"></div>
+        <div>
+          <div class="feat-title">可折叠大纲侧栏</div>
+          <div class="feat-desc">基于标题层级自动生成大纲，右侧悬浮独立滚动，默认收起，点击可跳转至对应位置。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up" style="transition-delay:0.15s">
+      <div class="feat-header">
+        <div class="feat-dot" ></div>
+        <div>
+          <div class="feat-title">图片粘贴落盘</div>
+          <div class="feat-desc">粘贴剪贴板图片自动写入本地 assets 目录，插入相对路径 Markdown，图片在编辑器中即时可见。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up" style="transition-delay:0.2s">
+      <div class="feat-header">
+        <div class="feat-dot"></div>
+        <div>
+          <div class="feat-title">自动保存与外部变更检测</div>
+          <div class="feat-desc">停止输入后自动保存，失焦时也会保存。外部程序修改文件时弹出提示，支持重载、保留内存版本或另存为。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up" style="transition-delay:0.25s">
+      <div class="feat-header">
+        <div class="feat-dot" ></div>
+        <div>
+          <div class="feat-title">主题与偏好设置</div>
+          <div class="feat-desc">支持扫描 userData/themes 下的主题包，颜色模式、文档字体、字号、autosave 延迟均可在设置页实时调整。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card fade-up wide" style="transition-delay:0.3s">
+      <div class="feat-header">
+        <div class="feat-dot"></div>
+        <div>
+          <div class="feat-title">行内格式渲染</div>
+          <div class="feat-desc">粗体 <strong>**bold**</strong>、斜体 <em>*italic*</em>、行内代码 <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12px">`code`</code>、删除线 <s>~~strikethrough~~</s> 均在非激活行渲染为最终样式，光标所在行回到 Markdown 源码，兼容 IME 输入法。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHORTCUTS -->
+<div class="divider"></div>
+<section class="shortcuts-section" id="shortcuts">
+  <div style="margin-top:100px">
+    <div class="section-label">键盘快捷键</div>
+    <h2 class="section-title">手不离键盘</h2>
+    <p class="section-sub" style="margin-bottom:0">所有格式操作均支持快捷键切换，同一快捷键再次按下可撤销格式。</p>
+  </div>
+
+  <div class="shortcuts-grid">
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">粗体</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">B</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">斜体</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">I</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">一级标题</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">1</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">二级标题</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">2</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">三级标题</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">3</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">四级标题</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">4</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">无序列表</span>
+      <div class="shortcut-keys"><span class="kbd">⇧</span><span class="kbd">⌘</span><span class="kbd">7</span></div>
+    </div>
+    <div class="shortcut-row fade-up">
+      <span class="shortcut-desc">引用块</span>
+      <div class="shortcut-keys"><span class="kbd">⇧</span><span class="kbd">⌘</span><span class="kbd">9</span></div>
+    </div>
+    <div class="shortcut-row fade-up" style="border-bottom:none">
+      <span class="shortcut-desc">代码块</span>
+      <div class="shortcut-keys"><span class="kbd">⌥</span><span class="kbd">⇧</span><span class="kbd">⌘</span><span class="kbd">C</span></div>
+    </div>
+    <div class="shortcut-row fade-up" style="border-bottom:none">
+      <span class="shortcut-desc">撤销 / 重做</span>
+      <div class="shortcut-keys"><span class="kbd">⌘</span><span class="kbd">Z</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<div class="divider" style="margin-top:100px"></div>
+<section class="tech-section" id="tech">
+  <div style="margin-top:100px">
+    <div class="section-label" style="text-align:center">技术栈</div>
+    <h2 class="section-title">现代桌面技术</h2>
+    <p class="section-sub" style="margin:0 auto">基于成熟的开源生态构建，严格分离 main / preload / renderer 边界，保证安全性与可维护性。</p>
+  </div>
+  <div class="tech-chips">
+    <div class="tech-chip"><div class="tech-chip-dot"></div>Electron</div>
+    <div class="tech-chip"><div class="tech-chip-dot" ></div>React</div>
+    <div class="tech-chip"><div class="tech-chip-dot"></div>TypeScript</div>
+    <div class="tech-chip"><div class="tech-chip-dot" ></div>CodeMirror 6</div>
+    <div class="tech-chip"><div class="tech-chip-dot"></div>micromark</div>
+    <div class="tech-chip"><div class="tech-chip-dot" ></div>Vite</div>
+    <div class="tech-chip"><div class="tech-chip-dot"></div>Vitest</div>
+  </div>
+</section>
+
+<!-- DOWNLOAD CTA -->
+<section class="cta-section" id="download" style="margin-top:100px">
+  <div class="cta-glow"></div>
+  <div class="hero-badge" style="margin-bottom:20px; color:var(--muted)">当前版本 · MVP 开发中</div>
+  <h2>开始写作</h2>
+  <p>免费下载，本地运行，无需注册。</p>
+  <div class="download-buttons">
+    <a href="https://github.com/yulu-gm/FishMark/releases" target="_blank" rel="noopener noreferrer" class="btn-download">
+      <div class="dl-os">macOS</div>
+      <div class="dl-label">下载 .dmg</div>
+      <div class="dl-fmt">Apple Silicon · Intel</div>
+    </a>
+    <a href="https://github.com/yulu-gm/FishMark/releases" target="_blank" rel="noopener noreferrer" class="btn-download">
+      <div class="dl-os">Windows</div>
+      <div class="dl-label">下载 .exe</div>
+      <div class="dl-fmt">x64 安装包</div>
+    </a>
+    <a href="https://github.com/yulu-gm/FishMark" target="_blank" rel="noopener noreferrer" class="btn-download">
+      <div class="dl-os">源码</div>
+      <div class="dl-label">GitHub</div>
+      <div class="dl-fmt">自行构建</div>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <svg width="18" height="18" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" style="color:var(--muted)">
+      <g transform="translate(0,600) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+        <path d="M2850 5983 c-393 -37 -629 -87 -890 -190 -719 -283 -1291 -812 -1630 -1508 -306 -628 -378 -1311 -210 -1980 159 -632 539 -1216 1055 -1619 370 -289 810 -496 1246 -585 208 -43 336 -55 584 -55 256 0 364 11 600 60 961 203 1795 909 2154 1824 349 889 260 1829 -249 2651 -198 320 -511 650 -826 871 -371 261 -809 437 -1251 503 -200 30 -443 42 -583 28z m914 -1938 c167 -29 307 -93 314 -144 5 -33 -21 -56 -91 -82 -84 -30 -161 -70 -228 -116 -66 -45 -144 -111 -138 -117 2 -2 41 -26 86 -54 97 -59 209 -141 314 -229 43 -34 80 -63 84 -63 4 0 64 35 133 78 168 105 402 238 479 274 51 24 65 27 83 18 18 -9 21 -18 16 -41 -3 -16 -62 -149 -131 -295 -69 -145 -125 -269 -125 -275 0 -5 38 -81 84 -167 182 -342 193 -374 131 -380 -35 -3 -202 93 -502 290 l-184 121 -31 -23 c-183 -135 -325 -229 -462 -305 l-69 -38 29 -24 c16 -13 71 -44 123 -71 51 -26 100 -57 108 -68 43 -66 -68 -135 -308 -194 -215 -52 -316 -65 -534 -64 -217 0 -297 10 -504 64 -488 127 -1001 482 -1220 843 l-23 38 40 52 c276 363 695 633 1147 740 121 29 333 57 435 57 59 0 75 6 181 59 178 89 346 128 560 130 64 1 156 -6 203 -14z"></path>
+      </g>
+    </svg>
+    <span>FishMark · 2026</span>
+  </div>
+  <div class="footer-right">
+    <a href="https://github.com/yulu-gm/FishMark" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <a href="https://github.com/yulu-gm/FishMark/releases" target="_blank" rel="noopener noreferrer">发布记录</a>
+    <a href="https://github.com/yulu-gm/FishMark/blob/main/docs/" target="_blank" rel="noopener noreferrer">文档</a>
+  </div>
+</footer>
+
+<script>
+  // Scroll-triggered fade-up
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
