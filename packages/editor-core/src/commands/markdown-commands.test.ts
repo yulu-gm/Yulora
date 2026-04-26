@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ActiveBlockState } from "../active-block";
 import {
+  runMarkdownArrowDownCommand,
   runMarkdownArrowUpCommand,
   runMarkdownEnterCommand,
   type MarkdownCommandTarget
@@ -114,7 +115,26 @@ describe("semantic markdown commands", () => {
     expect(target.getDispatchedSelections()).toEqual([
       {
         anchor: "Alpha\n".length,
-        head: "Alpha\n".length
+        head: "Alpha\n".length,
+        scrollIntoView: true
+      }
+    ]);
+  });
+
+  it("requests cursor scrolling when a custom ArrowDown navigation is handled", () => {
+    const target = createCommandTarget({ doc: "Alpha\nBeta", anchor: 0 });
+
+    vi.mocked(target.resolveArrowDown).mockReturnValue({
+      anchor: "Alpha\n".length,
+      head: "Alpha\n".length
+    });
+
+    expect(runMarkdownArrowDownCommand(target, paragraphActiveState)).toBe(true);
+    expect(target.getDispatchedSelections()).toEqual([
+      {
+        anchor: "Alpha\n".length,
+        head: "Alpha\n".length,
+        scrollIntoView: true
       }
     ]);
   });

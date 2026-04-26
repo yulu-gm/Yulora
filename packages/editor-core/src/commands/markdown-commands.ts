@@ -19,6 +19,7 @@ export type MarkdownCommandSelectionUpdate = {
   anchor: number;
   goalColumn?: number;
   head?: number;
+  scrollIntoView?: boolean;
 };
 
 export type MarkdownCommandTarget = {
@@ -100,7 +101,10 @@ export function runMarkdownArrowDownCommand(
     return false;
   }
 
-  target.dispatchSelection(result);
+  target.dispatchSelection({
+    ...result,
+    scrollIntoView: true
+  });
   return true;
 }
 
@@ -114,7 +118,10 @@ export function runMarkdownArrowUpCommand(
     return runBlankLineArrowUpCommand(target);
   }
 
-  target.dispatchSelection(result);
+  target.dispatchSelection({
+    ...result,
+    scrollIntoView: true
+  });
   return true;
 }
 
@@ -221,7 +228,8 @@ function runBlankLineArrowUpCommand(target: MarkdownCommandTarget): boolean {
 
   target.dispatchSelection({
     anchor: previousLine.from,
-    head: previousLine.from
+    head: previousLine.from,
+    scrollIntoView: true
   });
 
   return true;

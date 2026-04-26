@@ -2,25 +2,25 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+const readMainSource = () =>
+  readFileSync(path.join(process.cwd(), "src", "main", "main.ts"), "utf8").replace(/\r\n/g, "\n");
+
 describe("main process window wiring", () => {
   it("passes the resolved window icon path into the runtime window manager", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain("windowIconPath: resolveWindowIconPath()");
   });
 
   it("configures a dev-specific runtime identity before deciding whether to request the single-instance lock", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('configureMainProcessRuntime(app, process.env)');
     expect(mainSource).toContain('shouldRequestSingleInstanceLock(process.env)');
   });
 
   it("wires the app updater service, update IPC, and startup auto-check", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('import { createAppUpdateCheckRunner } from "./app-update-check-runner"');
     expect(mainSource).toContain('import("electron-updater")');
@@ -36,8 +36,7 @@ describe("main process window wiring", () => {
   });
 
   it("registers IPC handlers for fonts, preferences, and themes", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('import { createExternalFileWatchService } from "./external-file-watch-service"');
     expect(mainSource).toContain('ipcMain.handle(GET_PREFERENCES_CHANNEL');
@@ -52,8 +51,7 @@ describe("main process window wiring", () => {
   });
 
   it("wires the tabbed workspace service and its IPC handlers", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('import { createWorkspaceApplication } from "./workspace-application"');
     expect(mainSource).toContain('import { createWorkspaceCloseCoordinator } from "./workspace-close-coordinator"');
@@ -88,8 +86,7 @@ describe("main process window wiring", () => {
   });
 
   it("keeps File > New Window as an explicit main-process window action", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('if (command === "new-editor-window") {');
     expect(mainSource).toContain("openEmptyEditorWindow?.();");
@@ -97,8 +94,7 @@ describe("main process window wiring", () => {
   });
 
   it("routes external opens back into the workspace flow and keeps dropped files in place", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain("OPEN_WORKSPACE_PATH_EVENT");
     expect(mainSource).toContain("window.webContents.send(OPEN_WORKSPACE_PATH_EVENT");
@@ -107,8 +103,7 @@ describe("main process window wiring", () => {
   });
 
   it("only initializes the scenario runner stack in test-workbench mode", () => {
-    const mainPath = path.join(process.cwd(), "src", "main", "main.ts");
-    const mainSource = readFileSync(mainPath, "utf8");
+    const mainSource = readMainSource();
 
     expect(mainSource).toContain('if (!app.isPackaged && runtimeMode === "test-workbench") {');
     expect(mainSource).toContain('import("./cli-process-runner.js")');

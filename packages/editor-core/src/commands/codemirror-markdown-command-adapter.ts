@@ -48,7 +48,8 @@ export function createCodeMirrorMarkdownCommandTarget(view: EditorView): Markdow
                 anchor: selection.anchor,
                 head: selection.head ?? selection.anchor
               }
-            : EditorSelection.cursor(selection.anchor, 0, undefined, selection.goalColumn)
+            : EditorSelection.cursor(selection.anchor, 0, undefined, selection.goalColumn),
+        scrollIntoView: selection.scrollIntoView
       });
     },
     getLineCount: () => view.state.doc.lines,
