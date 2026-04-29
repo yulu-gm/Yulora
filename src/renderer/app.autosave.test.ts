@@ -5501,8 +5501,46 @@ describe("App autosave", () => {
 
   it("renders markdown lists and quotes with explicit markers instead of solid blocks", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const markdownTextStandard = JSON.parse(
+      readFileSync(join(process.cwd(), "docs/standards/markdown-text-rendering-standard.json"), "utf-8")
+    ) as {
+      lists: {
+        markerToTextGapRem: { value: number };
+        geometry: { indentStepEm: number };
+        unordered: { markerGlyphLeftFromDepthEm: number };
+        ordered: { markerColumnWidthEm: number };
+        task: { checkboxLeftFromDepthEm: number };
+      };
+    };
     const listMarkerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-list-marker");
+    const listRootRule = getCssRule(markdownRenderStylesheet, ":root");
+    const listRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-line.cm-inactive-list");
+    const activeListRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-line.cm-active-list");
+    const listSourcePrefixRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-list-source-prefix"
+    );
+    const listContinuationRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-line.cm-inactive-list-continuation"
+    );
+    const activeListContinuationRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-line.cm-active-list-continuation"
+    );
+    const orderedListRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-line.cm-inactive-list-ordered"
+    );
+    const taskListRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-line.cm-inactive-list-task"
+    );
     const unorderedListMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-list-unordered .cm-inactive-list-marker"
+    );
+    const unorderedListMarkerGlyphRule = getCssRule(
       markdownRenderStylesheet,
       ".document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before"
     );
@@ -5510,15 +5548,79 @@ describe("App autosave", () => {
       markdownRenderStylesheet,
       ".document-editor .cm-inactive-list-ordered .cm-inactive-list-marker"
     );
+    const taskListMarkerGlyphRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-list-task .cm-inactive-list-marker::before"
+    );
     const taskMarkerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-task-marker::before");
     const blockquoteRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote");
 
+    expect(listRootRule).toContain(
+      `--fishmark-list-marker-text-gap: ${markdownTextStandard.lists.markerToTextGapRem.value}em;`
+    );
+    expect(listRootRule).toContain(
+      `--fishmark-list-unordered-marker-left: ${markdownTextStandard.lists.unordered.markerGlyphLeftFromDepthEm}em;`
+    );
+    expect(listRootRule).toContain(
+      `--fishmark-list-ordered-marker-width: ${markdownTextStandard.lists.ordered.markerColumnWidthEm}em;`
+    );
+    expect(listRootRule).toContain(
+      `--fishmark-list-task-marker-left: ${markdownTextStandard.lists.task.checkboxLeftFromDepthEm}em;`
+    );
+    expect(listRootRule).toContain(
+      `--fishmark-list-nested-indent: ${markdownTextStandard.lists.geometry.indentStepEm}em;`
+    );
+    expect(listRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
+    expect(listRule).toContain("var(--fishmark-list-unordered-content-offset)");
+    expect(listRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(listRule).not.toContain("max(");
+    expect(listRule).toContain("position: relative;");
+    expect(listRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
+    expect(listRule).not.toContain("text-indent:");
+    expect(listRule).toContain("overflow-wrap: anywhere;");
+    expect(listRule).toContain("word-break: break-all;");
+    expect(activeListRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
+    expect(activeListRule).toContain("var(--fishmark-list-unordered-content-offset)");
+    expect(activeListRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListRule).not.toContain("max(");
+    expect(activeListRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
+    expect(activeListRule).toContain("text-indent: calc(-1 * var(--fishmark-list-content-offset));");
+    expect(activeListRule).toContain("overflow-wrap: anywhere;");
+    expect(activeListRule).toContain("word-break: break-all;");
+    expect(listContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
+    expect(listContinuationRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(listContinuationRule).not.toContain("max(");
+    expect(listContinuationRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
+    expect(listContinuationRule).toContain("overflow-wrap: anywhere;");
+    expect(listContinuationRule).not.toContain("text-indent:");
+    expect(activeListContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
+    expect(activeListContinuationRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListContinuationRule).not.toContain("max(");
+    expect(activeListContinuationRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
+    expect(activeListContinuationRule).toContain("overflow-wrap: anywhere;");
+    expect(activeListContinuationRule).not.toContain("text-indent:");
+    expect(orderedListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-ordered-content-offset);");
+    expect(taskListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-task-content-offset);");
+    expect(listSourcePrefixRule).toContain("font-size: 0;");
+    expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-inactive-list-depth-1,");
+    expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-active-list-depth-1");
+    expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-inactive-list-depth-2,");
+    expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-active-list-depth-2");
     expect(listMarkerRule).not.toContain("background:");
-    expect(unorderedListMarkerRule).toContain("width: var(--fishmark-list-marker-size);");
-    expect(unorderedListMarkerRule).toContain("height: var(--fishmark-list-marker-size);");
-    expect(unorderedListMarkerRule).toContain("background: var(--fishmark-list-marker);");
+    expect(unorderedListMarkerRule).toContain("position: absolute;");
+    expect(unorderedListMarkerRule).toContain(
+      "left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-unordered-marker-left));"
+    );
+    expect(unorderedListMarkerGlyphRule).toContain("width: var(--fishmark-list-marker-size);");
+    expect(unorderedListMarkerGlyphRule).toContain("height: var(--fishmark-list-marker-size);");
+    expect(unorderedListMarkerGlyphRule).toContain("background: var(--fishmark-list-marker);");
+    expect(orderedListMarkerRule).toContain("position: absolute;");
     expect(orderedListMarkerRule).toContain("min-width: var(--fishmark-list-ordered-marker-width);");
     expect(orderedListMarkerRule).toContain("font-variant-numeric: tabular-nums;");
+    expect(markdownRenderStylesheet).toContain(
+      "left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));"
+    );
+    expect(taskListMarkerGlyphRule).toContain("content: none;");
     expect(taskMarkerRule).toContain("width: var(--fishmark-task-size);");
     expect(taskMarkerRule).toContain("height: var(--fishmark-task-size);");
     expect(taskMarkerRule).toContain("border-radius: var(--fishmark-task-radius);");

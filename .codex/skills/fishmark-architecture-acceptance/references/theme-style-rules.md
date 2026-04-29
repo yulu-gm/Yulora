@@ -7,6 +7,7 @@
 - `src/renderer/theme-*`
 - `src/shared/theme-*`
 - `src/renderer/styles/**`
+- `docs/standards/markdown-text-rendering-standard.json`
 - 偏好里的 theme / typography / dynamic effects
 
 就用这份规则审查。
@@ -28,10 +29,13 @@
 - 透明度
 - 合理的交互反馈
 
+Markdown 文本排版几何必须以 `docs/standards/markdown-text-rendering-standard.json` 为准。该 JSON 是列表缩进、marker-to-text gap、行高、段落间距、换行对齐和主题覆盖边界的单一事实源。
+
 ## 2. 主题不应控制什么
 
 不允许主题越权控制：
 - app-owned 容器几何布局
+- Markdown 文本几何 contract
 - 文档真相
 - 保存 / 打开 / reload 等业务逻辑
 - IPC / runtime business branching
@@ -39,6 +43,7 @@
 看到以下情况应直接警惕：
 - theme CSS 去写 workspace 结构布局规则
 - 主题依赖脆弱 DOM 层级或私有 class 才能工作
+- 主题 markdown.css 覆盖 `markdown-text-rendering-standard.json` 锁定的列表缩进、marker 间距、行高或负字间距规则
 - 样式改动偷偷编码产品行为
 
 ## 3. 理想 contract
@@ -79,4 +84,4 @@
 - 主题是否越权控制了布局或业务层
 - 新样式是否会让动态效果失真或不可见
 - 新增 token / parameter 是否有清晰语义，而不是临时变量
-
+- Markdown 文本渲染是否符合 `docs/standards/markdown-text-rendering-standard.json`，并有 DOM 几何证据支持

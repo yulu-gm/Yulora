@@ -340,6 +340,12 @@ describe("createBlockDecorations", () => {
         text: "-"
       },
       {
+        from: 10,
+        to: 11,
+        className: "cm-inactive-list-source-prefix",
+        text: " "
+      },
+      {
         from: 15,
         to: 15,
         className: "cm-inactive-list cm-inactive-list-unordered cm-inactive-list-depth-0 cm-inactive-list-task cm-inactive-list-task-checked",
@@ -352,10 +358,22 @@ describe("createBlockDecorations", () => {
         text: "-"
       },
       {
+        from: 16,
+        to: 17,
+        className: "cm-inactive-list-source-prefix",
+        text: " "
+      },
+      {
         from: 17,
         to: 20,
         className: "cm-inactive-task-marker cm-inactive-task-marker-checked",
         text: "[x]"
+      },
+      {
+        from: 20,
+        to: 21,
+        className: "cm-inactive-list-source-prefix",
+        text: " "
       },
       {
         from: 27,

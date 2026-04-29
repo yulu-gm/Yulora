@@ -1,7 +1,20 @@
 :root {
-  --fishmark-list-marker-size: 0.3rem;
-  --fishmark-list-ordered-marker-width: 1.5rem;
-  --fishmark-task-size: 0.92rem;
+  --fishmark-list-marker-size: 0.3em;
+  --fishmark-list-marker-text-gap: 0.62em;
+  --fishmark-list-unordered-marker-left: 0.24em;
+  --fishmark-list-ordered-marker-width: 2.4em;
+  --fishmark-list-unordered-content-offset: calc(
+    var(--fishmark-list-unordered-marker-left) + var(--fishmark-list-marker-size) + var(--fishmark-list-marker-text-gap)
+  );
+  --fishmark-list-ordered-content-offset: calc(
+    var(--fishmark-list-ordered-marker-width) + var(--fishmark-list-marker-text-gap)
+  );
+  --fishmark-list-task-marker-left: 0.24em;
+  --fishmark-list-task-content-offset: calc(
+    var(--fishmark-list-task-marker-left) + var(--fishmark-task-size) + var(--fishmark-list-marker-text-gap)
+  );
+  --fishmark-list-nested-indent: 1.4em;
+  --fishmark-task-size: 0.92em;
   --fishmark-task-radius: 0.2rem;
   --fishmark-blockquote-bg: color-mix(
     in srgb,
@@ -143,13 +156,69 @@
   text-decoration-thickness: 1.5px;
 }
 
-.document-editor .cm-inactive-list {
+.document-editor .cm-line.cm-inactive-list {
+  --fishmark-list-depth-offset: 0rem;
+  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
   color: var(--fishmark-markdown-list-text, var(--fishmark-text-muted, #687180));
+  position: relative;
+  padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.document-editor .cm-line.cm-active-list {
+  --fishmark-list-depth-offset: 0rem;
+  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
+  padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
+  text-indent: calc(-1 * var(--fishmark-list-content-offset));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.document-editor .cm-line.cm-inactive-list-continuation {
+  --fishmark-list-depth-offset: 0rem;
+  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
+  color: var(--fishmark-markdown-list-text, var(--fishmark-text-muted, #687180));
+  padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.document-editor .cm-line.cm-active-list-continuation {
+  --fishmark-list-depth-offset: 0rem;
+  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
+  padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .document-editor .cm-inactive-list-unordered,
-.document-editor .cm-inactive-list-ordered {
+.document-editor .cm-inactive-list-ordered,
+.document-editor .cm-active-list-unordered,
+.document-editor .cm-active-list-ordered {
   line-height: 1.84;
+}
+
+.document-editor .cm-line.cm-inactive-list-ordered {
+  --fishmark-list-content-offset: var(--fishmark-list-ordered-content-offset);
+}
+
+.document-editor .cm-line.cm-active-list-ordered {
+  --fishmark-list-content-offset: var(--fishmark-list-ordered-content-offset);
+}
+
+.document-editor .cm-inactive-list-source-prefix {
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
 }
 
 .document-editor .cm-inactive-list-marker {
@@ -159,9 +228,14 @@
 }
 
 .document-editor .cm-inactive-list-unordered .cm-inactive-list-marker {
-  position: relative;
-  display: inline-block;
-  width: 0.9rem;
+  position: absolute;
+  top: 0;
+  left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-unordered-marker-left));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--fishmark-list-marker-size);
+  height: 1.84em;
   color: transparent;
   opacity: 1;
 }
@@ -170,7 +244,7 @@
   content: "";
   position: absolute;
   top: 50%;
-  left: calc((0.9rem - var(--fishmark-list-marker-size)) / 2);
+  left: 0;
   width: var(--fishmark-list-marker-size);
   height: var(--fishmark-list-marker-size);
   border-radius: 999px;
@@ -179,9 +253,11 @@
 }
 
 .document-editor .cm-inactive-list-ordered .cm-inactive-list-marker {
+  position: absolute;
+  top: 0;
+  left: var(--fishmark-list-depth-offset);
   display: inline-block;
   min-width: var(--fishmark-list-ordered-marker-width);
-  margin-right: 0.18rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -195,13 +271,27 @@
   color: transparent;
 }
 
+.document-editor .cm-inactive-list-task .cm-inactive-list-marker::before {
+  content: none;
+}
+
+.document-editor .cm-line.cm-inactive-list-task {
+  --fishmark-list-content-offset: var(--fishmark-list-task-content-offset);
+}
+
+.document-editor .cm-line.cm-active-list-task {
+  --fishmark-list-content-offset: var(--fishmark-list-task-content-offset);
+}
+
 .document-editor .cm-inactive-task-marker {
-  position: relative;
+  position: absolute;
+  top: 0.42em;
+  left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1rem;
-  height: 1rem;
+  width: var(--fishmark-task-size);
+  height: var(--fishmark-task-size);
   margin-right: 0.48rem;
   color: transparent;
   font-size: 0;
@@ -242,12 +332,24 @@
   color: var(--fishmark-markdown-task-done, var(--fishmark-text-muted, #687180));
 }
 
-.document-editor .cm-inactive-list-depth-1 {
-  padding-left: 0.4rem;
+.document-editor .cm-line.cm-inactive-list-depth-1,
+.document-editor .cm-line.cm-active-list-depth-1 {
+  --fishmark-list-depth-offset: var(--fishmark-list-nested-indent);
 }
 
-.document-editor .cm-inactive-list-depth-2 {
-  padding-left: 0.8rem;
+.document-editor .cm-line.cm-inactive-list-depth-2,
+.document-editor .cm-line.cm-active-list-depth-2 {
+  --fishmark-list-depth-offset: calc(var(--fishmark-list-nested-indent) * 2);
+}
+
+.document-editor .cm-line.cm-inactive-list-depth-3,
+.document-editor .cm-line.cm-active-list-depth-3 {
+  --fishmark-list-depth-offset: calc(var(--fishmark-list-nested-indent) * 3);
+}
+
+.document-editor .cm-line.cm-inactive-list-depth-4,
+.document-editor .cm-line.cm-active-list-depth-4 {
+  --fishmark-list-depth-offset: calc(var(--fishmark-list-nested-indent) * 4);
 }
 
 .document-editor .cm-inactive-blockquote {

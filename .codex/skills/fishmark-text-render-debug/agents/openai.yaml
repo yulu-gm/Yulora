@@ -1,0 +1,7 @@
+interface:
+  display_name: "FishMark Text Render Debug"
+  short_description: "Verify Markdown text rendering visually"
+  default_prompt: "Use $fishmark-text-render-debug to reproduce and verify this FishMark text rendering issue."
+
+policy:
+  allow_implicit_invocation: true

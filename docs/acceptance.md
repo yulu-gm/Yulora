@@ -50,6 +50,8 @@ MVP 最终必须支持：
 
 当前激活块可以保持源码形式，周边块可以渲染，但用户必须始终能够直接编辑 Markdown。
 
+Markdown 文本渲染的排版几何必须符合 `docs/standards/markdown-text-rendering-standard.json`。后续验收列表缩进、marker 与正文距离、行高、段落间距、软换行对齐和主题 Markdown 样式时，都以这份 JSON 为唯一标准；主题只能改变允许范围内的颜色、字体入口和装饰效果，不能覆盖该标准锁定的文本几何。
+
 撤销和重做必须自然；删除 Markdown 语法时，不能出现令人意外的光标跳跃。
 
 ## 4. 输入法与光标稳定性

@@ -317,6 +317,15 @@ manifest 中出现的所有路径都必须留在主题包根目录内部。
 - `--fishmark-markdown-table-border`
 - `--fishmark-markdown-code-token-keyword`
 
+Markdown 排版几何以 `docs/standards/markdown-text-rendering-standard.json` 为唯一标准。主题可以覆盖颜色、字体族、字体大小入口和装饰效果，但不能覆盖该 JSON 中锁定的列表缩进、marker 与正文距离、换行对齐、段落/列表/代码块行高、负字间距禁令等几何约束。
+
+尤其注意列表：
+
+- 每一层列表只增加同一个 `indentStepRem`
+- marker 到首个正文字符的视觉距离必须在父列表、子列表、有序列表和任务列表之间保持一致
+- inactive 渲染态可以隐藏 Markdown 源码前缀，但不能让源码前缀字符数参与最终视觉缩进
+- active 编辑态可以显示源码前缀，但软换行仍必须对齐到首个正文字符
+
 ### `styles/titlebar.css`
 
 负责：

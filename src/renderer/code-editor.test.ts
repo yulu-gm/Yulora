@@ -17,7 +17,7 @@ const getEditorView = (host: HTMLElement) => {
 };
 
 const getLineElementByText = (host: HTMLElement, text: string) => {
-  const lines = Array.from(host.querySelectorAll(".cm-line"));
+  const lines = Array.from(host.querySelectorAll<HTMLElement>(".cm-line"));
   return lines.find((line) => line.textContent?.includes(text)) ?? null;
 };
 
@@ -913,6 +913,113 @@ describe("createCodeEditorController", () => {
     expect(checkedTaskMarker?.getAttribute("data-task-state")).toBe("checked");
     expect(checkedTaskLine?.classList.contains("cm-inactive-list-task")).toBe(true);
     expect(checkedTaskLine?.classList.contains("cm-inactive-list-task-checked")).toBe(true);
+
+    controller.destroy();
+  });
+
+  it("applies active list line classes without hiding source markers while editing a list item", async () => {
+    const host = document.createElement("div");
+    const source = [
+      "- 222222222222222222222222222222222222",
+      "  - child item",
+      "continued child item"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    view?.dispatch({ selection: { anchor: source.indexOf("2222") } });
+    await flushMicrotasks();
+
+    const activeListLine = getLineElementByText(host, "- 222222");
+
+    expect(activeListLine).not.toBeNull();
+    expect(activeListLine?.classList.contains("cm-active-list")).toBe(true);
+    expect(activeListLine?.classList.contains("cm-active-list-unordered")).toBe(true);
+    expect(activeListLine?.classList.contains("cm-active-list-depth-0")).toBe(true);
+    expect(activeListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("2ch");
+    expect(activeListLine?.querySelector(".cm-inactive-list-marker")).toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("child") } });
+    await flushMicrotasks();
+
+    const activeChildListLine = getLineElementByText(host, "- child item");
+
+    expect(activeChildListLine).not.toBeNull();
+    expect(activeChildListLine?.classList.contains("cm-active-list")).toBe(true);
+    expect(activeChildListLine?.classList.contains("cm-active-list-unordered")).toBe(true);
+    expect(activeChildListLine?.classList.contains("cm-active-list-depth-1")).toBe(true);
+    expect(activeChildListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+
+    view?.dispatch({ selection: { anchor: source.indexOf("continued") } });
+    await flushMicrotasks();
+
+    const activeContinuationLine = getLineElementByText(host, "continued child item");
+
+    expect(activeContinuationLine).not.toBeNull();
+    expect(activeContinuationLine?.classList.contains("cm-active-list-continuation")).toBe(true);
+    expect(activeContinuationLine?.classList.contains("cm-active-list-depth-1")).toBe(true);
+    expect(activeContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+
+    view?.dispatch({ selection: { anchor: 0 } });
+    await flushMicrotasks();
+
+    const inactiveContinuationLine = getLineElementByText(host, "continued child item");
+    const inactiveChildListLine = getLineElementByText(host, "- child item");
+
+    expect(inactiveChildListLine).not.toBeNull();
+    expect(inactiveChildListLine?.querySelector(".cm-inactive-list-marker")).not.toBeNull();
+    expect(inactiveChildListLine?.querySelectorAll(".cm-inactive-list-source-prefix")).toHaveLength(2);
+    expect(inactiveContinuationLine).not.toBeNull();
+    expect(inactiveContinuationLine?.classList.contains("cm-inactive-list-continuation")).toBe(true);
+    expect(inactiveContinuationLine?.classList.contains("cm-inactive-list-depth-1")).toBe(true);
+    expect(inactiveContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+
+    controller.destroy();
+  });
+
+  it("keeps a paragraph line stable when starting a trailing dash list item", async () => {
+    const host = document.createElement("div");
+    const source = ["- 2", "  - child", "", "wwww", "-"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    view?.dispatch({ selection: { anchor: source.length } });
+    await flushMicrotasks();
+
+    const paragraphLine = getLineElementByText(host, "wwww");
+    const dashLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === "-"
+    );
+
+    expect(paragraphLine).not.toBeNull();
+    expect(paragraphLine?.classList.contains("cm-inactive-paragraph")).toBe(true);
+    expect(paragraphLine?.classList.contains("cm-inactive-list-continuation")).toBe(false);
+    expect(paragraphLine?.classList.contains("cm-inactive-heading")).toBe(false);
+    expect(dashLine).not.toBeNull();
+    expect(dashLine?.classList.contains("cm-active-list")).toBe(true);
+    expect(dashLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("1ch");
 
     controller.destroy();
   });

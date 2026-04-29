@@ -147,6 +147,56 @@ describe("parseBlockMap", () => {
     expect(source.slice(result.blocks[1]!.startOffset, result.blocks[1]!.endOffset)).toBe("1. one\n2. two");
   });
 
+  it("treats a trailing single dash as a new list marker instead of restyling the previous paragraph", () => {
+    const source = ["- 2", "  - child", "", "wwww", "-"].join("\n");
+
+    const result = parseMarkdownDocument(source);
+
+    expect(result.blocks).toMatchObject([
+      {
+        id: "list:0-13",
+        type: "list",
+        startOffset: 0,
+        endOffset: 13,
+        startLine: 1,
+        endLine: 2
+      },
+      {
+        id: "paragraph:15-19",
+        type: "paragraph",
+        startOffset: 15,
+        endOffset: 19,
+        startLine: 4,
+        endLine: 4
+      },
+      {
+        id: "list:20-21",
+        type: "list",
+        startOffset: 20,
+        endOffset: 21,
+        startLine: 5,
+        endLine: 5,
+        ordered: false,
+        items: [
+          {
+            id: "list-item:20-21",
+            startOffset: 20,
+            endOffset: 21,
+            startLine: 5,
+            endLine: 5,
+            indent: 0,
+            marker: "-",
+            markerStart: 20,
+            markerEnd: 21,
+            contentStartOffset: 21,
+            contentEndOffset: 21,
+            task: null
+          }
+        ]
+      }
+    ]);
+  });
+
   it("parses common pipe table variants into a top-level table block", () => {
     const source = ["name | qty", "--- | ---:", "pen | 2"].join("\n");
 

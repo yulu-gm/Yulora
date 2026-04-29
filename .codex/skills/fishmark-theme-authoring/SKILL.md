@@ -27,6 +27,7 @@ description: 用于在 FishMark 仓库中创建、修改或审查主题时，快
   - `styles/ui.css`
   - `styles/editor.css`
   - `styles/markdown.css`
+- Markdown 文本几何必须符合 `docs/standards/markdown-text-rendering-standard.json`
 - manifest 里的所有路径都必须留在主题包根目录内
 - 静态 CSS 层必须独立可读，不能把可用性押在 shader 上
 
@@ -36,6 +37,26 @@ description: 用于在 FishMark 仓库中创建、修改或审查主题时，快
 - `surfaces.welcomeHero`
 
 它们目前只是 schema 预留，不是可依赖的运行时能力。
+
+## Markdown 文本样式标准
+
+`docs/standards/markdown-text-rendering-standard.json` 是 Markdown 文本渲染的唯一几何标准。
+
+主题可以控制：
+
+- Markdown 颜色 semantic slots
+- 字体族与字体大小入口
+- 装饰性的背景、边框、阴影和动态效果
+
+主题不可以覆盖：
+
+- 列表层级缩进距离
+- marker 与首个正文字符的视觉距离
+- active / inactive 列表软换行对齐规则
+- 段落、列表、引用、代码块、表格行高目标
+- 负字间距
+
+如果主题 `styles/markdown.css` 与该 JSON 冲突，主题验收必须判 FAIL。
 
 ## 最小可用结构
 

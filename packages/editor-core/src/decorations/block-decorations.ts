@@ -470,22 +470,26 @@ function appendListItemDecorations(
     const isActiveLine = activeLineStart === line.startOffset;
 
     if (isFirstLine) {
-      if (!isActiveLine) {
-        appendInactiveListItemFirstLineDecorations(item, ordered, ranges);
-        appendInlineDecorationsForLine(
-          source,
-          item.contentStartOffset ?? item.markerEnd,
-          line.endOffset,
-          false,
-          ranges,
-          resolveImagePreviewUrl
-        );
+      if (isActiveLine) {
+        appendActiveListItemFirstLineDecorations(item, source, ordered, ranges);
+        continue;
       }
+
+      appendInactiveListItemFirstLineDecorations(item, source, ordered, ranges);
+      appendInlineDecorationsForLine(
+        source,
+        resolveListItemContentStartOffset(item, source),
+        line.endOffset,
+        false,
+        ranges,
+        resolveImagePreviewUrl
+      );
 
       continue;
     }
 
     if (isActiveLine) {
+      appendListItemContinuationLineDecorations(line.startOffset, item, source, ordered, "active", ranges);
       continue;
     }
 
@@ -494,6 +498,7 @@ function appendListItemDecorations(
       continue;
     }
 
+    appendListItemContinuationLineDecorations(line.startOffset, item, source, ordered, "inactive", ranges);
     appendInlineDecorationsForLine(
       source,
       line.startOffset,
@@ -505,31 +510,37 @@ function appendListItemDecorations(
   }
 }
 
-function appendInactiveListItemFirstLineDecorations(
+function appendActiveListItemFirstLineDecorations(
   item: ListItemBlock,
+  source: string,
   ordered: boolean,
   ranges: Range<Decoration>[]
 ): void {
-  const lineClasses = [
-    "cm-inactive-list",
-    ordered ? "cm-inactive-list-ordered" : "cm-inactive-list-unordered",
-    `cm-inactive-list-depth-${Math.floor(item.indent / 2)}`
-  ];
-
-  if (item.task) {
-    lineClasses.push(
-      "cm-inactive-list-task",
-      item.task.checked ? "cm-inactive-list-task-checked" : "cm-inactive-list-task-unchecked"
-    );
-  }
+  const lineAttributes = createListItemLineAttributes("active", item, source, ordered);
 
   ranges.push(
     Decoration.line({
-      attributes: {
-        class: lineClasses.join(" ")
-      }
+      attributes: lineAttributes
     }).range(item.startOffset)
   );
+}
+
+function appendInactiveListItemFirstLineDecorations(
+  item: ListItemBlock,
+  source: string,
+  ordered: boolean,
+  ranges: Range<Decoration>[]
+): void {
+  const lineAttributes = createListItemLineAttributes("inactive", item, source, ordered);
+  const contentStartOffset = resolveListItemContentStartOffset(item, source);
+
+  ranges.push(
+    Decoration.line({
+      attributes: lineAttributes
+    }).range(item.startOffset)
+  );
+
+  appendInactiveListItemSourcePrefixDecorations(item, ranges);
 
   ranges.push(
     Decoration.mark({
@@ -540,8 +551,11 @@ function appendInactiveListItemFirstLineDecorations(
   );
 
   if (!item.task) {
+    appendInactiveListItemHiddenPrefixDecoration(item.markerEnd, contentStartOffset, ranges);
     return;
   }
+
+  appendInactiveListItemHiddenPrefixDecoration(item.markerEnd, item.task.markerStart, ranges);
 
   ranges.push(
     Decoration.mark({
@@ -554,6 +568,114 @@ function appendInactiveListItemFirstLineDecorations(
       }
     }).range(item.task.markerStart, item.task.markerEnd)
   );
+
+  appendInactiveListItemHiddenPrefixDecoration(item.task.markerEnd, contentStartOffset, ranges);
+}
+
+function appendInactiveListItemSourcePrefixDecorations(item: ListItemBlock, ranges: Range<Decoration>[]): void {
+  appendInactiveListItemHiddenPrefixDecoration(item.startOffset, item.markerStart, ranges);
+}
+
+function appendInactiveListItemHiddenPrefixDecoration(
+  from: number,
+  to: number,
+  ranges: Range<Decoration>[]
+): void {
+  if (to <= from) {
+    return;
+  }
+
+  ranges.push(
+    Decoration.mark({
+      attributes: {
+        class: "cm-inactive-list-source-prefix"
+      }
+    }).range(from, to)
+  );
+}
+
+function appendListItemContinuationLineDecorations(
+  lineStartOffset: number,
+  item: ListItemBlock,
+  source: string,
+  ordered: boolean,
+  mode: "active" | "inactive",
+  ranges: Range<Decoration>[]
+): void {
+  const lineAttributes = createListItemLineAttributes(mode, item, source, ordered, "continuation");
+
+  ranges.push(
+    Decoration.line({
+      attributes: lineAttributes
+    }).range(lineStartOffset)
+  );
+}
+
+function createListItemLineAttributes(
+  mode: "active" | "inactive",
+  item: ListItemBlock,
+  source: string,
+  ordered: boolean,
+  lineKind: "first" | "continuation" = "first"
+): Record<string, string> {
+  const lineClasses = [
+    lineKind === "continuation" ? `cm-${mode}-list-continuation` : `cm-${mode}-list`,
+    ordered ? `cm-${mode}-list-ordered` : `cm-${mode}-list-unordered`,
+    `cm-${mode}-list-depth-${Math.floor(item.indent / 2)}`
+  ];
+
+  if (item.task) {
+    lineClasses.push(
+      `cm-${mode}-list-task`,
+      item.task.checked ? `cm-${mode}-list-task-checked` : `cm-${mode}-list-task-unchecked`
+    );
+  }
+
+  return {
+    class: lineClasses.join(" "),
+    style: `--fishmark-list-source-prefix-offset: ${getListItemSourcePrefixLength(item, source)}ch;`
+  };
+}
+
+function getListItemSourcePrefixLength(item: ListItemBlock, source: string): number {
+  const contentStartOffset = resolveListItemContentStartOffset(item, source);
+  return Math.max(contentStartOffset - item.startOffset, 0);
+}
+
+function resolveListItemContentStartOffset(item: ListItemBlock, source: string): number {
+  if (typeof item.contentStartOffset === "number") {
+    return item.contentStartOffset;
+  }
+
+  const lineEndOffset = findLineEndOffset(source, item.startOffset, item.endOffset);
+  let cursor = consumeHorizontalSpace(source, item.markerEnd, lineEndOffset);
+
+  if (item.task && item.task.markerStart === cursor) {
+    cursor = consumeHorizontalSpace(source, item.task.markerEnd, lineEndOffset);
+  }
+
+  return Math.min(cursor, lineEndOffset);
+}
+
+function findLineEndOffset(source: string, startOffset: number, upperBound: number): number {
+  const newlineOffset = source.indexOf("\n", startOffset);
+  return newlineOffset === -1 ? upperBound : Math.min(newlineOffset, upperBound);
+}
+
+function consumeHorizontalSpace(source: string, startOffset: number, endOffset: number): number {
+  let cursor = startOffset;
+
+  while (cursor < endOffset) {
+    const character = source[cursor];
+
+    if (character !== " " && character !== "\t") {
+      break;
+    }
+
+    cursor += 1;
+  }
+
+  return cursor;
 }
 
 function appendInlineDecorationsForLine(

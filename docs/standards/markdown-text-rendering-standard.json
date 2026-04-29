@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "id": "fishmark.markdownTextRendering",
+  "status": "canonical",
+  "title": "FishMark Markdown Text Rendering Standard",
+  "updatedAt": "2026-04-30",
+  "owner": "FishMark renderer",
+  "appliesTo": [
+    "src/renderer/styles/markdown-render.css",
+    "src/renderer/theme-packages/*/styles/markdown.css",
+    "fixtures/themes/*/styles/markdown.css",
+    "community theme packages with styles.markdown",
+    "text-rendering acceptance and visual regression checks"
+  ],
+  "units": {
+    "length": "rem",
+    "listGeometryLength": "em",
+    "measurementPxTolerance": 2,
+    "alignmentPxTolerance": 2,
+    "gapPxTolerance": 1,
+    "remBaselineForExamplesPx": 18,
+    "notes": [
+      "General block spacing values are defined in rem.",
+      "List marker geometry is defined in em so marker columns, marker gaps, and nested indents scale with the current document font size.",
+      "Tests may convert rem to pixels using computed browser values; do not hard-code a pixel baseline in production CSS."
+    ]
+  },
+  "principles": {
+    "markdownSourceTruth": "Markdown text remains the only data truth; visual rendering may hide markers only in inactive preview rows.",
+    "themeBoundary": "Themes may change color, font family, font size tokens, and decorative surfaces; themes must not redefine Markdown geometry, list indentation formulas, marker gaps, or wrapping behavior.",
+    "wysiwymEditing": "The active line may expose raw Markdown source, but its wrapping and content-start geometry must still match the inactive rendering contract.",
+    "roundTripSafety": "No style rule may require source rewriting, whitespace normalization, or document reflow on save."
+  },
+  "typography": {
+    "base": {
+      "fontSizeSource": "preferences.documentFontSize",
+      "fontFamilySource": "preferences.documentFontFamily",
+      "cjkFontFamilySource": "preferences.documentCjkFontFamily",
+      "fontKerning": "normal",
+      "letterSpacing": {
+        "value": 0,
+        "unit": "em",
+        "rule": "All Markdown body text, list text, headings, blockquotes, tables, and code must use non-negative letter spacing. The default is exactly 0em."
+      },
+      "wordSpacing": "normal",
+      "tabSizeSpaces": 2
+    },
+    "lineHeight": {
+      "body": 1.72,
+      "paragraph": 1.86,
+      "list": 1.84,
+      "listContinuation": 1.84,
+      "blockquote": 1.78,
+      "inlineCode": 1.72,
+      "codeBlock": 1.55,
+      "tableCell": 1.55,
+      "heading": {
+        "h1": 1.45,
+        "h2": 1.5,
+        "h3": 1.56,
+        "h4": 1.62,
+        "h5": 1.72,
+        "h6": 1.72
+      },
+      "tolerance": {
+        "relative": 0.02,
+        "description": "A measured line-height may differ by at most 0.02 to account for browser font rounding."
+      }
+    },
+    "headingScale": {
+      "h1": { "fontSizeRem": 1.85, "fontWeight": 700 },
+      "h2": { "fontSizeRem": 1.58, "fontWeight": 680 },
+      "h3": { "fontSizeRem": 1.34, "fontWeight": 640 },
+      "h4": { "fontSizeRem": 1.18, "fontWeight": 620 },
+      "h5": { "fontSizeRem": 1.05, "fontWeight": 610 },
+      "h6": { "fontSizeRem": 1.05, "fontWeight": 610 }
+    }
+  },
+  "blockSpacing": {
+    "paragraph": {
+      "lineHeight": "typography.lineHeight.paragraph",
+      "betweenAdjacentParagraphsRem": 0.45,
+      "beforeAfterBlockGapRem": 0.35,
+      "rule": "Paragraph spacing is visual only; it must not insert or remove blank Markdown source lines."
+    },
+    "list": {
+      "betweenItemsRem": 0,
+      "betweenListAndParagraphRem": 0.35,
+      "nestedListAdditionalTopGapRem": 0,
+      "rule": "List item vertical rhythm is governed by list line-height. Nested items must not gain extra top margin unless the source contains a blank line."
+    },
+    "blockquote": {
+      "paddingBlockStartRem": 0.35,
+      "paddingBlockEndRem": 0.35,
+      "marginBlockEndRem": 0.2
+    },
+    "codeBlock": {
+      "paddingBlockStartRem": 0.65,
+      "paddingBlockEndRem": 0.65,
+      "marginBlockEndRem": 0.35
+    },
+    "thematicBreak": {
+      "paddingBlockStartRem": 0.95,
+      "paddingBlockEndRem": 0.9,
+      "marginBlockStartRem": 0.18,
+      "marginBlockEndRem": 0.28
+    }
+  },
+  "lists": {
+    "geometry": {
+      "indentStepRem": 1.4,
+      "indentStepEm": 1.4,
+      "maxStyledDepth": 4,
+      "depthOffsetFormula": "depth * indentStepRem",
+      "contentStartFormula": "depthOffset + markerVisualRight + markerToTextGapRem",
+      "wrappedLineFormula": "wrappedLineLeft == firstContentGlyphLeft",
+      "hardContinuationFormula": "continuationLineLeft == owningListItemContentLeft",
+      "rawSourcePrefixRule": "Raw Markdown indent spaces are source text, not visual geometry. In inactive rows they must be removed from text flow. In active rows they may remain visible, but they must not double-count the depth offset.",
+      "forbidden": [
+        "Using raw source prefix character count as the nested visual indent.",
+        "Adding depthOffset both to the line padding and again to marker or content offsets.",
+        "Letting a child item use a different marker-to-text gap than its parent item."
+      ]
+    },
+    "markerToTextGapRem": {
+      "value": 0.62,
+      "unit": "em",
+      "measurement": "visible marker glyph right edge to first content glyph left edge",
+      "mustBeEqualAcross": [
+        "parent unordered item",
+        "child unordered item",
+        "ordered item",
+        "task item"
+      ]
+    },
+    "unordered": {
+      "markerGlyph": "disc",
+      "markerGlyphSizeRem": 0.3,
+      "markerGlyphSizeEm": 0.3,
+      "markerGlyphLeftFromDepthRem": 0.24,
+      "markerGlyphLeftFromDepthEm": 0.24,
+      "markerVisualRightFormula": "markerGlyphLeftFromDepthRem + markerGlyphSizeRem",
+      "contentStartOffsetRem": 1.16,
+      "contentStartOffsetEm": 1.16,
+      "contentStartOffsetFormula": "markerGlyphLeftFromDepthRem + markerGlyphSizeRem + markerToTextGapRem"
+    },
+    "ordered": {
+      "markerColumnWidthRem": 2.4,
+      "markerColumnWidthEm": 2.4,
+      "markerAlignment": "right",
+      "markerVisualRightFormula": "markerColumnWidthRem",
+      "contentStartOffsetRem": 3.02,
+      "contentStartOffsetEm": 3.02,
+      "contentStartOffsetFormula": "markerColumnWidthRem + markerToTextGapRem",
+      "fontVariantNumeric": "tabular-nums"
+    },
+    "task": {
+      "checkboxSizeRem": 0.92,
+      "checkboxSizeEm": 0.92,
+      "checkboxLeftFromDepthRem": 0.24,
+      "checkboxLeftFromDepthEm": 0.24,
+      "markerVisualRightFormula": "checkboxLeftFromDepthRem + checkboxSizeRem",
+      "contentStartOffsetRem": 1.78,
+      "contentStartOffsetEm": 1.78,
+      "contentStartOffsetFormula": "checkboxLeftFromDepthRem + checkboxSizeRem + markerToTextGapRem",
+      "checkedTextStyle": "may use markdown.task.done color but must keep the same geometry"
+    },
+    "activeRows": {
+      "markerVisibility": "raw Markdown source visible",
+      "wrapRule": "The second and later visual rects of active list source text must align with the first content character, not with the raw marker.",
+      "contentStartRule": "The first content character after the Markdown marker is the alignment anchor."
+    },
+    "inactiveRows": {
+      "markerVisibility": "rendered marker visible, raw Markdown marker and prefix hidden from text flow",
+      "wrapRule": "Every visual rect after the first content rect must share the same left coordinate as the first content rect.",
+      "markerRule": "The rendered marker must be positioned from the same depthOffset used by the content start."
+    }
+  },
+  "inline": {
+    "strong": {
+      "fontWeight": 650,
+      "markerVisibilityInactive": "hidden from text flow"
+    },
+    "emphasis": {
+      "fontStyle": "italic",
+      "markerVisibilityInactive": "hidden from text flow"
+    },
+    "inlineCode": {
+      "fontSizeEm": 0.92,
+      "paddingInlineEm": 0.34,
+      "paddingBlockEm": 0.08,
+      "borderRadiusEm": 0.38,
+      "lineHeight": "typography.lineHeight.inlineCode"
+    },
+    "links": {
+      "underline": "theme controlled",
+      "hitAreaRule": "Link styling must not change text metrics enough to shift surrounding plain text by more than 1px."
+    }
+  },
+  "blocks": {
+    "blockquote": {
+      "borderWidthPx": 2,
+      "paddingInlineStartRem": 1.1,
+      "paddingInlineEndRem": 0.85,
+      "markerVisibilityInactive": "hidden",
+      "lineHeight": "typography.lineHeight.blockquote"
+    },
+    "codeBlock": {
+      "fontFamily": "monospace",
+      "fontSizeRem": 0.88,
+      "lineHeight": "typography.lineHeight.codeBlock",
+      "whiteSpace": "pre-wrap",
+      "overflowWrap": "anywhere",
+      "tabSizeSpaces": 2,
+      "paddingInlineRem": 1
+    },
+    "table": {
+      "cellMinHeightPx": 42,
+      "cellPaddingBlockPx": 10,
+      "cellPaddingInlinePx": 12,
+      "lineHeight": "typography.lineHeight.tableCell",
+      "borderWidthPx": 1
+    }
+  },
+  "wrapping": {
+    "paragraph": {
+      "whiteSpace": "pre-wrap",
+      "overflowWrap": "anywhere"
+    },
+    "list": {
+      "whiteSpace": "pre-wrap",
+      "overflowWrap": "anywhere",
+      "wordBreak": "break-all",
+      "reason": "Long continuous tokens must wrap under the content start instead of leaving the marker stranded on its own visual row."
+    },
+    "codeBlock": {
+      "whiteSpace": "pre-wrap",
+      "overflowWrap": "anywhere",
+      "horizontalScrollbar": "forbidden by default"
+    }
+  },
+  "themeCompliance": {
+    "themesMayOverride": [
+      "semantic colors",
+      "font family tokens",
+      "font size preferences through supported preference variables",
+      "decorative background, border, shadow, blur, and shader surfaces",
+      "syntax token colors"
+    ],
+    "themesMustNotOverride": [
+      "list indent step",
+      "list marker-to-text gap",
+      "list content start formulas",
+      "inactive source prefix hiding behavior",
+      "active list hanging indent behavior",
+      "paragraph, list, blockquote, code, and table line-height numeric targets",
+      "negative letter spacing",
+      "app-owned workspace geometry"
+    ],
+    "publicMarkdownColorSlots": [
+      "--fishmark-markdown-body",
+      "--fishmark-markdown-heading",
+      "--fishmark-markdown-heading-marker",
+      "--fishmark-markdown-link",
+      "--fishmark-markdown-link-hover",
+      "--fishmark-markdown-strong",
+      "--fishmark-markdown-emphasis",
+      "--fishmark-markdown-quote-fg",
+      "--fishmark-markdown-quote-border",
+      "--fishmark-markdown-list-bullet",
+      "--fishmark-markdown-list-text",
+      "--fishmark-markdown-task-done",
+      "--fishmark-markdown-hr",
+      "--fishmark-markdown-inline-code-fg",
+      "--fishmark-markdown-inline-code-bg",
+      "--fishmark-markdown-code-fg",
+      "--fishmark-markdown-code-bg",
+      "--fishmark-markdown-code-border",
+      "--fishmark-markdown-table-border",
+      "--fishmark-markdown-table-header-bg",
+      "--fishmark-markdown-table-header-fg",
+      "--fishmark-markdown-table-cell-bg",
+      "--fishmark-markdown-table-row-stripe"
+    ]
+  },
+  "acceptance": {
+    "requiredAutomatedChecks": [
+      "JSON standard parses and includes all required geometry keys.",
+      "CSS contract tests prove standard-owned selectors and variables are present.",
+      "DOM geometry tests measure list marker-to-text gap at depth 0 and depth 1.",
+      "DOM range tests prove wrapped list lines align with the first content glyph.",
+      "Theme package tests prove markdown.css does not override forbidden geometry."
+    ],
+    "requiredManualFixture": {
+      "content": [
+        "plain paragraph followed by plain paragraph",
+        "unordered parent list with long continuous text",
+        "unordered child list with long continuous text",
+        "ordered parent and child list",
+        "checked and unchecked task list",
+        "blockquote with two lines",
+        "inline code and fenced code block",
+        "table with header and body"
+      ],
+      "viewportsPx": [
+        { "width": 760, "height": 720 },
+        { "width": 1280, "height": 900 }
+      ],
+      "states": [
+        "inactive block rendering",
+        "active line source rendering",
+        "light theme",
+        "dark theme"
+      ]
+    },
+    "passFailRules": [
+      "Any parent/child list marker-to-text gap difference above 1px is FAIL.",
+      "Any wrapped list rect left difference above 2px is FAIL.",
+      "Any theme markdown.css override of forbidden geometry is FAIL.",
+      "Any negative letter spacing in Markdown text is FAIL.",
+      "Any screenshot-only approval without DOM geometry evidence is incomplete."
+    ]
+  }
+}

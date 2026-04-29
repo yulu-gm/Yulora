@@ -242,13 +242,83 @@ function createParagraphDerivedBlocks(
 function createSetextHeadingDerivedBlocks(
   token: Token,
   source: string
-): Array<HeadingBlock | ParagraphBlock | ThematicBreakBlock> {
+): Array<HeadingBlock | ParagraphBlock | ThematicBreakBlock | ListBlock> {
+  const trailingListMarkerSplit = createTrailingSingleDashListMarkerBlocks(token, source);
+
+  if (trailingListMarkerSplit) {
+    return trailingListMarkerSplit;
+  }
+
   return createDerivedTextBlocks(
     token,
     source,
     () => createHeadingBlock(token, source),
     false
   );
+}
+
+function createTrailingSingleDashListMarkerBlocks(token: Token, source: string): Array<ParagraphBlock | ListBlock> | null {
+  if (token.end.offset !== source.length) {
+    return null;
+  }
+
+  const lines = createLineInfos(
+    source.slice(token.start.offset, token.end.offset),
+    token.start.offset,
+    token.start.line
+  );
+  const underlineLine = lines.at(-1);
+  const contentStart = lines[0];
+  const contentEnd = lines.at(-2);
+
+  if (
+    !underlineLine ||
+    !contentStart ||
+    !contentEnd ||
+    lines.slice(0, -1).some((line) => getExplicitThematicBreakMarker(line.text) !== null) ||
+    !/^[ \t]{0,3}-[ \t]*$/u.test(underlineLine.text)
+  ) {
+    return null;
+  }
+
+  const indent = underlineLine.text.search(/\S/u);
+  const markerStart = underlineLine.startOffset + Math.max(indent, 0);
+  const markerEnd = markerStart + 1;
+
+  return [
+    createBlockFromRange(
+      "paragraph",
+      contentStart.startOffset,
+      contentEnd.endOffset,
+      contentStart.lineNumber,
+      contentEnd.lineNumber
+    ),
+    {
+      ...createBlockFromRange(
+        "list",
+        underlineLine.startOffset,
+        underlineLine.endOffset,
+        underlineLine.lineNumber,
+        underlineLine.lineNumber
+      ),
+      ordered: false,
+      items: [
+        {
+          id: `list-item:${underlineLine.startOffset}-${underlineLine.endOffset}`,
+          startOffset: underlineLine.startOffset,
+          endOffset: underlineLine.endOffset,
+          startLine: underlineLine.lineNumber,
+          endLine: underlineLine.lineNumber,
+          indent: Math.max(indent, 0),
+          marker: "-",
+          markerStart,
+          markerEnd,
+          task: null,
+          children: []
+        }
+      ]
+    }
+  ];
 }
 
 function createTableBlock(token: Token, source: string): TableBlock | null {
