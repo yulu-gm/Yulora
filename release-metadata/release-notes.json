@@ -1,5 +1,5 @@
 {
-  "version": "0.2.2",
-  "title": "FishMark 0.2.2 Release",
-  "body": "### 本次更新\n\n- 修复使用上下方向键移动光标时，文档页面没有立即跟随滚动的问题。\n- 自定义 Markdown 语义导航现在与 CodeMirror 默认上下键保持一致，会在光标移动后请求把光标滚入视口。\n- 补充导航滚动回归测试，覆盖命令层和 CodeMirror transaction 传递链路。"
+  "version": "0.2.3",
+  "title": "FishMark 0.2.3 Release",
+  "body": "### 本次更新\n\n- 新增 FishMark GitHub Pages 主页与部署 workflow，提供项目介绍、文档和 Releases 入口。\n- 改进 Markdown 列表软换行与嵌套缩进显示，长内容换行后会继续对齐到当前列表项正文起点。\n- 修复无序列表和任务列表的 `Tab` / `Shift+Tab` 层级操作，二级项可继续缩进到三级，且不会把焦点泄漏到外层 UI。\n- 将列表层级编辑收敛为最小文本 diff，降低缩进或反缩进时页面滚动跳动的概率。\n- 优化任务列表 checkbox 视觉，未完成态为空框，完成态勾选居中并保持主题颜色能力。\n- 收紧主题文本渲染边界，默认主题与 fixture 主题不再覆盖 app-owned 的列表几何和表格结构变量。\n- 补齐 macOS 发布脚本：支持正式 arm64 发布资产入口和无 Apple 凭据时的 beta DMG 发布入口，并复用统一 GitHub Release 上传逻辑。"
 }
