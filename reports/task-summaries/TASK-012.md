@@ -5,6 +5,9 @@
 
 ## 本轮完成内容
 
+- 2026-04-30：将 `Tab` / `Shift+Tab` 的列表层级操作统一到递归 item context，修复无序/任务列表只能嵌套到二级、继续按 `Tab` 会跳到外层 UI 焦点框选的问题。
+- 2026-04-30：明确列表层级规则：`Tab` 只在当前 scope 存在前序同级项时缩进，`Shift+Tab` 只在非顶级项时反缩进，两者都以当前 item subtree 为单位递归影响子列表和延续行。
+- 2026-04-30：将列表层级操作提交的 CodeMirror change 从 root list 整段替换收敛为原文本与归一化结果的最小 diff，避免改变层级时页面滚动跳动。
 - 在 `packages/markdown-engine/src/` 为 `ListBlock` 增补 item-level metadata，覆盖 marker、indent、task marker 和 checked 状态。
 - 在 `src/renderer/code-editor.ts` 现有 inactive-state decoration pipeline 中补齐无序列表、有序列表和任务列表的非激活态渲染。
 - 在同一编辑器边界内实现列表 `Enter` 续项、ordered marker 递增、空项退出规则，并保持默认非列表 `Enter` 行为不变。
@@ -17,6 +20,9 @@
 - `packages/markdown-engine/src/index.ts`
 - `packages/markdown-engine/src/parse-block-map.ts`
 - `packages/markdown-engine/src/parse-block-map.test.ts`
+- `packages/editor-core/src/commands/list-edits.ts`
+- `packages/editor-core/src/commands/list-edits.test.ts`
+- `packages/editor-core/src/commands/list-commands.ts`
 - `src/renderer/code-editor.ts`
 - `src/renderer/code-editor.test.ts`
 - `src/renderer/code-editor-view.tsx`
@@ -35,6 +41,15 @@
 
 ## 已验证内容
 
+- `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts`（2026-04-30，新列表层级规则 focused 回归）
+- `npm run test -- packages/editor-core/src/commands/list-edits.test.ts`（2026-04-30，列表层级最小 diff 与滚动稳定性回归，26 项通过）
+- `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/editor-source-layout.test.ts`（2026-04-30，列表层级、快捷键、装饰与主题几何 focused 回归，181 项通过）
+- `npm run typecheck`（2026-04-30，滚动稳定性修复后复跑）
+- `npm run lint`（2026-04-30，退出码 0；保留既有 fast-refresh warning）
+- `npm run build`（2026-04-30；保留既有 Vite chunk size warning）
+- `npm run lint`（2026-04-30，退出码 0；保留既有 fast-refresh warning）
+- `npm run typecheck`（2026-04-30）
+- `npm run build`（2026-04-30；保留既有 Vite chunk size warning）
 - `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts`
 - `npm run test -- src/renderer/code-editor.test.ts`
 - `npm run test -- src/renderer/editor-test-driver.test.ts`

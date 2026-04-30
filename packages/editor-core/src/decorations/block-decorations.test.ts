@@ -117,6 +117,29 @@ const expectExactRangeClasses = (
   expect(getExactClassesAtRange(ranges, from, to)).toEqual(expected);
 };
 
+const getLineDecorationStyleAt = (
+  source: string,
+  decorationSet: ReturnType<typeof createBlockDecorations>["decorationSet"],
+  offset: number
+) => {
+  let style = "";
+
+  decorationSet.between(0, source.length, (from, to, value) => {
+    if (from !== offset || to !== offset) {
+      return;
+    }
+
+    const className = typeof value.spec.attributes?.class === "string" ? value.spec.attributes.class : "";
+    if (!className.includes("-list")) {
+      return;
+    }
+
+    style = typeof value.spec.attributes?.style === "string" ? value.spec.attributes.style : "";
+  });
+
+  return style;
+};
+
 describe("createBlockDecorations", () => {
   it("replaces table markdown blocks with a dedicated table widget decoration", () => {
     const source = ["| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
@@ -480,6 +503,44 @@ describe("createBlockDecorations", () => {
           range.className === "cm-inactive-thematic-break-marker"
       )
     ).toBeDefined();
+  });
+
+  it("uses each continuation line source prefix for list hanging indentation", () => {
+    const source = [
+      "- parent",
+      "  - child",
+      "continued child",
+      "  indented parent continuation",
+      "",
+      "Paragraph"
+    ].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("continued child"),
+      head: source.indexOf("continued child")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+    const activeContinuationStart = source.indexOf("continued child");
+    const inactiveContinuationStart = source.indexOf("  indented parent continuation");
+
+    expect(getLineDecorationStyleAt(source, result.decorationSet, activeContinuationStart)).toContain(
+      "--fishmark-list-source-prefix-offset: 0ch;"
+    );
+    expect(getLineDecorationStyleAt(source, result.decorationSet, inactiveContinuationStart)).toContain(
+      "--fishmark-list-source-prefix-offset: 2ch;"
+    );
+    expectExactRangeClasses(
+      ranges,
+      inactiveContinuationStart,
+      inactiveContinuationStart + 2,
+      ["cm-inactive-list-source-prefix"]
+    );
   });
 
   it("applies active paragraph line classes to keep body typography consistent", () => {

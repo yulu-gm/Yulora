@@ -173,7 +173,7 @@
   --fishmark-list-source-prefix-offset: 0ch;
   --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
   padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
-  text-indent: calc(-1 * var(--fishmark-list-content-offset));
+  text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-all;
@@ -195,6 +195,7 @@
   --fishmark-list-source-prefix-offset: 0ch;
   --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
   padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
+  text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-all;

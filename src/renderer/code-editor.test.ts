@@ -969,7 +969,7 @@ describe("createCodeEditorController", () => {
     expect(activeContinuationLine).not.toBeNull();
     expect(activeContinuationLine?.classList.contains("cm-active-list-continuation")).toBe(true);
     expect(activeContinuationLine?.classList.contains("cm-active-list-depth-1")).toBe(true);
-    expect(activeContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+    expect(activeContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("0ch");
 
     view?.dispatch({ selection: { anchor: 0 } });
     await flushMicrotasks();
@@ -983,7 +983,7 @@ describe("createCodeEditorController", () => {
     expect(inactiveContinuationLine).not.toBeNull();
     expect(inactiveContinuationLine?.classList.contains("cm-inactive-list-continuation")).toBe(true);
     expect(inactiveContinuationLine?.classList.contains("cm-inactive-list-depth-1")).toBe(true);
-    expect(inactiveContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+    expect(inactiveContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("0ch");
 
     controller.destroy();
   });
@@ -2582,6 +2582,58 @@ describe("createCodeEditorController", () => {
     expect(controller.getContent()).toBe(
       ["- parent", "  - child", "    continuation", "    - nested", "- sibling"].join("\n")
     );
+
+    controller.destroy();
+  });
+
+  it("indents a second-level unordered item into a third-level child list when Tab is pressed", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "  - child", "  - leaf", "- sibling"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const view = getEditorView(host);
+
+    advancedController.setSelection(source.indexOf("leaf"));
+    const handled = view?.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Tab",
+        code: "Tab",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(controller.getContent()).toBe(["- parent", "  - child", "    - leaf", "- sibling"].join("\n"));
+
+    controller.destroy();
+  });
+
+  it("outdents a third-level unordered item subtree when Shift-Tab is pressed", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "  - child", "    - leaf", "    continuation", "- sibling"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressTab: (shiftKey?: boolean) => void;
+    };
+
+    advancedController.setSelection(source.indexOf("leaf"));
+    advancedController.pressTab(true);
+
+    expect(controller.getContent()).toBe(["- parent", "  - child", "  - leaf", "  continuation", "- sibling"].join("\n"));
 
     controller.destroy();
   });

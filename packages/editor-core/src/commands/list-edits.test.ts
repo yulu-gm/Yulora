@@ -51,11 +51,18 @@ describe("list-edits", () => {
   it.each([
     ["computeInsertOrderedListItemBelow", computeInsertOrderedListItemBelow],
     ["computeDeleteOrderedListRange", computeDeleteOrderedListRange],
-    ["computeIndentListItem", computeIndentListItem],
-    ["computeOutdentListItem", computeOutdentListItem],
     ["computeMoveListItemUp", computeMoveListItemUp],
     ["computeMoveListItemDown", computeMoveListItemDown]
   ])("%s returns null outside an ordered-list context", (_name, compute) => {
+    const context = buildContext("Paragraph", 4);
+
+    expect(compute(context)).toBeNull();
+  });
+
+  it.each([
+    ["computeIndentListItem", computeIndentListItem],
+    ["computeOutdentListItem", computeOutdentListItem]
+  ])("%s returns null outside a list context", (_name, compute) => {
     const context = buildContext("Paragraph", 4);
 
     expect(compute(context)).toBeNull();
@@ -86,6 +93,44 @@ describe("list-edits", () => {
     expect(result?.selection).toEqual({ anchor: 15, head: 15 });
   });
 
+  it("indents a nested unordered item into a third-level child list", () => {
+    const doc = ["- parent", "  - child", "  - leaf", "- sibling"].join("\n");
+    const context = buildContext(doc, doc.indexOf("leaf"));
+    const result = computeIndentListItem(context);
+
+    expect(applyEdit(doc, result)).toBe(["- parent", "  - child", "    - leaf", "- sibling"].join("\n"));
+    expect(result?.selection).toEqual({ anchor: doc.indexOf("leaf") + 2, head: doc.indexOf("leaf") + 2 });
+  });
+
+  it("keeps unordered indentation edits scoped to the changed subtree", () => {
+    const doc = ["- parent", "  - child", "  - leaf", "- sibling"].join("\n");
+    const context = buildContext(doc, doc.indexOf("leaf"));
+    const result = computeIndentListItem(context);
+    const changedLineStart = doc.indexOf("  - leaf");
+    const changedLineEnd = changedLineStart + "  - leaf".length;
+
+    expect(result?.changes.from).toBeGreaterThanOrEqual(changedLineStart);
+    expect(result?.changes.to).toBeLessThanOrEqual(changedLineEnd);
+    expect(result?.changes.from).not.toBe(0);
+    expect(result?.changes.to).not.toBe(doc.length);
+  });
+
+  it("indents a nested task item into a third-level task list", () => {
+    const doc = ["- [ ] parent", "  - [x] done", "  - [ ] next"].join("\n");
+    const context = buildContext(doc, doc.indexOf("next"));
+    const result = computeIndentListItem(context);
+
+    expect(applyEdit(doc, result)).toBe(["- [ ] parent", "  - [x] done", "    - [ ] next"].join("\n"));
+    expect(result?.selection).toEqual({ anchor: doc.indexOf("next") + 2, head: doc.indexOf("next") + 2 });
+  });
+
+  it("does not indent the first item in its current list scope", () => {
+    const doc = ["- parent", "  - child", "  - leaf"].join("\n");
+    const context = buildContext(doc, doc.indexOf("child"));
+
+    expect(computeIndentListItem(context)).toBeNull();
+  });
+
   it("outdents an ordered item back to the parent scope and keeps following siblings in sequence", () => {
     const doc = ["5. parent", "  6. child", "7. sibling"].join("\n");
     const context = buildContext(doc, doc.indexOf("child"));
@@ -93,6 +138,35 @@ describe("list-edits", () => {
 
     expect(applyEdit(doc, result)).toBe(["5. parent", "6. child", "7. sibling"].join("\n"));
     expect(result?.selection).toEqual({ anchor: 13, head: 13 });
+  });
+
+  it("outdents an unordered item subtree into the parent scope", () => {
+    const doc = ["- parent", "  - child", "    - leaf", "    continuation", "- sibling"].join("\n");
+    const context = buildContext(doc, doc.indexOf("child"));
+    const result = computeOutdentListItem(context);
+
+    expect(applyEdit(doc, result)).toBe(["- parent", "- child", "  - leaf", "  continuation", "- sibling"].join("\n"));
+    expect(result?.selection).toEqual({ anchor: doc.indexOf("child") - 2, head: doc.indexOf("child") - 2 });
+  });
+
+  it("keeps unordered outdent edits scoped to the changed subtree", () => {
+    const doc = ["- parent", "  - child", "    - leaf", "    continuation", "- sibling"].join("\n");
+    const context = buildContext(doc, doc.indexOf("child"));
+    const result = computeOutdentListItem(context);
+    const changedSubtreeStart = doc.indexOf("  - child");
+    const changedSubtreeEnd = doc.indexOf("\n- sibling");
+
+    expect(result?.changes.from).toBeGreaterThanOrEqual(changedSubtreeStart);
+    expect(result?.changes.to).toBeLessThanOrEqual(changedSubtreeEnd);
+    expect(result?.changes.from).not.toBe(0);
+    expect(result?.changes.to).not.toBe(doc.length);
+  });
+
+  it("does not outdent a top-level unordered item", () => {
+    const doc = ["- parent", "  - child"].join("\n");
+    const context = buildContext(doc, doc.indexOf("parent"));
+
+    expect(computeOutdentListItem(context)).toBeNull();
   });
 
   it("pressing Enter on an empty ordered child item creates an empty parent sibling item", () => {

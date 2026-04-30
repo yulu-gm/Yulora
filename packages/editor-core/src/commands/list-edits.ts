@@ -48,7 +48,7 @@ export function computeInsertOrderedListItemBelow(ctx: SemanticContext): ListEdi
   const tentativeSource = replaceRange(blockSource, insertAt, insertAt, insert);
   const tentativeCursor = insertAt + insert.length;
 
-  return finalizeListEdit(current.rootList, tentativeSource, tentativeCursor);
+  return finalizeListEdit(current.rootList, blockSource, tentativeSource, tentativeCursor);
 }
 
 export function computeOrderedListEnter(
@@ -83,7 +83,7 @@ export function computeOrderedListEnter(
     const tentativeSource = replaceRange(blockSource, insertAt, insertAt, insert);
     const tentativeCursor = insertAt + insert.length;
 
-    return finalizeListEdit(current.rootList, tentativeSource, tentativeCursor);
+    return finalizeListEdit(current.rootList, blockSource, tentativeSource, tentativeCursor);
   }
 
   const blockSource = readBlockSource(ctx, current.rootList);
@@ -100,7 +100,12 @@ export function computeOrderedListEnter(
     ""
   );
 
-  return finalizeListEdit(current.rootList, tentativeSource, toBlockOffset(current.rootList, current.item.startOffset));
+  return finalizeListEdit(
+    current.rootList,
+    blockSource,
+    tentativeSource,
+    toBlockOffset(current.rootList, current.item.startOffset)
+  );
 }
 
 export function computeExitEmptyNestedListItem(ctx: SemanticContext): ListEdit | null {
@@ -149,7 +154,7 @@ export function computeExitEmptyNestedListItem(ctx: SemanticContext): ListEdit |
   const tentativeSource = replaceRange(sourceWithoutCurrent, insertAt, insertAt, insert);
   const tentativeCursor = insertAt + insert.length;
 
-  return finalizeListEdit(rootList, tentativeSource, tentativeCursor);
+  return finalizeListEdit(rootList, blockSource, tentativeSource, tentativeCursor);
 }
 
 export function computeDeleteOrderedListRange(ctx: SemanticContext): ListEdit | null {
@@ -178,7 +183,7 @@ export function computeDeleteOrderedListRange(ctx: SemanticContext): ListEdit | 
     ""
   );
 
-  return finalizeListEdit(rootList, tentativeSource, toBlockOffset(rootList, deleteFrom));
+  return finalizeListEdit(rootList, blockSource, tentativeSource, toBlockOffset(rootList, deleteFrom));
 }
 
 export function computeBackspaceOrderedListMarker(ctx: SemanticContext): ListEdit | null {
@@ -220,17 +225,24 @@ export function computeBackspaceOrderedListMarker(ctx: SemanticContext): ListEdi
     ""
   );
 
-  return finalizeListEdit(current.rootList, tentativeSource, toBlockOffset(current.rootList, markerDeleteFrom));
+  return finalizeListEdit(
+    current.rootList,
+    blockSource,
+    tentativeSource,
+    toBlockOffset(current.rootList, markerDeleteFrom)
+  );
 }
 
 export function computeIndentListItem(ctx: SemanticContext): ListEdit | null {
-  const current = findOrderedListItemContext(ctx);
+  const rootList = readActiveListRoot(ctx);
+  const current = rootList ? findListItemContext(rootList, ctx.selection.from, rootList, null, null) : null;
 
   if (!current || ctx.selection.empty === false || current.itemIndex <= 0) {
     return null;
   }
 
-  const subtree = resetOrderedListSubtreeRootMarker(readItemSubtreeSource(ctx, current.item));
+  const subtreeSource = readItemSubtreeSource(ctx, current.item);
+  const subtree = current.scope.ordered ? resetOrderedListSubtreeRootMarker(subtreeSource) : subtreeSource;
   const indentedSubtree = subtree
     .split("\n")
     .map((line) => `  ${line}`)
@@ -241,11 +253,12 @@ export function computeIndentListItem(ctx: SemanticContext): ListEdit | null {
   const tentativeSource = replaceRange(blockSource, subtreeFrom, subtreeTo, indentedSubtree);
   const cursor = ctx.selection.from + 2;
 
-  return finalizeListEdit(current.rootList, tentativeSource, toBlockOffset(current.rootList, cursor));
+  return finalizeListEdit(current.rootList, blockSource, tentativeSource, toBlockOffset(current.rootList, cursor));
 }
 
 export function computeOutdentListItem(ctx: SemanticContext): ListEdit | null {
-  const current = findOrderedListItemContext(ctx);
+  const rootList = readActiveListRoot(ctx);
+  const current = rootList ? findListItemContext(rootList, ctx.selection.from, rootList, null, null) : null;
 
   if (
     !current ||
@@ -267,7 +280,7 @@ export function computeOutdentListItem(ctx: SemanticContext): ListEdit | null {
   const tentativeSource = replaceRange(blockSource, subtreeFrom, subtreeTo, outdentedSubtree);
   const cursor = Math.max(current.item.startOffset, ctx.selection.from - 2);
 
-  return finalizeListEdit(current.rootList, tentativeSource, toBlockOffset(current.rootList, cursor));
+  return finalizeListEdit(current.rootList, blockSource, tentativeSource, toBlockOffset(current.rootList, cursor));
 }
 
 export function computeMoveListItemDown(ctx: SemanticContext): ListEdit | null {
@@ -317,11 +330,7 @@ export function normalizeOrderedListScopes(ctx: SemanticContext): ListEdit | nul
   }
 
   return {
-    changes: {
-      from: rootList.startOffset,
-      to: rootList.endOffset,
-      insert: normalization.source
-    },
+    changes: createMinimalTextChange(blockSource, normalization.source, rootList.startOffset),
     selection: {
       anchor: mapBlockOffsetThroughChanges(
         toBlockOffset(rootList, ctx.selection.from),
@@ -398,11 +407,12 @@ function computeSiblingSwapEdit(
     direction === "down" ? swapFrom + secondSource.length + between.length : swapFrom;
   const tentativeCursor = currentStartInTentative + currentSelectionOffset;
 
-  return finalizeListEdit(rootList, tentativeSource, tentativeCursor);
+  return finalizeListEdit(rootList, blockSource, tentativeSource, tentativeCursor);
 }
 
 function finalizeListEdit(
   rootList: ListBlock,
+  originalSource: string,
   tentativeSource: string,
   tentativeCursor: number
 ): ListEdit {
@@ -410,11 +420,7 @@ function finalizeListEdit(
   const selectionOffset = mapBlockOffsetThroughChanges(tentativeCursor, normalization.changes);
 
   return {
-    changes: {
-      from: rootList.startOffset,
-      to: rootList.endOffset,
-      insert: normalization.source
-    },
+    changes: createMinimalTextChange(originalSource, normalization.source, rootList.startOffset),
     selection: {
       anchor: rootList.startOffset + selectionOffset,
       head: rootList.startOffset + selectionOffset
@@ -764,6 +770,39 @@ function containsOrderedScope(list: ListBlock): boolean {
   }
 
   return list.items.some((item) => item.children.some((child) => containsOrderedScope(child)));
+}
+
+function createMinimalTextChange(originalSource: string, nextSource: string, baseOffset: number): TextChange {
+  let sharedPrefixLength = 0;
+
+  while (
+    sharedPrefixLength < originalSource.length &&
+    sharedPrefixLength < nextSource.length &&
+    originalSource[sharedPrefixLength] === nextSource[sharedPrefixLength]
+  ) {
+    sharedPrefixLength += 1;
+  }
+
+  let sharedSuffixLength = 0;
+
+  while (
+    sharedSuffixLength < originalSource.length - sharedPrefixLength &&
+    sharedSuffixLength < nextSource.length - sharedPrefixLength &&
+    originalSource[originalSource.length - 1 - sharedSuffixLength] ===
+      nextSource[nextSource.length - 1 - sharedSuffixLength]
+  ) {
+    sharedSuffixLength += 1;
+  }
+
+  const from = sharedPrefixLength;
+  const to = originalSource.length - sharedSuffixLength;
+  const insertTo = nextSource.length - sharedSuffixLength;
+
+  return {
+    from: baseOffset + from,
+    to: baseOffset + to,
+    insert: nextSource.slice(from, insertTo)
+  };
 }
 
 function replaceRange(source: string, from: number, to: number, insert: string): string {

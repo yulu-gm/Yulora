@@ -489,7 +489,15 @@ function appendListItemDecorations(
     }
 
     if (isActiveLine) {
-      appendListItemContinuationLineDecorations(line.startOffset, item, source, ordered, "active", ranges);
+      appendListItemContinuationLineDecorations(
+        line.startOffset,
+        line.endOffset,
+        item,
+        source,
+        ordered,
+        "active",
+        ranges
+      );
       continue;
     }
 
@@ -498,10 +506,25 @@ function appendListItemDecorations(
       continue;
     }
 
-    appendListItemContinuationLineDecorations(line.startOffset, item, source, ordered, "inactive", ranges);
+    const continuationContentStartOffset = resolveListItemContinuationContentStartOffset(
+      line.startOffset,
+      line.endOffset,
+      source
+    );
+
+    appendListItemContinuationLineDecorations(
+      line.startOffset,
+      line.endOffset,
+      item,
+      source,
+      ordered,
+      "inactive",
+      ranges
+    );
+    appendInactiveListItemHiddenPrefixDecoration(line.startOffset, continuationContentStartOffset, ranges);
     appendInlineDecorationsForLine(
       source,
-      line.startOffset,
+      continuationContentStartOffset,
       line.endOffset,
       false,
       ranges,
@@ -596,13 +619,22 @@ function appendInactiveListItemHiddenPrefixDecoration(
 
 function appendListItemContinuationLineDecorations(
   lineStartOffset: number,
+  lineEndOffset: number,
   item: ListItemBlock,
   source: string,
   ordered: boolean,
   mode: "active" | "inactive",
   ranges: Range<Decoration>[]
 ): void {
-  const lineAttributes = createListItemLineAttributes(mode, item, source, ordered, "continuation");
+  const sourcePrefixLength = getListContinuationSourcePrefixLength(lineStartOffset, lineEndOffset, source);
+  const lineAttributes = createListItemLineAttributes(
+    mode,
+    item,
+    source,
+    ordered,
+    "continuation",
+    sourcePrefixLength
+  );
 
   ranges.push(
     Decoration.line({
@@ -616,7 +648,8 @@ function createListItemLineAttributes(
   item: ListItemBlock,
   source: string,
   ordered: boolean,
-  lineKind: "first" | "continuation" = "first"
+  lineKind: "first" | "continuation" = "first",
+  sourcePrefixLength: number | null = null
 ): Record<string, string> {
   const lineClasses = [
     lineKind === "continuation" ? `cm-${mode}-list-continuation` : `cm-${mode}-list`,
@@ -633,13 +666,36 @@ function createListItemLineAttributes(
 
   return {
     class: lineClasses.join(" "),
-    style: `--fishmark-list-source-prefix-offset: ${getListItemSourcePrefixLength(item, source)}ch;`
+    style: `--fishmark-list-source-prefix-offset: ${sourcePrefixLength ?? getListItemSourcePrefixLength(item, source)}ch;`
   };
 }
 
 function getListItemSourcePrefixLength(item: ListItemBlock, source: string): number {
   const contentStartOffset = resolveListItemContentStartOffset(item, source);
   return Math.max(contentStartOffset - item.startOffset, 0);
+}
+
+function getListContinuationSourcePrefixLength(
+  lineStartOffset: number,
+  lineEndOffset: number,
+  source: string
+): number {
+  return Math.max(
+    resolveListItemContinuationContentStartOffset(lineStartOffset, lineEndOffset, source) - lineStartOffset,
+    0
+  );
+}
+
+function resolveListItemContinuationContentStartOffset(
+  lineStartOffset: number,
+  lineEndOffset: number,
+  source: string
+): number {
+  return consumeHorizontalSpace(
+    source,
+    lineStartOffset,
+    trimTrailingCarriageReturn(source, lineStartOffset, lineEndOffset)
+  );
 }
 
 function resolveListItemContentStartOffset(item: ListItemBlock, source: string): number {

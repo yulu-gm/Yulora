@@ -222,6 +222,36 @@
 - 列表可以正确续项
 - 空项时可以退出列表
 
+### TC-011A 列表层级快捷键
+
+步骤：
+1. 输入以下无序列表：
+   ```md
+   - parent
+     - child
+     - leaf
+   - sibling
+   ```
+2. 将光标放在 `leaf` 内，按 `Tab`。
+3. 将光标继续放在 `leaf` 内，按 `Shift+Tab`。
+4. 输入任务列表：
+   ```md
+   - [ ] parent
+     - [x] done
+     - [ ] next
+   ```
+5. 将光标放在 `next` 内，按 `Tab`。
+6. 如需自动化回归，运行 `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts`。
+
+预期：
+- 二级无序列表项可以继续缩进为三级列表，`Tab` 不会跳到外层 UI 焦点框选
+- `Shift+Tab` 会把当前列表项 subtree 升级一层，子列表和延续行跟随移动
+- `Tab` / `Shift+Tab` 改变列表层级时，编辑器滚动位置保持稳定，不会因为整段列表被重建而跳动
+- 当前 scope 的第一项或唯一项不能被 `Tab` 缩进
+- 顶级列表项不能被 `Shift+Tab` 升级
+- 任务列表缩进时保留 checkbox 状态
+- 有序列表缩进和反缩进后继续按当前 scope 重新编号
+
 ### TC-012 代码块
 
 步骤：

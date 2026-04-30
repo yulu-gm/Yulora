@@ -9,6 +9,15 @@
 
 ## 记录
 
+| 2026-04-30 | TASK-012 | `npm run test -- packages/editor-core/src/commands/list-edits.test.ts` | 通过 | 新增列表层级滚动回归：`Tab` / `Shift+Tab` 只提交当前 item subtree 的最小 diff，不再整段替换 root list；目标测试 26 项通过。 |
+| 2026-04-30 | TASK-012 | `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/editor-source-layout.test.ts` | 通过 | 列表层级、快捷键、列表装饰和主题列表几何规则回归通过；4 个测试文件、181 项通过。 |
+| 2026-04-30 | TASK-012 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-04-30 | TASK-012 | `npm run lint` | 通过 | ESLint 退出码 0；仍保留既有 `src/renderer/editor/App.tsx` fast-refresh warning。 |
+| 2026-04-30 | TASK-012 | `npm run build` | 通过 | renderer、electron、cli build 通过；仍保留既有 Vite chunk size warning。 |
+| 2026-04-30 | TASK-012 | `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts` | 通过 | 新增列表层级快捷键回归：无序列表二级项可继续 `Tab` 到三级、三级项可 `Shift+Tab` 回二级、任务列表保留 checkbox、首项不可缩进、顶级项不可反缩进；目标测试 155 项通过。 |
+| 2026-04-30 | TASK-012 | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` fast-refresh warning，未由本轮列表改动引入。 |
+| 2026-04-30 | TASK-012 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-04-30 | TASK-012 | `npm run build` | 通过 | renderer、electron、cli build 通过；Vite 仍提示部分 chunk 超过 500 kB，属于既有打包体积 warning。 |
 | 2026-04-26 | github-homepage | `npm.cmd run test -- src/main/github-pages-site.test.ts` | 通过 | 新增 GitHub Pages 静态主页结构测试；覆盖 `site/index.html` 独立于 renderer 入口、GitHub / releases 链接、站内锚点、外链 `rel` 安全属性，以及 Pages workflow 关键配置；当前 1 个文件、4 条测试通过。 |
 | 2026-04-26 | github-homepage | `npm.cmd run lint` | 通过 | 无新增 lint error；仓库仍保留既有 `src/renderer/editor/App.tsx` 的 React Fast Refresh warning。 |
 | 2026-04-26 | github-homepage | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过，新增结构测试未破坏测试编译边界。 |
