@@ -2,34 +2,24 @@
   --fishmark-inline-code-bg: rgba(107, 104, 212, 0.12);
   --fishmark-inline-code-text: #3d3a9a;
   --fishmark-list-marker: #8a87c6;
-  --fishmark-task-border: #a9a6d3;
-  --fishmark-task-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, #9a97ea 8%);
-  --fishmark-task-check: #6b68d4;
-  --fishmark-task-radius: 0.24rem;
+  --fishmark-task-toggle-border: #a9a6d3;
+  --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, #9a97ea 8%);
+  --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-surface-bg) 84%, #9a97ea 16%);
+  --fishmark-task-toggle-check: #6b68d4;
+  --fishmark-task-toggle-radius: 999px;
   --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-surface-blockquote-bg) 82%, transparent);
   --fishmark-blockquote-border: color-mix(in srgb, var(--fishmark-list-marker) 56%, var(--fishmark-border-muted));
   --fishmark-thematic-break: #d4d4e4;
   --fishmark-code-block-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 88%, #ece9f7 12%);
   --fishmark-code-block-text: #2b2c40;
-  --fishmark-table-margin-top: 0.35rem;
-  --fishmark-table-margin-bottom: 0.76rem;
-  --fishmark-table-after-break-padding-bottom: 0.4rem;
-  --fishmark-table-after-break-margin-bottom: 0.08rem;
-  --fishmark-table-after-break-margin-top: 0.14rem;
   --fishmark-table-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, #f3f0ff 8%);
-  --fishmark-table-border-width: 1px;
   --fishmark-table-border-color: color-mix(in srgb, var(--fishmark-border-faint) 80%, rgba(107, 104, 212, 0.12));
-  --fishmark-table-cell-border-width: 1px;
   --fishmark-table-cell-border-color: color-mix(in srgb, var(--fishmark-border-faint) 78%, rgba(107, 104, 212, 0.1));
   --fishmark-table-radius: 18px;
   --fishmark-table-cell-bg: transparent;
   --fishmark-table-cell-active-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 64%, rgba(107, 104, 212, 0.18));
-  --fishmark-table-cell-min-height: 43px;
-  --fishmark-table-cell-padding-block: 10px;
-  --fishmark-table-cell-padding-inline: 12px;
   --fishmark-table-text: var(--fishmark-text-body);
   --fishmark-table-header-text: var(--fishmark-text-strong);
-  --fishmark-table-header-font-weight: 625;
 }
 
 :root[data-fishmark-theme-mode="dark"] {
@@ -37,10 +27,11 @@
   --fishmark-inline-code-text: #e8e7f8;
   --fishmark-list-marker: #7f7ca5;
   --fishmark-list-text: #f2f1fb;
-  --fishmark-task-border: #5a5b7e;
-  --fishmark-task-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, #a19eef 8%);
-  --fishmark-task-check: #a19eef;
-  --fishmark-task-radius: 0.24rem;
+  --fishmark-task-toggle-border: #5a5b7e;
+  --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, #a19eef 8%);
+  --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-surface-bg) 84%, #a19eef 16%);
+  --fishmark-task-toggle-check: #a19eef;
+  --fishmark-task-toggle-radius: 999px;
   --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-surface-blockquote-bg) 84%, transparent);
   --fishmark-blockquote-border: color-mix(in srgb, var(--fishmark-list-marker) 52%, var(--fishmark-border-muted));
   --fishmark-thematic-break: #35364e;

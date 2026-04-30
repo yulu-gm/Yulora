@@ -10,6 +10,10 @@ const collectDecorations = (source: string, decorationSet: ReturnType<typeof cre
   const ranges: Array<{ from: number; to: number; className: string; text: string }> = [];
 
   decorationSet.between(0, source.length, (from, to, value) => {
+    if (value.spec.widget) {
+      return;
+    }
+
     const className = typeof value.spec.attributes?.class === "string" ? value.spec.attributes.class : "";
     const directMarkClass = typeof value.spec.class === "string" ? value.spec.class : "";
 
@@ -43,6 +47,22 @@ const collectDecorations = (source: string, decorationSet: ReturnType<typeof cre
 
     return left.text.localeCompare(right.text);
   });
+};
+
+const collectWidgets = (source: string, decorationSet: ReturnType<typeof createBlockDecorations>["decorationSet"]) => {
+  const widgets: Array<{ from: number; to: number; name: string }> = [];
+
+  decorationSet.between(0, source.length, (from, to, value) => {
+    if (value.spec.widget) {
+      widgets.push({
+        from,
+        to,
+        name: value.spec.widget.constructor.name
+      });
+    }
+  });
+
+  return widgets;
 };
 
 const createInactiveInlineDecorations = (source: string) => {
@@ -387,12 +407,6 @@ describe("createBlockDecorations", () => {
         text: " "
       },
       {
-        from: 17,
-        to: 20,
-        className: "cm-inactive-task-marker cm-inactive-task-marker-checked",
-        text: "[x]"
-      },
-      {
         from: 20,
         to: 21,
         className: "cm-inactive-list-source-prefix",
@@ -471,6 +485,9 @@ describe("createBlockDecorations", () => {
         text: ""
       }
     ]);
+    expect(collectWidgets(source, result.decorationSet)).toEqual([
+      { from: 17, to: 20, name: "TaskMarkerWidget" }
+    ]);
   });
 
   it("keeps thematic-break continuation lines rendered when a list becomes inactive", () => {
@@ -541,6 +558,33 @@ describe("createBlockDecorations", () => {
       inactiveContinuationStart + 2,
       ["cm-inactive-list-source-prefix"]
     );
+  });
+
+  it("replaces inactive task list markers with dedicated checkbox widgets", () => {
+    const source = ["- [ ] Todo", "- [x] FinishedTodo", "", "Paragraph"].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("Paragraph"),
+      head: source.indexOf("Paragraph")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+
+    expect(collectWidgets(source, result.decorationSet)).toEqual([
+      { from: 2, to: 5, name: "TaskMarkerWidget" },
+      { from: 13, to: 16, name: "TaskMarkerWidget" }
+    ]);
+    expect(
+      ranges.some((range) => range.text === "[ ]" && range.className.includes("cm-inactive-task-marker"))
+    ).toBe(false);
+    expect(
+      ranges.some((range) => range.text === "[x]" && range.className.includes("cm-inactive-task-marker"))
+    ).toBe(false);
   });
 
   it("applies active paragraph line classes to keep body typography consistent", () => {

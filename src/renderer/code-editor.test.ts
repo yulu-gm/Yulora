@@ -872,7 +872,7 @@ describe("createCodeEditorController", () => {
     view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
 
     const firstListLine = getLineElementByText(host, "- one");
-    const taskListLine = getLineElementByText(host, "- [ ] todo");
+    const taskListLine = getLineElementByText(host, "todo");
     const listMarkers = host.querySelectorAll(".cm-inactive-list-marker");
     const taskMarkers = host.querySelectorAll(".cm-inactive-task-marker");
 
@@ -883,6 +883,7 @@ describe("createCodeEditorController", () => {
     expect(taskListLine?.classList.contains("cm-inactive-list")).toBe(true);
     expect(listMarkers.length).toBe(2);
     expect(taskMarkers.length).toBe(1);
+    expect(taskMarkers[0]?.querySelector(".cm-inactive-task-marker-box")).not.toBeNull();
 
     controller.destroy();
   });
@@ -905,12 +906,14 @@ describe("createCodeEditorController", () => {
 
     const firstListLine = getLineElementByText(host, "1. first");
     const checkedTaskMarker = host.querySelector(".cm-inactive-task-marker-checked");
-    const checkedTaskLine = getLineElementByText(host, "2. [x] done");
+    const checkedTaskLine = getLineElementByText(host, "done");
 
     expect(firstListLine).not.toBeNull();
     expect(firstListLine?.classList.contains("cm-inactive-list-ordered")).toBe(true);
     expect(checkedTaskMarker).not.toBeNull();
     expect(checkedTaskMarker?.getAttribute("data-task-state")).toBe("checked");
+    expect(checkedTaskMarker?.querySelector(".cm-inactive-task-marker-box")).not.toBeNull();
+    expect(checkedTaskMarker?.querySelector(".cm-inactive-task-marker-check")).not.toBeNull();
     expect(checkedTaskLine?.classList.contains("cm-inactive-list-task")).toBe(true);
     expect(checkedTaskLine?.classList.contains("cm-inactive-list-task-checked")).toBe(true);
 
@@ -1044,7 +1047,7 @@ describe("createCodeEditorController", () => {
     editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     await flushMicrotasks();
 
-    const listLine = getLineElementByText(host, "- [ ] todo");
+    const listLine = getLineElementByText(host, "todo");
 
     expect(listLine).toBeInstanceOf(HTMLElement);
 

@@ -5391,7 +5391,7 @@ describe("App autosave", () => {
     expect(pearlDarkRule).toContain("--fishmark-rail-control-fg:");
   });
 
-  it("keeps rain glass list and quote overrides aligned with the shared markdown structure tokens", () => {
+  it("keeps rain glass markdown overrides inside theme-owned colors and decoration", () => {
     const rainGlassMarkdownStylesheet = readFileSync(
       join(process.cwd(), "fixtures/themes/rain-glass/styles/markdown.css"),
       "utf-8"
@@ -5406,9 +5406,11 @@ describe("App autosave", () => {
       '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-blockquote'
     );
 
-    expect(rainGlassRootRule).toContain("--fishmark-list-marker-size:");
-    expect(rainGlassRootRule).toContain("--fishmark-list-ordered-marker-width:");
-    expect(rainGlassRootRule).toContain("--fishmark-task-size:");
+    expect(rainGlassRootRule).toContain("--fishmark-list-marker:");
+    expect(rainGlassRootRule).not.toContain("--fishmark-list-marker-size:");
+    expect(rainGlassRootRule).not.toContain("--fishmark-list-ordered-marker-width:");
+    expect(rainGlassRootRule).not.toContain("--fishmark-task-size:");
+    expect(rainGlassRootRule).not.toContain("--fishmark-table-cell-padding-inline:");
     expect(rainGlassRootRule).toContain("--fishmark-blockquote-bg:");
     expect(rainGlassMarkdownStylesheet).not.toContain(
       '[data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-list-marker {'
@@ -5470,9 +5472,13 @@ describe("App autosave", () => {
 
     expect(lightMarkdownRule).toContain("--fishmark-table-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-table-border-color:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-cell-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-table-cell-active-bg:");
-    expect(lightMarkdownRule).toContain("--fishmark-table-cell-min-height:");
-    expect(lightMarkdownRule).toContain("--fishmark-table-header-font-weight:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-text:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-header-text:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-table-cell-min-height:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-table-cell-padding-inline:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-table-header-font-weight:");
   });
 
   it("keeps bundled community theme fixtures on contract version 2 so they stay discoverable", () => {
@@ -5487,14 +5493,23 @@ describe("App autosave", () => {
     expect(emberAscendManifest.contractVersion).toBe(2);
   });
 
-  it("defines restrained list, task, and blockquote tokens in the default markdown theme stylesheet", () => {
+  it("keeps structural list, task, and blockquote tokens in the app-owned markdown stylesheet", () => {
     const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
     const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
+    const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const appRootRule = getCssRule(markdownRenderStylesheet, ":root");
 
-    expect(lightMarkdownRule).toContain("--fishmark-list-marker-size:");
-    expect(lightMarkdownRule).toContain("--fishmark-list-ordered-marker-width:");
-    expect(lightMarkdownRule).toContain("--fishmark-task-size:");
-    expect(lightMarkdownRule).toContain("--fishmark-task-radius:");
+    expect(appRootRule).toContain("--fishmark-list-marker-size:");
+    expect(appRootRule).toContain("--fishmark-list-ordered-marker-width:");
+    expect(appRootRule).toContain("--fishmark-task-size:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-list-marker-size:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-list-ordered-marker-width:");
+    expect(lightMarkdownRule).not.toContain("--fishmark-task-size:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-border:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-bg:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-checked-bg:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-check:");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-radius:");
     expect(lightMarkdownRule).toContain("--fishmark-blockquote-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-blockquote-border:");
   });
@@ -5552,7 +5567,20 @@ describe("App autosave", () => {
       markdownRenderStylesheet,
       ".document-editor .cm-inactive-list-task .cm-inactive-list-marker::before"
     );
-    const taskMarkerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-task-marker::before");
+    const taskMarkerContainerRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-task-marker");
+    const taskMarkerBoxRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-task-marker-box");
+    const checkedTaskMarkerBoxRule = getCssRule(
+      markdownRenderStylesheet,
+      '.document-editor .cm-inactive-task-marker[data-task-state="checked"] .cm-inactive-task-marker-box'
+    );
+    const taskMarkerCheckRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-task-marker-check"
+    );
+    const checkedTaskMarkerCheckRule = getCssRule(
+      markdownRenderStylesheet,
+      '.document-editor .cm-inactive-task-marker[data-task-state="checked"] .cm-inactive-task-marker-check'
+    );
     const blockquoteRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote");
 
     expect(listRootRule).toContain(
@@ -5581,10 +5609,10 @@ describe("App autosave", () => {
     expect(listRule).toContain("word-break: break-all;");
     expect(activeListRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
     expect(activeListRule).toContain("var(--fishmark-list-unordered-content-offset)");
-    expect(activeListRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListRule).toContain("var(--fishmark-list-source-prefix-offset)");
     expect(activeListRule).not.toContain("max(");
     expect(activeListRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
-    expect(activeListRule).toContain("text-indent: calc(-1 * var(--fishmark-list-content-offset));");
+    expect(activeListRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
     expect(activeListRule).toContain("overflow-wrap: anywhere;");
     expect(activeListRule).toContain("word-break: break-all;");
     expect(listContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
@@ -5594,11 +5622,11 @@ describe("App autosave", () => {
     expect(listContinuationRule).toContain("overflow-wrap: anywhere;");
     expect(listContinuationRule).not.toContain("text-indent:");
     expect(activeListContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
-    expect(activeListContinuationRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListContinuationRule).toContain("var(--fishmark-list-source-prefix-offset)");
     expect(activeListContinuationRule).not.toContain("max(");
     expect(activeListContinuationRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
     expect(activeListContinuationRule).toContain("overflow-wrap: anywhere;");
-    expect(activeListContinuationRule).not.toContain("text-indent:");
+    expect(activeListContinuationRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
     expect(orderedListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-ordered-content-offset);");
     expect(taskListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-task-content-offset);");
     expect(listSourcePrefixRule).toContain("font-size: 0;");
@@ -5621,9 +5649,33 @@ describe("App autosave", () => {
       "left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));"
     );
     expect(taskListMarkerGlyphRule).toContain("content: none;");
-    expect(taskMarkerRule).toContain("width: var(--fishmark-task-size);");
-    expect(taskMarkerRule).toContain("height: var(--fishmark-task-size);");
-    expect(taskMarkerRule).toContain("border-radius: var(--fishmark-task-radius);");
+    expect(listRootRule).toContain("--fishmark-task-size: 1.08em;");
+    expect(taskMarkerContainerRule).toContain("display: inline-flex;");
+    expect(taskMarkerContainerRule).toContain("align-items: center;");
+    expect(taskMarkerContainerRule).toContain("justify-content: center;");
+    expect(taskMarkerContainerRule).toContain("top: 50%;");
+    expect(taskMarkerContainerRule).toContain("transform: translateY(-50%);");
+    expect(taskMarkerContainerRule).toContain("width: var(--fishmark-task-size);");
+    expect(taskMarkerContainerRule).toContain("height: var(--fishmark-task-size);");
+    expect(taskMarkerContainerRule).toContain("pointer-events: none;");
+    expect(taskMarkerBoxRule).toContain("width: 100%;");
+    expect(taskMarkerBoxRule).toContain("height: 100%;");
+    expect(taskMarkerBoxRule).toContain("border: var(--fishmark-task-toggle-border-width) solid var(--fishmark-task-toggle-border);");
+    expect(taskMarkerBoxRule).toContain("border-radius: var(--fishmark-task-toggle-radius);");
+    expect(taskMarkerBoxRule).toContain("background: var(--fishmark-task-toggle-bg);");
+    expect(checkedTaskMarkerBoxRule).toContain("background: var(--fishmark-task-toggle-checked-bg);");
+    expect(taskMarkerCheckRule).toContain("top: 50%;");
+    expect(taskMarkerCheckRule).toContain("left: 50%;");
+    expect(taskMarkerCheckRule).toContain("display: block;");
+    expect(taskMarkerCheckRule).toContain("width: var(--fishmark-task-toggle-check-width);");
+    expect(taskMarkerCheckRule).toContain("height: var(--fishmark-task-toggle-check-height);");
+    expect(taskMarkerCheckRule).toContain("border-right: var(--fishmark-task-toggle-check-stroke) solid var(--fishmark-task-toggle-check);");
+    expect(taskMarkerCheckRule).toContain("border-bottom: var(--fishmark-task-toggle-check-stroke) solid var(--fishmark-task-toggle-check);");
+    expect(taskMarkerCheckRule).toContain("opacity: 0;");
+    expect(taskMarkerCheckRule).toContain("transform: translate(-50%, -58%) rotate(45deg);");
+    expect(checkedTaskMarkerCheckRule).toContain("opacity: 1;");
+    expect(markdownRenderStylesheet).not.toContain(".cm-inactive-task-marker::before");
+    expect(markdownRenderStylesheet).not.toContain(".cm-inactive-task-marker::after");
     expect(blockquoteRule).toContain("background: var(--fishmark-blockquote-bg);");
     expect(blockquoteRule).toContain("box-shadow: inset 2px 0 0 var(--fishmark-blockquote-border);");
   });

@@ -3,24 +3,18 @@
   --fishmark-inline-code-text: var(--fishmark-markdown-inline-code-fg);
   --fishmark-list-marker: var(--fishmark-markdown-list-bullet);
   --fishmark-list-text: var(--fishmark-markdown-list-text);
-  --fishmark-task-border: color-mix(in srgb, var(--fishmark-markdown-task-done) 42%, var(--fishmark-panel-border));
-  --fishmark-task-bg: color-mix(in srgb, var(--fishmark-workspace-bg) 92%, transparent);
-  --fishmark-task-check: var(--fishmark-markdown-task-done);
-  --fishmark-task-radius: 0.24rem;
+  --fishmark-task-toggle-border: color-mix(in srgb, var(--fishmark-markdown-task-done) 42%, var(--fishmark-panel-border));
+  --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-workspace-bg) 92%, transparent);
+  --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-markdown-task-done) 14%, transparent);
+  --fishmark-task-toggle-check: var(--fishmark-markdown-task-done);
+  --fishmark-task-toggle-radius: 0.32rem;
   --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-markdown-quote-border) 12%, transparent);
   --fishmark-blockquote-border: var(--fishmark-markdown-quote-border);
   --fishmark-thematic-break: var(--fishmark-markdown-hr);
   --fishmark-code-block-bg: var(--fishmark-markdown-code-bg);
   --fishmark-code-block-text: var(--fishmark-markdown-code-fg);
-  --fishmark-table-margin-top: 0.32rem;
-  --fishmark-table-margin-bottom: 0.72rem;
-  --fishmark-table-after-break-padding-bottom: 0.38rem;
-  --fishmark-table-after-break-margin-bottom: 0.06rem;
-  --fishmark-table-after-break-margin-top: 0.12rem;
   --fishmark-table-bg: color-mix(in srgb, var(--fishmark-glass-strong-bg) 62%, var(--fishmark-surface-raised-bg));
-  --fishmark-table-border-width: 1px;
   --fishmark-table-border-color: color-mix(in srgb, var(--fishmark-border-faint) 78%, rgba(140, 181, 217, 0.18));
-  --fishmark-table-cell-border-width: 1px;
   --fishmark-table-cell-border-color: color-mix(in srgb, var(--fishmark-border-faint) 76%, rgba(140, 181, 217, 0.14));
   --fishmark-table-radius: 20px;
   --fishmark-table-cell-bg: transparent;
@@ -29,12 +23,8 @@
     var(--fishmark-surface-raised-bg) 68%,
     rgba(93, 167, 255, 0.28)
   );
-  --fishmark-table-cell-min-height: 44px;
-  --fishmark-table-cell-padding-block: 10px;
-  --fishmark-table-cell-padding-inline: 13px;
   --fishmark-table-text: var(--fishmark-text-body);
   --fishmark-table-header-text: var(--fishmark-text-strong);
-  --fishmark-table-header-font-weight: 630;
 }
 
 [data-fishmark-region="workspace-canvas"] .document-editor .cm-inactive-heading,

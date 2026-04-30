@@ -14,14 +14,35 @@
     var(--fishmark-list-task-marker-left) + var(--fishmark-task-size) + var(--fishmark-list-marker-text-gap)
   );
   --fishmark-list-nested-indent: 1.4em;
-  --fishmark-task-size: 0.92em;
-  --fishmark-task-radius: 0.2rem;
+  --fishmark-task-size: 1.08em;
+  --fishmark-task-toggle-border: var(--fishmark-control-border, rgba(15, 23, 42, 0.12));
+  --fishmark-task-toggle-bg: transparent;
+  --fishmark-task-toggle-checked-bg: var(--fishmark-task-toggle-bg);
+  --fishmark-task-toggle-check: var(--fishmark-text-accent, #4f7cff);
+  --fishmark-task-toggle-radius: 0.2rem;
+  --fishmark-task-toggle-border-width: 1.5px;
+  --fishmark-task-toggle-check-width: 0.34em;
+  --fishmark-task-toggle-check-height: 0.62em;
+  --fishmark-task-toggle-check-stroke: 2px;
+  --fishmark-task-toggle-box-rotation: 0deg;
+  --fishmark-task-toggle-box-scale: 1;
   --fishmark-blockquote-bg: color-mix(
     in srgb,
     var(--fishmark-markdown-quote-border, rgba(15, 23, 42, 0.12)) 12%,
     transparent
   );
   --fishmark-blockquote-border: var(--fishmark-markdown-quote-border, rgba(15, 23, 42, 0.12));
+  --fishmark-table-margin-top: 0.35rem;
+  --fishmark-table-margin-bottom: 0.75rem;
+  --fishmark-table-after-break-padding-bottom: 0.42rem;
+  --fishmark-table-after-break-margin-bottom: 0.08rem;
+  --fishmark-table-after-break-margin-top: 0.14rem;
+  --fishmark-table-border-width: 1px;
+  --fishmark-table-cell-border-width: 1px;
+  --fishmark-table-cell-min-height: 42px;
+  --fishmark-table-cell-padding-block: 10px;
+  --fishmark-table-cell-padding-inline: 12px;
+  --fishmark-table-header-font-weight: 620;
 }
 
 .document-editor .cm-inactive-heading {
@@ -40,7 +61,7 @@
   font-size: 1.85rem;
   line-height: 1.45;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .document-editor .cm-inactive-heading-depth-2 {
@@ -72,7 +93,7 @@
   font-size: 1.85rem;
   line-height: 1.45;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .document-editor .cm-active-heading-depth-2 {
@@ -286,7 +307,7 @@
 
 .document-editor .cm-inactive-task-marker {
   position: absolute;
-  top: 0.42em;
+  top: 50%;
   left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));
   display: inline-flex;
   align-items: center;
@@ -295,8 +316,11 @@
   height: var(--fishmark-task-size);
   margin-right: 0.48rem;
   color: transparent;
-  font-size: 0;
+  font-size: 1em;
+  line-height: 1;
+  transform: translateY(-50%);
   vertical-align: -0.12rem;
+  pointer-events: none;
 }
 
 .document-editor .cm-inactive-task-marker-unchecked {
@@ -307,26 +331,36 @@
   color: transparent;
 }
 
-.document-editor .cm-inactive-task-marker::before {
-  content: "";
+.document-editor .cm-inactive-task-marker-box {
+  display: block;
   box-sizing: border-box;
-  width: var(--fishmark-task-size);
-  height: var(--fishmark-task-size);
-  border: 1.5px solid var(--fishmark-task-border, var(--fishmark-control-border, rgba(15, 23, 42, 0.12)));
-  border-radius: var(--fishmark-task-radius);
-  background: var(--fishmark-task-bg, var(--fishmark-control-bg, rgba(255, 255, 255, 0.9)));
+  width: 100%;
+  height: 100%;
+  border: var(--fishmark-task-toggle-border-width) solid var(--fishmark-task-toggle-border);
+  border-radius: var(--fishmark-task-toggle-radius);
+  background: var(--fishmark-task-toggle-bg);
+  transform: rotate(var(--fishmark-task-toggle-box-rotation)) scale(var(--fishmark-task-toggle-box-scale));
 }
 
-.document-editor .cm-inactive-task-marker[data-task-state="checked"]::after {
-  content: "";
+.document-editor .cm-inactive-task-marker[data-task-state="checked"] .cm-inactive-task-marker-box {
+  background: var(--fishmark-task-toggle-checked-bg);
+}
+
+.document-editor .cm-inactive-task-marker-check {
   position: absolute;
-  top: 0.23rem;
-  left: 0.35rem;
-  width: 0.22rem;
-  height: 0.42rem;
-  border-right: 2px solid var(--fishmark-text-accent, #4f7cff);
-  border-bottom: 2px solid var(--fishmark-text-accent, #4f7cff);
-  transform: rotate(45deg);
+  display: block;
+  top: 50%;
+  left: 50%;
+  width: var(--fishmark-task-toggle-check-width);
+  height: var(--fishmark-task-toggle-check-height);
+  border-right: var(--fishmark-task-toggle-check-stroke) solid var(--fishmark-task-toggle-check);
+  border-bottom: var(--fishmark-task-toggle-check-stroke) solid var(--fishmark-task-toggle-check);
+  opacity: 0;
+  transform: translate(-50%, -58%) rotate(45deg);
+}
+
+.document-editor .cm-inactive-task-marker[data-task-state="checked"] .cm-inactive-task-marker-check {
+  opacity: 1;
 }
 
 .document-editor .cm-inactive-list-task-checked {

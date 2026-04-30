@@ -155,13 +155,13 @@
       "fontVariantNumeric": "tabular-nums"
     },
     "task": {
-      "checkboxSizeRem": 0.92,
-      "checkboxSizeEm": 0.92,
+      "checkboxSizeRem": 1.08,
+      "checkboxSizeEm": 1.08,
       "checkboxLeftFromDepthRem": 0.24,
       "checkboxLeftFromDepthEm": 0.24,
       "markerVisualRightFormula": "checkboxLeftFromDepthRem + checkboxSizeRem",
-      "contentStartOffsetRem": 1.78,
-      "contentStartOffsetEm": 1.78,
+      "contentStartOffsetRem": 1.94,
+      "contentStartOffsetEm": 1.94,
       "contentStartOffsetFormula": "checkboxLeftFromDepthRem + checkboxSizeRem + markerToTextGapRem",
       "checkedTextStyle": "may use markdown.task.done color but must keep the same geometry"
     },

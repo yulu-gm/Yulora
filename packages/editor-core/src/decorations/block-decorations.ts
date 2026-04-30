@@ -1,4 +1,4 @@
-import { Decoration, type DecorationSet } from "@codemirror/view";
+import { Decoration, WidgetType, type DecorationSet } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 
 import { parseInlineAst, type ListItemBlock } from "@fishmark/markdown-engine";
@@ -581,18 +581,44 @@ function appendInactiveListItemFirstLineDecorations(
   appendInactiveListItemHiddenPrefixDecoration(item.markerEnd, item.task.markerStart, ranges);
 
   ranges.push(
-    Decoration.mark({
-      attributes: {
-        class: [
-          "cm-inactive-task-marker",
-          item.task.checked ? "cm-inactive-task-marker-checked" : "cm-inactive-task-marker-unchecked"
-        ].join(" "),
-        "data-task-state": item.task.checked ? "checked" : "unchecked"
-      }
+    Decoration.replace({
+      widget: new TaskMarkerWidget(item.task.checked)
     }).range(item.task.markerStart, item.task.markerEnd)
   );
 
   appendInactiveListItemHiddenPrefixDecoration(item.task.markerEnd, contentStartOffset, ranges);
+}
+
+class TaskMarkerWidget extends WidgetType {
+  constructor(private readonly checked: boolean) {
+    super();
+  }
+
+  override eq(other: TaskMarkerWidget): boolean {
+    return other.checked === this.checked;
+  }
+
+  override toDOM(): HTMLElement {
+    const marker = document.createElement("span");
+    const box = document.createElement("span");
+    const check = document.createElement("span");
+
+    marker.className = [
+      "cm-inactive-task-marker",
+      this.checked ? "cm-inactive-task-marker-checked" : "cm-inactive-task-marker-unchecked"
+    ].join(" ");
+    marker.dataset.taskState = this.checked ? "checked" : "unchecked";
+    marker.setAttribute("aria-hidden", "true");
+    box.className = "cm-inactive-task-marker-box";
+    check.className = "cm-inactive-task-marker-check";
+    marker.append(box, check);
+
+    return marker;
+  }
+
+  override ignoreEvent(): boolean {
+    return true;
+  }
 }
 
 function appendInactiveListItemSourcePrefixDecorations(item: ListItemBlock, ranges: Range<Decoration>[]): void {
