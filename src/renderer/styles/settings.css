@@ -26,7 +26,7 @@
   top: var(--fishmark-shell-edge);
   bottom: var(--fishmark-shell-edge);
   left: calc(var(--fishmark-shell-rail-width) + var(--fishmark-shell-edge));
-  width: min(760px, calc(100vw - var(--fishmark-shell-rail-width) - (var(--fishmark-shell-edge) * 3)));
+  width: min(700px, calc(100vw - var(--fishmark-shell-rail-width) - (var(--fishmark-shell-edge) * 3)));
   z-index: 31;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
@@ -86,8 +86,8 @@
   grid-row: 1;
   display: flex;
   align-items: center;
-  gap: var(--fishmark-space-4);
-  padding: var(--fishmark-space-5) var(--fishmark-space-5) var(--fishmark-space-4);
+  gap: var(--fishmark-space-3);
+  padding: var(--fishmark-space-4) var(--fishmark-space-4) var(--fishmark-space-3);
   background: color-mix(
     in srgb,
     var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 92%,
@@ -103,8 +103,8 @@
 /*   Visual appearance lives in primitives.css. Only size here.  */
 
 .settings-back {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
@@ -127,7 +127,7 @@
 .settings-title-block h1 {
   margin: var(--fishmark-space-1) 0 0;
   color: var(--fishmark-text-primary, #171a1f);
-  font-size: 1.4rem;
+  font-size: 1.28rem;
   font-weight: 620;
 }
 
@@ -137,7 +137,7 @@
   grid-row: 2;
   align-self: start;
   width: auto;
-  margin: var(--fishmark-space-4) var(--fishmark-space-5) 0;
+  margin: var(--fishmark-space-3) var(--fishmark-space-4) 0;
   z-index: 2;
 }
 
@@ -145,9 +145,9 @@
   grid-row: 3;
   min-height: 0;
   display: grid;
-  grid-template-columns: 184px minmax(0, 1fr);
-  gap: var(--fishmark-space-5);
-  padding: var(--fishmark-space-5);
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: var(--fishmark-space-4);
+  padding: var(--fishmark-space-4);
   overflow: hidden;
 }
 
@@ -155,8 +155,8 @@
   min-width: 0;
   display: grid;
   align-content: start;
-  gap: var(--fishmark-space-3);
-  padding: var(--fishmark-space-1) 0;
+  gap: var(--fishmark-space-2);
+  padding: 0;
   overflow-y: auto;
 }
 
@@ -178,14 +178,14 @@
 
 .settings-navigation-parent {
   display: grid;
-  grid-template-columns: 16px 22px minmax(0, 1fr);
+  grid-template-columns: 12px 18px minmax(0, 1fr);
   align-items: center;
-  gap: var(--fishmark-space-2);
-  min-height: 36px;
-  padding: 0 var(--fishmark-space-3);
+  gap: var(--fishmark-space-1);
+  min-height: 32px;
+  padding: 0 var(--fishmark-space-2);
   border-radius: var(--fishmark-radius-lg);
   background: transparent;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 600;
 }
 
@@ -203,25 +203,25 @@
 }
 
 .settings-navigation-chevron {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .settings-navigation-icon {
-  font-size: 0.95rem;
+  font-size: 0.86rem;
 }
 
 .settings-navigation-children {
   display: grid;
   gap: 2px;
-  padding-left: calc(16px + var(--fishmark-space-2));
+  padding-left: calc(12px + var(--fishmark-space-1));
 }
 
 .settings-navigation-child {
-  min-height: 32px;
-  padding: 0 var(--fishmark-space-3) 0 calc(22px + var(--fishmark-space-2));
+  min-height: 28px;
+  padding: 0 var(--fishmark-space-2) 0 calc(18px + var(--fishmark-space-1));
   border-radius: var(--fishmark-radius-md);
   background: transparent;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .settings-navigation-child:hover {
@@ -244,11 +244,11 @@
 
 .settings-groups {
   display: grid;
-  gap: var(--fishmark-space-6);
+  gap: var(--fishmark-space-5);
 }
 
 .settings-group {
-  padding-top: var(--fishmark-space-5);
+  padding-top: var(--fishmark-space-4);
   border-top: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
 }
 
@@ -258,7 +258,7 @@
 }
 
 .settings-group-header {
-  margin-bottom: var(--fishmark-space-3);
+  margin-bottom: var(--fishmark-space-2);
 }
 
 .settings-group-header h2 {
@@ -280,8 +280,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, 250px);
   align-items: start;
-  gap: var(--fishmark-space-4);
-  padding: var(--fishmark-space-3) 0;
+  gap: var(--fishmark-space-3);
+  padding: var(--fishmark-space-2) 0;
 }
 
 .settings-row + .settings-row {
@@ -305,8 +305,8 @@
 /*   Visual appearance lives in primitives.css. Only size here.  */
 
 .settings-input {
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 7px 10px;
 }
 
 .settings-input-stack {
@@ -336,7 +336,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--fishmark-space-4);
-  padding: var(--fishmark-space-4) var(--fishmark-space-5);
+  padding: var(--fishmark-space-3) var(--fishmark-space-4);
   border-top: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
 }
 
@@ -344,9 +344,9 @@
 /*   Visual appearance lives in primitives.css. Only size here.  */
 
 .settings-reset {
-  min-height: 36px;
-  padding: 0 14px;
-  font-size: 0.9rem;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.86rem;
 }
 
 .settings-reset:disabled {

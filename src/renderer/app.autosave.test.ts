@@ -5522,15 +5522,18 @@ describe("App autosave", () => {
     const settingsBodyRule = getCssRule(settingsStylesheet, ".settings-body");
     const settingsFooterRule = getCssRule(settingsStylesheet, ".settings-footer");
 
+    expect(settingsStylesheet).toContain("width: min(700px, calc(100vw");
     expect(settingsStylesheet).toContain("grid-template-rows: auto auto minmax(0, 1fr) auto;");
     expect(settingsErrorRule).toContain("grid-row: 2;");
     expect(settingsStylesheet).toContain(".settings-body");
     expect(settingsBodyRule).toContain("grid-row: 3;");
-    expect(settingsStylesheet).toContain("grid-template-columns: 184px minmax(0, 1fr);");
+    expect(settingsStylesheet).toContain("grid-template-columns: 148px minmax(0, 1fr);");
     expect(settingsStylesheet).toContain(".settings-navigation");
     expect(settingsStylesheet).toContain(".settings-navigation-parent");
     expect(settingsStylesheet).toContain(".settings-navigation-child");
     expect(settingsStylesheet).toContain(".settings-navigation-child.is-active");
+    expect(settingsStylesheet).toContain("min-height: 32px;");
+    expect(settingsStylesheet).toContain("min-height: 28px;");
     expect(settingsStylesheet).toContain(".settings-content");
     expect(settingsStylesheet).toContain("overflow-y: auto;");
     expect(settingsStylesheet).toContain("@media (max-width: 860px)");
