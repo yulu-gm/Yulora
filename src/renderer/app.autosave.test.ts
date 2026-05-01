@@ -4644,7 +4644,17 @@ describe("App autosave", () => {
   function getSettingsNavigationButton(name: string): HTMLButtonElement {
     const button = Array.from(
       container.querySelectorAll<HTMLButtonElement>('[data-fishmark-region="settings-navigation"] button')
-    ).find((candidate) => candidate.textContent?.trim() === name);
+    ).find((candidate) => {
+      const visibleLabelChildren = Array.from(candidate.children).filter(
+        (child) => child.getAttribute("aria-hidden") !== "true"
+      );
+      const explicitLabel =
+        visibleLabelChildren.length > 0
+          ? visibleLabelChildren[visibleLabelChildren.length - 1]?.textContent?.trim()
+          : null;
+
+      return (explicitLabel ?? candidate.textContent?.trim()) === name;
+    });
 
     if (!button) {
       throw new Error(`settings navigation button not found: ${name}`);

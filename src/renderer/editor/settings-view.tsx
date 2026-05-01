@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
   DEFAULT_PREFERENCES,
@@ -42,6 +42,43 @@ type FontOption = {
   label: string;
   value: string;
 };
+
+type SettingsSectionId = "theme" | "typography" | "autosave" | "recent-files";
+type SettingsCategoryId = "appearance" | "file";
+
+type SettingsCategory = {
+  id: SettingsCategoryId;
+  label: string;
+  iconLabel: string;
+  children: Array<{
+    id: SettingsSectionId;
+    label: string;
+  }>;
+};
+
+const SETTINGS_CATEGORIES: SettingsCategory[] = [
+  {
+    id: "appearance",
+    label: "外观",
+    iconLabel: "A",
+    children: [
+      { id: "theme", label: "主题" },
+      { id: "typography", label: "排版" }
+    ]
+  },
+  {
+    id: "file",
+    label: "文件",
+    iconLabel: "F",
+    children: [
+      { id: "autosave", label: "自动保存" },
+      { id: "recent-files", label: "最近文件" }
+    ]
+  }
+];
+
+const DEFAULT_EXPANDED_SETTINGS_CATEGORIES: SettingsCategoryId[] = ["appearance", "file"];
+const DEFAULT_SETTINGS_SECTION_ID: SettingsSectionId = "theme";
 
 const THEME_LABELS: Record<ThemeMode, string> = {
   system: "跟随系统",
@@ -135,6 +172,144 @@ function buildFontOptions(fontFamilies: string[], currentValue: string): FontOpt
   return options;
 }
 
+function findCategoryForSection(sectionId: SettingsSectionId): SettingsCategoryId {
+  const category = SETTINGS_CATEGORIES.find((candidate) =>
+    candidate.children.some((child) => child.id === sectionId)
+  );
+
+  return category?.id ?? "appearance";
+}
+
+function toggleCategory(
+  categoryId: SettingsCategoryId,
+  activeSectionId: SettingsSectionId,
+  currentExpandedCategoryIds: SettingsCategoryId[]
+): SettingsCategoryId[] {
+  const activeCategoryId = findCategoryForSection(activeSectionId);
+  if (categoryId === activeCategoryId) {
+    return currentExpandedCategoryIds.includes(categoryId)
+      ? currentExpandedCategoryIds
+      : [...currentExpandedCategoryIds, categoryId];
+  }
+
+  return currentExpandedCategoryIds.includes(categoryId)
+    ? currentExpandedCategoryIds.filter((id) => id !== categoryId)
+    : [...currentExpandedCategoryIds, categoryId];
+}
+
+type SettingsGroupProps = {
+  title: ReactNode;
+  description: ReactNode;
+  children: ReactNode;
+  panel?: string;
+  themeId?: string;
+};
+
+function SettingsGroup({ title, description, children, panel, themeId }: SettingsGroupProps) {
+  return (
+    <section
+      className="settings-group"
+      data-fishmark-panel={panel}
+      data-fishmark-theme-id={themeId}
+    >
+      <header className="settings-group-header">
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+type SettingsRowProps = {
+  children: ReactNode;
+};
+
+function SettingsRow({ children }: SettingsRowProps) {
+  return <div className="settings-row">{children}</div>;
+}
+
+type SettingsNavigationProps = {
+  categories: SettingsCategory[];
+  activeSectionId: SettingsSectionId;
+  expandedCategoryIds: SettingsCategoryId[];
+  onToggleCategory: (categoryId: SettingsCategoryId) => void;
+  onSelectSection: (sectionId: SettingsSectionId) => void;
+};
+
+function SettingsNavigation({
+  categories,
+  activeSectionId,
+  expandedCategoryIds,
+  onToggleCategory,
+  onSelectSection
+}: SettingsNavigationProps) {
+  return (
+    <nav
+      className="settings-navigation"
+      data-fishmark-region="settings-navigation"
+      aria-label="设置分类"
+    >
+      {categories.map((category) => {
+        const isExpanded = expandedCategoryIds.includes(category.id);
+        const isActiveCategory = category.children.some((child) => child.id === activeSectionId);
+        const childrenId = `settings-navigation-${category.id}-children`;
+
+        return (
+          <div
+            key={category.id}
+            className="settings-navigation-group"
+          >
+            <button
+              type="button"
+              className={`settings-navigation-parent ${isActiveCategory ? "is-active" : ""}`}
+              aria-expanded={isExpanded}
+              aria-controls={childrenId}
+              onClick={() => onToggleCategory(category.id)}
+            >
+              <span
+                className="settings-navigation-chevron"
+                aria-hidden="true"
+              >
+                {isExpanded ? "⌄" : "›"}
+              </span>
+              <span
+                className="settings-navigation-icon"
+                aria-hidden="true"
+              >
+                {category.iconLabel}
+              </span>
+              <span>{category.label}</span>
+            </button>
+            {isExpanded ? (
+              <div
+                id={childrenId}
+                className="settings-navigation-children"
+              >
+                {category.children.map((child) => {
+                  const isActive = child.id === activeSectionId;
+
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      className={`settings-navigation-child ${isActive ? "is-active" : ""}`}
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={() => onSelectSection(child.id)}
+                    >
+                      {child.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
 function ThemeFolderIcon() {
   return (
     <svg
@@ -176,6 +351,11 @@ export function SettingsView({
   const [draft, setDraft] = useState<DraftState>(() => buildDraft(preferences));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSavedChanges, setHasSavedChanges] = useState(false);
+  const [activeSectionId, setActiveSectionId] =
+    useState<SettingsSectionId>(DEFAULT_SETTINGS_SECTION_ID);
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<SettingsCategoryId[]>(() => [
+    ...DEFAULT_EXPANDED_SETTINGS_CATEGORIES
+  ]);
 
   useEffect(() => {
     setDraft(buildDraft(preferences));
@@ -226,6 +406,19 @@ export function SettingsView({
 
     setErrorMessage(null);
     setHasSavedChanges(true);
+  }
+
+  function handleToggleCategory(categoryId: SettingsCategoryId): void {
+    setExpandedCategoryIds((current) => toggleCategory(categoryId, activeSectionId, current));
+  }
+
+  function handleSelectSection(sectionId: SettingsSectionId): void {
+    const categoryId = findCategoryForSection(sectionId);
+
+    setActiveSectionId(sectionId);
+    setExpandedCategoryIds((current) =>
+      current.includes(categoryId) ? current : [...current, categoryId]
+    );
   }
 
   async function handleRefreshThemes(): Promise<void> {
@@ -435,63 +628,14 @@ export function SettingsView({
     });
   }
 
-  return (
-    <section
-      className="settings-shell"
-      data-fishmark-panel="settings-drawer"
-      data-fishmark-surface="settings-drawer"
-      data-state={surfaceState}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="settings-heading"
-    >
-      <header className="settings-header">
-        <button
-          type="button"
-          className="settings-back"
-          onClick={onClose}
-          aria-label="关闭设置"
+  function renderThemeSection() {
+    return (
+      <>
+        <SettingsGroup
+          title="主题"
+          description="颜色模式控制 light / dark / system，主题包控制整套视觉风格。"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path
-              d="M15 18l-6-6 6-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span>关闭</span>
-        </button>
-        <div className="settings-title-block">
-          <p className="settings-kicker">Preferences</p>
-          <h1 id="settings-heading">偏好设置</h1>
-        </div>
-      </header>
-
-      {errorMessage ? (
-        <p
-          className="error-banner settings-error"
-          role="alert"
-        >
-          {errorMessage}
-        </p>
-      ) : null}
-
-      <div className="settings-groups">
-        <section className="settings-group">
-          <header className="settings-group-header">
-            <h2>主题</h2>
-            <p>颜色模式控制 light / dark / system，主题包控制整套视觉风格。</p>
-          </header>
-          <div className="settings-row">
+          <SettingsRow>
             <label className="settings-label">
               <span>颜色模式</span>
               <span className="settings-hint">选择跟随系统，或手动切换浅色 / 深色。</span>
@@ -519,8 +663,8 @@ export function SettingsView({
                 </label>
               ))}
             </div>
-          </div>
-          <div className="settings-row">
+          </SettingsRow>
+          <SettingsRow>
             <label
               className="settings-label"
               htmlFor="settings-theme-package"
@@ -583,8 +727,8 @@ export function SettingsView({
                 </button>
               </div>
             </div>
-          </div>
-          <div className="settings-row">
+          </SettingsRow>
+          <SettingsRow>
             <label className="settings-label" htmlFor="settings-theme-effects">
               <span>动态效果</span>
               <span className="settings-hint">自动模式会在低性能或减少动态效果场景下自动降级。</span>
@@ -603,21 +747,16 @@ export function SettingsView({
                 </option>
               ))}
             </select>
-          </div>
-        </section>
+          </SettingsRow>
+        </SettingsGroup>
 
         {activeThemePackage && activeThemeParameters.length > 0 ? (
-          <section
-            className="settings-group"
-            data-fishmark-panel="theme-parameters"
-            data-fishmark-theme-id={activeThemePackage.id}
+          <SettingsGroup
+            title={`${activeThemePackage.manifest.name}：参数`}
+            description="主题自定义参数实时作用于该主题的 shader。修改会自动保存，仅对当前主题生效。"
+            panel="theme-parameters"
+            themeId={activeThemePackage.id}
           >
-            <header className="settings-group-header">
-              <h2>{activeThemePackage.manifest.name}：参数</h2>
-              <p>
-                主题自定义参数实时作用于该主题的 shader。修改会自动保存，仅对当前主题生效。
-              </p>
-            </header>
             {activeThemeParameters.map((parameter) => {
               const value = resolveParameterCurrentValue(parameter, activeThemeParameterOverrides);
 
@@ -626,7 +765,7 @@ export function SettingsView({
                 const inputId = `settings-theme-parameter-${activeThemePackage.id}-${parameter.id}`;
 
                 return (
-                  <div className="settings-row" key={parameter.id}>
+                  <SettingsRow key={parameter.id}>
                     <label className="settings-label" htmlFor={inputId}>
                       <span>{parameter.label}</span>
                       {parameter.description ? (
@@ -650,7 +789,7 @@ export function SettingsView({
                         {checked ? "已开启" : "已关闭"}
                       </span>
                     </label>
-                  </div>
+                  </SettingsRow>
                 );
               }
 
@@ -660,7 +799,7 @@ export function SettingsView({
                 : value.toFixed(2);
 
               return (
-                <div className="settings-row" key={parameter.id}>
+                <SettingsRow key={parameter.id}>
                   <label className="settings-label" htmlFor={inputId}>
                     <span>{parameter.label}</span>
                     {parameter.description ? (
@@ -689,10 +828,10 @@ export function SettingsView({
                     />
                     <span className="settings-slider-value">{displayValue}</span>
                   </div>
-                </div>
+                </SettingsRow>
               );
             })}
-            <div className="settings-row">
+            <SettingsRow>
               <div className="settings-label">
                 <span>重置参数</span>
                 <span className="settings-hint">将该主题的全部自定义参数恢复为默认值。</span>
@@ -704,187 +843,292 @@ export function SettingsView({
               >
                 恢复默认参数
               </button>
-            </div>
-          </section>
+            </SettingsRow>
+          </SettingsGroup>
         ) : null}
+      </>
+    );
+  }
 
-        <section className="settings-group">
-          <header className="settings-group-header">
-            <h2>排版</h2>
-            <p>应用 UI 字号影响面板和按钮，文档字号与字体影响编辑器正文和 Markdown 渲染。</p>
-          </header>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-ui-font-preset"
-            >
-              <span>应用 UI 字体预设</span>
-              <span className="settings-hint">作用于按钮、标题、侧栏和设置面板等应用界面文字。</span>
-            </label>
-            <select
-              id="settings-ui-font-preset"
-              className="settings-input settings-select"
-              value={draft.uiFontFamily}
-              onChange={(event) => handleUiFontPresetChange(event.target.value)}
-            >
-              {uiFontOptions.map((option) => (
-                <option
-                  key={option.value.length === 0 ? "__default__" : option.value}
-                  value={option.value}
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-ui-font-size"
-            >
-              <span>应用 UI 字号</span>
-              <span className="settings-hint">单位像素，范围 8 - 72，留空表示使用默认值。</span>
-            </label>
-            <input
-              id="settings-ui-font-size"
-              className="settings-input settings-input-narrow"
-              type="number"
-              min={8}
-              max={72}
-              value={draft.uiFontSize}
-              placeholder="默认"
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, uiFontSize: event.target.value }))
-              }
-              onBlur={handleUiFontSizeCommit}
-            />
-          </div>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-document-font-size"
-            >
-              <span>文档字号</span>
-              <span className="settings-hint">单位像素，范围 8 - 72，留空表示使用主题默认值。</span>
-            </label>
-            <input
-              id="settings-document-font-size"
-              className="settings-input settings-input-narrow"
-              type="number"
-              min={8}
-              max={72}
-              value={draft.documentFontSize}
-              placeholder="默认"
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, documentFontSize: event.target.value }))
-              }
-              onBlur={handleDocumentFontSizeCommit}
-            />
-          </div>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-document-font-preset"
-            >
-              <span>文档字体预设</span>
-              <span className="settings-hint">应用于正文中的西文、数字和未单独覆盖的字符。</span>
-            </label>
-            <select
-              id="settings-document-font-preset"
-              className="settings-input settings-select"
-              value={draft.documentFontFamily}
-              onChange={(event) => handleDocumentFontPresetChange(event.target.value)}
-            >
-              {documentFontOptions.map((option) => (
-                <option
-                  key={option.value.length === 0 ? "__default__" : option.value}
-                  value={option.value}
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-document-cjk-font-preset"
-            >
-              <span>中文字体预设</span>
-              <span className="settings-hint">仅作用于正文中文字符，代码块和行内代码不受影响。</span>
-            </label>
-            <select
-              id="settings-document-cjk-font-preset"
-              className="settings-input settings-select"
-              value={draft.documentCjkFontFamily}
-              onChange={(event) => handleDocumentCjkFontPresetChange(event.target.value)}
-            >
-              {documentCjkFontOptions.map((option) => (
-                <option
-                  key={option.value.length === 0 ? "__default__" : option.value}
-                  value={option.value}
-                >
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+  function renderTypographySection() {
+    return (
+      <SettingsGroup
+        title="排版"
+        description="应用 UI 字号影响面板和按钮，文档字号与字体影响编辑器正文和 Markdown 渲染。"
+      >
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-ui-font-preset"
+          >
+            <span>应用 UI 字体预设</span>
+            <span className="settings-hint">作用于按钮、标题、侧栏和设置面板等应用界面文字。</span>
+          </label>
+          <select
+            id="settings-ui-font-preset"
+            className="settings-input settings-select"
+            value={draft.uiFontFamily}
+            onChange={(event) => handleUiFontPresetChange(event.target.value)}
+          >
+            {uiFontOptions.map((option) => (
+              <option
+                key={option.value.length === 0 ? "__default__" : option.value}
+                value={option.value}
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </SettingsRow>
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-ui-font-size"
+          >
+            <span>应用 UI 字号</span>
+            <span className="settings-hint">单位像素，范围 8 - 72，留空表示使用默认值。</span>
+          </label>
+          <input
+            id="settings-ui-font-size"
+            className="settings-input settings-input-narrow"
+            type="number"
+            min={8}
+            max={72}
+            value={draft.uiFontSize}
+            placeholder="默认"
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, uiFontSize: event.target.value }))
+            }
+            onBlur={handleUiFontSizeCommit}
+          />
+        </SettingsRow>
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-document-font-size"
+          >
+            <span>文档字号</span>
+            <span className="settings-hint">单位像素，范围 8 - 72，留空表示使用主题默认值。</span>
+          </label>
+          <input
+            id="settings-document-font-size"
+            className="settings-input settings-input-narrow"
+            type="number"
+            min={8}
+            max={72}
+            value={draft.documentFontSize}
+            placeholder="默认"
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, documentFontSize: event.target.value }))
+            }
+            onBlur={handleDocumentFontSizeCommit}
+          />
+        </SettingsRow>
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-document-font-preset"
+          >
+            <span>文档字体预设</span>
+            <span className="settings-hint">应用于正文中的西文、数字和未单独覆盖的字符。</span>
+          </label>
+          <select
+            id="settings-document-font-preset"
+            className="settings-input settings-select"
+            value={draft.documentFontFamily}
+            onChange={(event) => handleDocumentFontPresetChange(event.target.value)}
+          >
+            {documentFontOptions.map((option) => (
+              <option
+                key={option.value.length === 0 ? "__default__" : option.value}
+                value={option.value}
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </SettingsRow>
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-document-cjk-font-preset"
+          >
+            <span>中文字体预设</span>
+            <span className="settings-hint">仅作用于正文中文字符，代码块和行内代码不受影响。</span>
+          </label>
+          <select
+            id="settings-document-cjk-font-preset"
+            className="settings-input settings-select"
+            value={draft.documentCjkFontFamily}
+            onChange={(event) => handleDocumentCjkFontPresetChange(event.target.value)}
+          >
+            {documentCjkFontOptions.map((option) => (
+              <option
+                key={option.value.length === 0 ? "__default__" : option.value}
+                value={option.value}
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </SettingsRow>
+      </SettingsGroup>
+    );
+  }
 
-        <section className="settings-group">
-          <header className="settings-group-header">
-            <h2>自动保存</h2>
-            <p>停止输入后等待的时长，单位毫秒。</p>
-          </header>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-autosave-delay"
-            >
-              <span>空闲触发时长</span>
-              <span className="settings-hint">范围 100 - 60000 ms。</span>
-            </label>
-            <input
-              id="settings-autosave-delay"
-              className="settings-input settings-input-narrow"
-              type="number"
-              min={100}
-              max={60000}
-              value={draft.autosaveIdleDelayMs}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, autosaveIdleDelayMs: event.target.value }))
-              }
-              onBlur={handleIdleDelayCommit}
-            />
-          </div>
-        </section>
+  function renderAutosaveSection() {
+    return (
+      <SettingsGroup
+        title="自动保存"
+        description="停止输入后等待的时长，单位毫秒。"
+      >
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-autosave-delay"
+          >
+            <span>空闲触发时长</span>
+            <span className="settings-hint">范围 100 - 60000 ms。</span>
+          </label>
+          <input
+            id="settings-autosave-delay"
+            className="settings-input settings-input-narrow"
+            type="number"
+            min={100}
+            max={60000}
+            value={draft.autosaveIdleDelayMs}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, autosaveIdleDelayMs: event.target.value }))
+            }
+            onBlur={handleIdleDelayCommit}
+          />
+        </SettingsRow>
+      </SettingsGroup>
+    );
+  }
 
-        <section className="settings-group">
-          <header className="settings-group-header">
-            <h2>最近文件</h2>
-            <p>记录最近打开过的文档数量上限。</p>
-          </header>
-          <div className="settings-row">
-            <label
-              className="settings-label"
-              htmlFor="settings-recent-max"
-            >
-              <span>最多保留条数</span>
-              <span className="settings-hint">配置已持久化，将在 TASK-006 接入后开放。</span>
-            </label>
-            <input
-              id="settings-recent-max"
-              className="settings-input settings-input-narrow"
-              type="number"
-              min={0}
-              max={100}
-              value={preferences.recentFiles.maxEntries}
-              disabled
-              readOnly
+  function renderRecentFilesSection() {
+    return (
+      <SettingsGroup
+        title="最近文件"
+        description="记录最近打开过的文档数量上限。"
+      >
+        <SettingsRow>
+          <label
+            className="settings-label"
+            htmlFor="settings-recent-max"
+          >
+            <span>最多保留条数</span>
+            <span className="settings-hint">配置已持久化，将在 TASK-006 接入后开放。</span>
+          </label>
+          <input
+            id="settings-recent-max"
+            className="settings-input settings-input-narrow"
+            type="number"
+            min={0}
+            max={100}
+            value={preferences.recentFiles.maxEntries}
+            disabled
+            readOnly
+          />
+          <p className="settings-inline-note">将在 TASK-006 接入后开放。</p>
+        </SettingsRow>
+      </SettingsGroup>
+    );
+  }
+
+  return (
+    <section
+      className="settings-shell"
+      data-fishmark-panel="settings-drawer"
+      data-fishmark-surface="settings-drawer"
+      data-state={surfaceState}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-heading"
+    >
+      <header className="settings-header">
+        <button
+          type="button"
+          className="settings-back"
+          onClick={onClose}
+          aria-label="关闭设置"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M15 18l-6-6 6-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-            <p className="settings-inline-note">将在 TASK-006 接入后开放。</p>
-          </div>
-        </section>
+          </svg>
+          <span>关闭</span>
+        </button>
+        <div className="settings-title-block">
+          <p className="settings-kicker">Preferences</p>
+          <h1 id="settings-heading">偏好设置</h1>
+        </div>
+      </header>
+
+      {errorMessage ? (
+        <p
+          className="error-banner settings-error"
+          role="alert"
+        >
+          {errorMessage}
+        </p>
+      ) : null}
+
+      <div className="settings-body">
+        <SettingsNavigation
+          categories={SETTINGS_CATEGORIES}
+          activeSectionId={activeSectionId}
+          expandedCategoryIds={expandedCategoryIds}
+          onToggleCategory={handleToggleCategory}
+          onSelectSection={handleSelectSection}
+        />
+        <div className="settings-content">
+          {activeSectionId === "theme" ? (
+            <div
+              className="settings-groups"
+              data-fishmark-settings-section="theme"
+            >
+              {renderThemeSection()}
+            </div>
+          ) : null}
+          {activeSectionId === "typography" ? (
+            <div
+              className="settings-groups"
+              data-fishmark-settings-section="typography"
+            >
+              {renderTypographySection()}
+            </div>
+          ) : null}
+          {activeSectionId === "autosave" ? (
+            <div
+              className="settings-groups"
+              data-fishmark-settings-section="autosave"
+            >
+              {renderAutosaveSection()}
+            </div>
+          ) : null}
+          {activeSectionId === "recent-files" ? (
+            <div
+              className="settings-groups"
+              data-fishmark-settings-section="recent-files"
+            >
+              {renderRecentFilesSection()}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <footer className="settings-footer">
