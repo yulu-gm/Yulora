@@ -191,10 +191,10 @@
 
 .document-editor .cm-line.cm-active-list {
   --fishmark-list-depth-offset: 0rem;
-  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-source-prefix-offset: 0em;
   --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
+  position: relative;
   padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
-  text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-all;
@@ -213,10 +213,9 @@
 
 .document-editor .cm-line.cm-active-list-continuation {
   --fishmark-list-depth-offset: 0rem;
-  --fishmark-list-source-prefix-offset: 0ch;
+  --fishmark-list-source-prefix-offset: 0em;
   --fishmark-list-content-offset: var(--fishmark-list-unordered-content-offset);
   padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));
-  text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-all;
@@ -241,6 +240,49 @@
   color: transparent;
   font-size: 0;
   line-height: 0;
+}
+
+.document-editor .cm-active-list-source-prefix {
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+}
+
+.document-editor .cm-active-list-marker {
+  color: currentColor;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.document-editor .cm-active-list-unordered .cm-active-list-marker {
+  position: absolute;
+  top: 0;
+  left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-unordered-marker-left));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--fishmark-list-marker-size);
+  height: 1.84em;
+}
+
+.document-editor .cm-active-list-ordered .cm-active-list-marker {
+  position: absolute;
+  top: 0;
+  left: var(--fishmark-list-depth-offset);
+  display: inline-block;
+  min-width: var(--fishmark-list-ordered-marker-width);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.document-editor .cm-active-list-task .cm-active-list-marker {
+  position: absolute;
+  top: 0;
+  left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));
+  display: inline-block;
+  min-width: var(--fishmark-list-task-content-offset);
+  text-align: left;
 }
 
 .document-editor .cm-inactive-list-marker {

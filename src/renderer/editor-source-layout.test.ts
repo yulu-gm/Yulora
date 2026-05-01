@@ -174,25 +174,47 @@ describe("editor source layout stylesheet", () => {
       stylesheet,
       ".document-editor .cm-line.cm-active-list-continuation"
     );
+    const activeSourcePrefixRule = getCssRule(
+      stylesheet,
+      ".document-editor .cm-active-list-source-prefix"
+    );
+    const activeMarkerRule = getCssRule(
+      stylesheet,
+      ".document-editor .cm-active-list-marker"
+    );
+    const activeOrderedMarkerRule = getCssRule(
+      stylesheet,
+      ".document-editor .cm-active-list-ordered .cm-active-list-marker"
+    );
 
+    expect(activeListRule).toContain(
+      "--fishmark-list-source-prefix-offset: 0em;"
+    );
     expect(activeListRule).toContain(
       "padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));"
     );
-    expect(activeListRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
+    expect(activeListRule).toContain("position: relative;");
+    expect(activeListRule).not.toContain("text-indent:");
+    expect(activeListRule).not.toContain("0ch");
+    expect(activeListRule).not.toContain("ch;");
+    expect(activeContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0em;");
     expect(activeContinuationRule).toContain(
       "padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));"
     );
-    expect(activeContinuationRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
+    expect(activeContinuationRule).not.toContain("text-indent:");
+    expect(activeSourcePrefixRule).toContain("font-size: 0;");
+    expect(activeMarkerRule).toContain("color: currentColor;");
+    expect(activeOrderedMarkerRule).toContain("position: absolute;");
+    expect(activeOrderedMarkerRule).toContain("left: var(--fishmark-list-depth-offset);");
+    expect(activeOrderedMarkerRule).toContain("min-width: var(--fishmark-list-ordered-marker-width);");
+    expect(activeOrderedMarkerRule).toContain("text-align: right;");
 
     const depthStepEm = 1.4;
     const unorderedContentOffsetEm = 1.16;
-    const sourcePrefixOffsetsEm = [1, 2, 3];
 
     for (const depth of [0, 1, 2]) {
-      const sourcePrefixOffset = sourcePrefixOffsetsEm[depth] ?? 0;
       const inactiveContentStart = depth * depthStepEm + unorderedContentOffsetEm;
-      const activeTextStart = inactiveContentStart - sourcePrefixOffset;
-      const activeContentStart = activeTextStart + sourcePrefixOffset;
+      const activeContentStart = depth * depthStepEm + unorderedContentOffsetEm;
 
       expect(activeContentStart).toBeCloseTo(inactiveContentStart);
     }

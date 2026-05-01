@@ -5543,6 +5543,18 @@ describe("App autosave", () => {
       markdownRenderStylesheet,
       ".document-editor .cm-inactive-list-source-prefix"
     );
+    const activeListSourcePrefixRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-active-list-source-prefix"
+    );
+    const activeListMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-active-list-marker"
+    );
+    const activeOrderedListMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-active-list-ordered .cm-active-list-marker"
+    );
     const listContinuationRule = getCssRule(
       markdownRenderStylesheet,
       ".document-editor .cm-line.cm-inactive-list-continuation"
@@ -5615,12 +5627,13 @@ describe("App autosave", () => {
     expect(listRule).not.toContain("text-indent:");
     expect(listRule).toContain("overflow-wrap: anywhere;");
     expect(listRule).toContain("word-break: break-all;");
-    expect(activeListRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
+    expect(activeListRule).toContain("--fishmark-list-source-prefix-offset: 0em;");
     expect(activeListRule).toContain("var(--fishmark-list-unordered-content-offset)");
-    expect(activeListRule).toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListRule).not.toContain("0ch");
     expect(activeListRule).not.toContain("max(");
+    expect(activeListRule).toContain("position: relative;");
     expect(activeListRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
-    expect(activeListRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
+    expect(activeListRule).not.toContain("text-indent:");
     expect(activeListRule).toContain("overflow-wrap: anywhere;");
     expect(activeListRule).toContain("word-break: break-all;");
     expect(listContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
@@ -5629,15 +5642,21 @@ describe("App autosave", () => {
     expect(listContinuationRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
     expect(listContinuationRule).toContain("overflow-wrap: anywhere;");
     expect(listContinuationRule).not.toContain("text-indent:");
-    expect(activeListContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0ch;");
-    expect(activeListContinuationRule).toContain("var(--fishmark-list-source-prefix-offset)");
+    expect(activeListContinuationRule).toContain("--fishmark-list-source-prefix-offset: 0em;");
+    expect(activeListContinuationRule).not.toContain("var(--fishmark-list-source-prefix-offset)");
     expect(activeListContinuationRule).not.toContain("max(");
     expect(activeListContinuationRule).toContain("padding-left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-content-offset));");
     expect(activeListContinuationRule).toContain("overflow-wrap: anywhere;");
-    expect(activeListContinuationRule).toContain("text-indent: calc(-1 * var(--fishmark-list-source-prefix-offset));");
+    expect(activeListContinuationRule).not.toContain("text-indent:");
     expect(orderedListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-ordered-content-offset);");
     expect(taskListRule).toContain("--fishmark-list-content-offset: var(--fishmark-list-task-content-offset);");
     expect(listSourcePrefixRule).toContain("font-size: 0;");
+    expect(activeListSourcePrefixRule).toContain("font-size: 0;");
+    expect(activeListMarkerRule).toContain("color: currentColor;");
+    expect(activeOrderedListMarkerRule).toContain("position: absolute;");
+    expect(activeOrderedListMarkerRule).toContain("left: var(--fishmark-list-depth-offset);");
+    expect(activeOrderedListMarkerRule).toContain("min-width: var(--fishmark-list-ordered-marker-width);");
+    expect(activeOrderedListMarkerRule).toContain("text-align: right;");
     expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-inactive-list-depth-1,");
     expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-active-list-depth-1");
     expect(markdownRenderStylesheet).toContain(".document-editor .cm-line.cm-inactive-list-depth-2,");

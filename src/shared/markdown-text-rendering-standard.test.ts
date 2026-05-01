@@ -12,8 +12,10 @@ type ListStandard = {
     indentStepEm: number;
     depthOffsetFormula: string;
     contentStartFormula: string;
+    activeInactiveContentStartFormula: string;
     wrappedLineFormula: string;
     rawSourcePrefixRule: string;
+    zeroDisplacementRule: string;
   };
   markerToTextGapRem: LengthValue & {
     unit: string;
@@ -40,6 +42,11 @@ type ListStandard = {
     checkboxLeftFromDepthEm: number;
     contentStartOffsetRem: number;
     contentStartOffsetEm: number;
+  };
+  activeRows: {
+    contentStartRule: string;
+    markerPositionRule: string;
+    sourcePrefixGeometryRule: string;
   };
 };
 
@@ -103,8 +110,15 @@ describe("markdown text rendering standard", () => {
     expect(lists.ordered.markerColumnWidthEm).toBe(2.4);
     expect(lists.geometry.depthOffsetFormula).toBe("depth * indentStepRem");
     expect(lists.geometry.contentStartFormula).toContain("markerToTextGapRem");
+    expect(lists.geometry.activeInactiveContentStartFormula).toBe(
+      "activeContentStartLeft == inactiveContentStartLeft"
+    );
     expect(lists.geometry.wrappedLineFormula).toContain("firstContentGlyphLeft");
     expect(lists.geometry.rawSourcePrefixRule).toContain("must not double-count the depth offset");
+    expect(lists.geometry.zeroDisplacementRule).toContain("no horizontal displacement");
+    expect(lists.activeRows.contentStartRule).toContain("same x coordinate");
+    expect(lists.activeRows.markerPositionRule).toContain("same marker column");
+    expect(lists.activeRows.sourcePrefixGeometryRule).toContain("not character-count or ch-based geometry");
     expect(lists.markerToTextGapRem.mustBeEqualAcross).toContain("child unordered item");
     expect(lists.unordered.contentStartOffsetEm).toBeCloseTo(
       lists.unordered.markerGlyphLeftFromDepthEm + lists.unordered.markerGlyphSizeEm + gap
@@ -125,6 +139,12 @@ describe("markdown text rendering standard", () => {
     );
     expect(standard.acceptance.passFailRules).toContain(
       "Any parent/child list marker-to-text gap difference above 1px is FAIL."
+    );
+    expect(standard.acceptance.passFailRules).toContain(
+      "Any active child list content-start displacement from its inactive row above 0px is FAIL."
+    );
+    expect(standard.acceptance.passFailRules).toContain(
+      "Any active marker displacement from its inactive marker column above 0px is FAIL."
     );
   });
 });

@@ -546,6 +546,8 @@ function appendActiveListItemFirstLineDecorations(
       attributes: lineAttributes
     }).range(item.startOffset)
   );
+
+  appendActiveListItemSourcePrefixDecorations(item, source, ranges);
 }
 
 function appendInactiveListItemFirstLineDecorations(
@@ -625,6 +627,37 @@ function appendInactiveListItemSourcePrefixDecorations(item: ListItemBlock, rang
   appendInactiveListItemHiddenPrefixDecoration(item.startOffset, item.markerStart, ranges);
 }
 
+function appendActiveListItemSourcePrefixDecorations(
+  item: ListItemBlock,
+  source: string,
+  ranges: Range<Decoration>[]
+): void {
+  const contentStartOffset = resolveListItemContentStartOffset(item, source);
+  const activeMarkerEnd = item.task?.markerEnd ?? item.markerEnd;
+
+  if (item.markerStart > item.startOffset) {
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-active-list-source-prefix"
+        }
+      }).range(item.startOffset, item.markerStart)
+    );
+  }
+
+  if (activeMarkerEnd > item.markerStart) {
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-active-list-marker"
+        }
+      }).range(item.markerStart, activeMarkerEnd)
+    );
+  }
+
+  appendActiveListItemHiddenPrefixDecoration(activeMarkerEnd, contentStartOffset, ranges);
+}
+
 function appendInactiveListItemHiddenPrefixDecoration(
   from: number,
   to: number,
@@ -638,6 +671,24 @@ function appendInactiveListItemHiddenPrefixDecoration(
     Decoration.mark({
       attributes: {
         class: "cm-inactive-list-source-prefix"
+      }
+    }).range(from, to)
+  );
+}
+
+function appendActiveListItemHiddenPrefixDecoration(
+  from: number,
+  to: number,
+  ranges: Range<Decoration>[]
+): void {
+  if (to <= from) {
+    return;
+  }
+
+  ranges.push(
+    Decoration.mark({
+      attributes: {
+        class: "cm-active-list-source-prefix"
       }
     }).range(from, to)
   );
@@ -667,6 +718,16 @@ function appendListItemContinuationLineDecorations(
       attributes: lineAttributes
     }).range(lineStartOffset)
   );
+
+  if (mode === "active" && sourcePrefixLength > 0) {
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-active-list-source-prefix"
+        }
+      }).range(lineStartOffset, lineStartOffset + sourcePrefixLength)
+    );
+  }
 }
 
 function createListItemLineAttributes(
@@ -692,8 +753,22 @@ function createListItemLineAttributes(
 
   return {
     class: lineClasses.join(" "),
-    style: `--fishmark-list-source-prefix-offset: ${sourcePrefixLength ?? getListItemSourcePrefixLength(item, source)}ch;`
+    style: `--fishmark-list-source-prefix-offset: ${getListSourcePrefixOffsetStyle(
+      mode,
+      sourcePrefixLength ?? getListItemSourcePrefixLength(item, source)
+    )};`
   };
+}
+
+function getListSourcePrefixOffsetStyle(
+  mode: "active" | "inactive",
+  sourcePrefixLength: number
+): string {
+  if (mode === "active") {
+    return "0em";
+  }
+
+  return `${sourcePrefixLength}ch`;
 }
 
 function getListItemSourcePrefixLength(item: ListItemBlock, source: string): number {

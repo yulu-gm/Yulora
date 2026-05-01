@@ -113,13 +113,16 @@
       "maxStyledDepth": 4,
       "depthOffsetFormula": "depth * indentStepRem",
       "contentStartFormula": "depthOffset + markerVisualRight + markerToTextGapRem",
+      "activeInactiveContentStartFormula": "activeContentStartLeft == inactiveContentStartLeft",
       "wrappedLineFormula": "wrappedLineLeft == firstContentGlyphLeft",
       "hardContinuationFormula": "continuationLineLeft == owningListItemContentLeft",
       "rawSourcePrefixRule": "Raw Markdown indent spaces are source text, not visual geometry. In inactive rows they must be removed from text flow. In active rows they may remain visible, but they must not double-count the depth offset.",
+      "zeroDisplacementRule": "When a list item becomes active, every child list content start must keep the same x coordinate as its inactive rendering; no horizontal displacement is allowed at any nested depth.",
       "forbidden": [
         "Using raw source prefix character count as the nested visual indent.",
         "Adding depthOffset both to the line padding and again to marker or content offsets.",
-        "Letting a child item use a different marker-to-text gap than its parent item."
+        "Letting a child item use a different marker-to-text gap than its parent item.",
+        "Using character-count or ch-based active source prefix compensation for child list geometry."
       ]
     },
     "markerToTextGapRem": {
@@ -168,7 +171,9 @@
     "activeRows": {
       "markerVisibility": "raw Markdown source visible",
       "wrapRule": "The second and later visual rects of active list source text must align with the first content character, not with the raw marker.",
-      "contentStartRule": "The first content character after the Markdown marker is the alignment anchor."
+      "contentStartRule": "The first content character after the Markdown marker is the alignment anchor and must keep the same x coordinate as the inactive row content start.",
+      "markerPositionRule": "The active marker glyph must use the same marker column as inactive rendering; ordered marker glyph right edge, unordered marker box, and task marker box must not move when a row becomes active.",
+      "sourcePrefixGeometryRule": "Raw source indentation and marker text may be shown in active rows, but they must be separated from visual depth geometry; active child list offsets must use the same depth and content-offset formulas as inactive rows, not character-count or ch-based geometry."
     },
     "inactiveRows": {
       "markerVisibility": "rendered marker visible, raw Markdown marker and prefix hidden from text flow",
@@ -315,6 +320,8 @@
     },
     "passFailRules": [
       "Any parent/child list marker-to-text gap difference above 1px is FAIL.",
+      "Any active child list content-start displacement from its inactive row above 0px is FAIL.",
+      "Any active marker displacement from its inactive marker column above 0px is FAIL.",
       "Any wrapped list rect left difference above 2px is FAIL.",
       "Any theme markdown.css override of forbidden geometry is FAIL.",
       "Any negative letter spacing in Markdown text is FAIL.",

@@ -547,7 +547,7 @@ describe("createBlockDecorations", () => {
     const inactiveContinuationStart = source.indexOf("  indented parent continuation");
 
     expect(getLineDecorationStyleAt(source, result.decorationSet, activeContinuationStart)).toContain(
-      "--fishmark-list-source-prefix-offset: 0ch;"
+      "--fishmark-list-source-prefix-offset: 0em;"
     );
     expect(getLineDecorationStyleAt(source, result.decorationSet, inactiveContinuationStart)).toContain(
       "--fishmark-list-source-prefix-offset: 2ch;"
@@ -558,6 +558,60 @@ describe("createBlockDecorations", () => {
       inactiveContinuationStart + 2,
       ["cm-inactive-list-source-prefix"]
     );
+  });
+
+  it("separates active child list source prefixes from visual depth geometry", () => {
+    const source = ["- parent", "  - child", "    - grandchild", "", "Paragraph"].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const childLineStart = source.indexOf("  - child");
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("child"),
+      head: source.indexOf("child")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+
+    expect(getLineDecorationStyleAt(source, result.decorationSet, childLineStart)).toContain(
+      "--fishmark-list-source-prefix-offset: 0em;"
+    );
+    expectExactRangeClasses(ranges, childLineStart, childLineStart + 2, [
+      "cm-active-list-source-prefix"
+    ]);
+    expectExactRangeClasses(ranges, childLineStart + 2, childLineStart + 3, [
+      "cm-active-list-marker"
+    ]);
+    expectExactRangeClasses(ranges, childLineStart + 3, childLineStart + 4, [
+      "cm-active-list-source-prefix"
+    ]);
+  });
+
+  it("collapses active list continuation source indentation without moving content", () => {
+    const source = ["- parent", "  active continuation", "", "Paragraph"].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const continuationStart = source.indexOf("  active continuation");
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("active continuation"),
+      head: source.indexOf("active continuation")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+
+    expect(getLineDecorationStyleAt(source, result.decorationSet, continuationStart)).toContain(
+      "--fishmark-list-source-prefix-offset: 0em;"
+    );
+    expectExactRangeClasses(ranges, continuationStart, continuationStart + 2, [
+      "cm-active-list-source-prefix"
+    ]);
   });
 
   it("replaces inactive task list markers with dedicated checkbox widgets", () => {

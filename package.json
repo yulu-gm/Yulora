@@ -24,6 +24,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p tsconfig.electron.json && tsc --noEmit -p tsconfig.vitest.json && tsc --noEmit -p tsconfig.cli.json",
     "test": "vitest run",
+    "test:list-geometry": "node scripts/probe-list-geometry.mjs",
     "build:cli": "tsc -p tsconfig.cli.json",
     "generate:icons": "node scripts/generate-icons.mjs",
     "package:mac": "npm run build && npm run generate:icons && electron-builder --config electron-builder.json --mac --dir",

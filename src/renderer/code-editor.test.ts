@@ -950,8 +950,12 @@ describe("createCodeEditorController", () => {
     expect(activeListLine?.classList.contains("cm-active-list")).toBe(true);
     expect(activeListLine?.classList.contains("cm-active-list-unordered")).toBe(true);
     expect(activeListLine?.classList.contains("cm-active-list-depth-0")).toBe(true);
-    expect(activeListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("2ch");
+    expect(activeListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe(
+      "0em"
+    );
     expect(activeListLine?.querySelector(".cm-inactive-list-marker")).toBeNull();
+    expect(activeListLine?.querySelector(".cm-active-list-source-prefix")?.textContent).toBe(" ");
+    expect(activeListLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
 
     view?.dispatch({ selection: { anchor: source.indexOf("child") } });
     await flushMicrotasks();
@@ -962,7 +966,11 @@ describe("createCodeEditorController", () => {
     expect(activeChildListLine?.classList.contains("cm-active-list")).toBe(true);
     expect(activeChildListLine?.classList.contains("cm-active-list-unordered")).toBe(true);
     expect(activeChildListLine?.classList.contains("cm-active-list-depth-1")).toBe(true);
-    expect(activeChildListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("4ch");
+    expect(activeChildListLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe(
+      "0em"
+    );
+    expect(activeChildListLine?.querySelector(".cm-active-list-source-prefix")?.textContent).toBe("  ");
+    expect(activeChildListLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
 
     view?.dispatch({ selection: { anchor: source.indexOf("continued") } });
     await flushMicrotasks();
@@ -972,7 +980,7 @@ describe("createCodeEditorController", () => {
     expect(activeContinuationLine).not.toBeNull();
     expect(activeContinuationLine?.classList.contains("cm-active-list-continuation")).toBe(true);
     expect(activeContinuationLine?.classList.contains("cm-active-list-depth-1")).toBe(true);
-    expect(activeContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("0ch");
+    expect(activeContinuationLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("0em");
 
     view?.dispatch({ selection: { anchor: 0 } });
     await flushMicrotasks();
@@ -1022,7 +1030,10 @@ describe("createCodeEditorController", () => {
     expect(paragraphLine?.classList.contains("cm-inactive-heading")).toBe(false);
     expect(dashLine).not.toBeNull();
     expect(dashLine?.classList.contains("cm-active-list")).toBe(true);
-    expect(dashLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe("1ch");
+    expect(dashLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe(
+      "0em"
+    );
+    expect(dashLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
 
     controller.destroy();
   });

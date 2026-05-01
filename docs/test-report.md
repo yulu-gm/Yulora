@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-05-01 | list-active-zero-displacement | `npm.cmd run test -- src/shared/markdown-text-rendering-standard.test.ts src/renderer/editor-source-layout.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 新增子列表 active/inactive 正文起点零位移标准、CSS contract、decoration 结构与 renderer 回归；6 个文件、343 项通过。 |
+| 2026-05-01 | list-active-zero-displacement | `npm.cmd run test:list-geometry` | 通过 | Electron/Chromium 真实渲染 probe 通过；active/inactive 的 content left/top、marker right/top、marker-content top/baseline delta 均为 0px。 |
+| 2026-05-01 | list-active-zero-displacement | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-01 | list-active-zero-displacement | `npm.cmd run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning。 |
+| 2026-05-01 | list-active-zero-displacement | `npm.cmd run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk size warning。 |
+| 2026-05-01 | list-active-zero-displacement | `git diff --check` | 部分通过 | 全仓检查被既有脏文件 `tmp/test.md` trailing whitespace 阻塞；本轮触碰文件的 scoped diff check 通过。 |
 | 2026-05-01 | header-zoom-anchor | `npm.cmd run test -- src/renderer/app.autosave.test.ts` | 通过 | 新增 workspace header 左锚定 CSS 合约测试；先复现 `.app-header` 缺少 `justify-self: start` / `margin: 0` 的失败，再修复后 144 项通过。 |
 | 2026-05-01 | header-zoom-anchor | Electron offscreen 几何验收 | 通过 | 2048px 宽度下，1.0x 与 1.5x zoomFactor 的 header 左边界相对 workspace 内容左边界偏差均为 0px。 |
 | 2026-05-01 | header-zoom-anchor | `npm.cmd run test` | 通过 | Vitest 全量通过：90 个测试文件、860 项测试通过。 |
