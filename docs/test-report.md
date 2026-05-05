@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run test -- src/renderer/editor/useWorkspaceController.test.tsx` | 通过 | 新增回归先复现批量路径打开之间会把旧 CodeMirror 内容 flush 到新 tab 的缺口，再通过批量 open 原语修复；1 个文件、9 项通过。 |
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run test -- src/renderer/app.autosave.test.ts -t "multiple files"` | 通过 | App 侧多文件拖入仍会按顺序调用两次 path open，并追加多个标签；1 个相关场景通过。 |
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning。 |
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk size warning。 |
+| 2026-05-05 | TASK-043 multi-drag-open-overwrite | `npm.cmd run test` | 阻塞 | 本轮新增与相关目标测试已通过；全量 Vitest 被当前工作区既有壳层 header 移除后的旧断言阻塞，失败集中在 `src/renderer/app.autosave.test.ts` 对 `[data-fishmark-region="workspace-header"]` / `.app-header` / `workspace-header` CSS 的期待。 |
 | 2026-05-01 | list-active-zero-displacement | `npm.cmd run test -- src/shared/markdown-text-rendering-standard.test.ts src/renderer/editor-source-layout.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 新增子列表 active/inactive 正文起点零位移标准、CSS contract、decoration 结构与 renderer 回归；6 个文件、343 项通过。 |
 | 2026-05-01 | list-active-zero-displacement | `npm.cmd run test:list-geometry` | 通过 | Electron/Chromium 真实渲染 probe 通过；active/inactive 的 content left/top、marker right/top、marker-content top/baseline delta 均为 0px。 |
 | 2026-05-01 | list-active-zero-displacement | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |

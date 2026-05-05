@@ -102,12 +102,6 @@
     0 12px 28px rgba(217, 99, 128, 0.12);
 }
 
-[data-fishmark-surface="workspace-header"] {
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-}
-
 .outline-panel,
 [data-fishmark-region="outline-panel"] {
   background:

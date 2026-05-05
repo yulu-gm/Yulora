@@ -356,7 +356,7 @@
     var(--fishmark-shell-gutter)
     calc(var(--fishmark-status-bar-height) + var(--fishmark-space-5) + env(safe-area-inset-bottom));
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   align-content: start;
   gap: var(--fishmark-space-4);
   overflow: hidden;
@@ -426,6 +426,7 @@
 }
 
 .external-file-conflict-banner {
+  grid-row: 1;
   display: grid;
   gap: 12px;
   margin: 0 var(--fishmark-shell-gutter) 16px;
@@ -503,35 +504,9 @@
   }
 }
 
-.app-header,
 .error-banner {
   width: min(100%, var(--fishmark-workspace-max-width));
   margin: 0 auto;
-}
-
-.app-header {
-  justify-self: start;
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--fishmark-space-6);
-  padding: var(--fishmark-space-1) var(--fishmark-space-1) var(--fishmark-space-2);
-  transform: translateY(0);
-  opacity: 1;
-  transition:
-    opacity var(--fishmark-focus-transition-duration) ease,
-    transform var(--fishmark-focus-transition-duration) var(--fishmark-focus-transition-easing);
-}
-
-.app-header[data-visibility="collapsed"] {
-  opacity: 0;
-  transform: translateY(-12px);
-  pointer-events: none;
-}
-
-.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-header[data-fishmark-region="workspace-header"][data-visibility="collapsed"] {
-  display: none;
 }
 
 .app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-status-bar[data-fishmark-region="app-status-bar"][data-visibility="collapsed"] {
@@ -543,6 +518,7 @@
 }
 
 .workspace-tab-strip {
+  grid-row: 2;
   width: 100%;
   min-width: 0;
   margin: calc(var(--fishmark-space-4) * -1) calc(var(--fishmark-shell-gutter) * -1) 0;
@@ -732,61 +708,10 @@
   color: var(--fishmark-text-primary, #171a1f);
 }
 
-.workspace-title-group {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--fishmark-space-3);
-  overflow: hidden;
-}
-
-/* Kicker ("Current document") — hidden; redundant in a compact title bar */
-.workspace-kicker {
-  display: none;
-}
-
-/* Title: document filename — compact label, no giant heading */
-.workspace-title {
-  margin: 0;
-  flex-shrink: 0;
-  color: var(--fishmark-text-primary, #171a1f);
-  font-size: 1.02rem;
-  line-height: 1.3;
-  font-weight: 640;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-/* Detail: file path — monospace, muted, truncates when narrow */
-.workspace-detail {
-  min-width: 0;
-  flex: 1;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--fishmark-text-muted, #687180);
-  font-size: 0.74rem;
-  font-family: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
-  line-height: 1.5;
-  opacity: 0.85;
-}
-
 .app-subtitle {
   margin: 0;
   color: var(--fishmark-text-muted, #687180);
   font-size: 0.94rem;
-}
-
-.app-hint {
-  margin: 0;
-  color: var(--fishmark-text-muted, #687180);
-  font-size: 0.84rem;
-  max-width: 28ch;
-  text-align: right;
-  flex-shrink: 0;
-  align-self: flex-end;
 }
 
 .error-banner {
@@ -798,6 +723,7 @@
 }
 
 .workspace-canvas {
+  grid-row: 3;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -842,6 +768,7 @@
 }
 
 .workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {
+  grid-row: 1;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -1326,7 +1253,6 @@
   .app-layout,
   .app-rail,
   .app-notification-banner,
-  .app-header,
   .app-status-bar {
     transition-duration: 1ms;
   }
@@ -1488,12 +1414,6 @@
 }
 
 @media (max-width: 980px) {
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .app-hint,
   .document-platform {
     text-align: left;
     margin-left: 0;

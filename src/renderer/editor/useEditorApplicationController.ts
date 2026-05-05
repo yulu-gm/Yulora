@@ -80,7 +80,8 @@ export function useEditorApplicationController(input: {
     flushActiveWorkspaceDraft,
     getActiveDocument,
     openMarkdown: openWorkspaceMarkdown,
-    openMarkdownFromPath: openWorkspaceMarkdownFromPath
+    openMarkdownFromPath: openWorkspaceMarkdownFromPath,
+    openMarkdownFromPaths: openWorkspaceMarkdownFromPaths
   } = workspaceController;
   const {
     resetAutosaveRuntime,
@@ -124,6 +125,14 @@ export function useEditorApplicationController(input: {
       return opened;
     },
     [fishmark, openWorkspaceMarkdownFromPath, resetAutosaveRuntime, showNotification]
+  );
+
+  const openMarkdownFromPaths = useCallback(
+    async (targetPaths: string[]): Promise<boolean> => {
+      resetAutosaveRuntime();
+      return openWorkspaceMarkdownFromPaths(targetPaths);
+    },
+    [openWorkspaceMarkdownFromPaths, resetAutosaveRuntime]
   );
 
   const saveMarkdown = useCallback(async (): Promise<void> => {
@@ -189,6 +198,7 @@ export function useEditorApplicationController(input: {
       openMarkdown,
       openMarkdownFromPath,
       openRecentMarkdown,
+      openMarkdownFromPaths,
       runMenuCommand,
       saveMarkdown,
       saveMarkdownAs
@@ -199,6 +209,7 @@ export function useEditorApplicationController(input: {
       openMarkdown,
       openMarkdownFromPath,
       openRecentMarkdown,
+      openMarkdownFromPaths,
       runMenuCommand,
       saveMarkdown,
       saveMarkdownAs

@@ -361,6 +361,143 @@ describe("useWorkspaceController", () => {
     });
   });
 
+  it("does not flush stale editor content into a newly opened tab during back-to-back path opens", async () => {
+    const updateWorkspaceTabDraft = vi.fn(
+      async (input: { tabId: string; content: string }) => {
+        if (input.tabId === "tab-1") {
+          return createWorkspaceSnapshot({
+            activeTabId: "tab-1",
+            tabs: [
+              {
+                tabId: "tab-1",
+                path: "C:/notes/current.md",
+                name: "current.md",
+                content: "# Current draft\n",
+                isDirty: true
+              }
+            ]
+          });
+        }
+
+        return createWorkspaceSnapshot({
+          activeTabId: input.tabId,
+          tabs: [
+            {
+              tabId: "tab-1",
+              path: "C:/notes/current.md",
+              name: "current.md",
+              content: "# Current draft\n",
+              isDirty: true
+            },
+            {
+              tabId: "tab-2",
+              path: "C:/notes/alpha.md",
+              name: "alpha.md",
+              content: input.content,
+              isDirty: true
+            }
+          ]
+        });
+      }
+    );
+    const openWorkspaceFileFromPath = vi
+      .fn<(targetPath: string) => Promise<{ kind: "success"; snapshot: WorkspaceWindowSnapshot }>>()
+      .mockResolvedValueOnce({
+        kind: "success",
+        snapshot: createWorkspaceSnapshot({
+          activeTabId: "tab-2",
+          tabs: [
+            {
+              tabId: "tab-1",
+              path: "C:/notes/current.md",
+              name: "current.md",
+              content: "# Current draft\n",
+              isDirty: true
+            },
+            {
+              tabId: "tab-2",
+              path: "C:/notes/alpha.md",
+              name: "alpha.md",
+              content: "# Alpha\n"
+            }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        kind: "success",
+        snapshot: createWorkspaceSnapshot({
+          activeTabId: "tab-3",
+          tabs: [
+            {
+              tabId: "tab-1",
+              path: "C:/notes/current.md",
+              name: "current.md",
+              content: "# Current draft\n",
+              isDirty: true
+            },
+            {
+              tabId: "tab-2",
+              path: "C:/notes/alpha.md",
+              name: "alpha.md",
+              content: "# Alpha\n"
+            },
+            {
+              tabId: "tab-3",
+              path: "C:/notes/beta.md",
+              name: "beta.md",
+              content: "# Beta\n"
+            }
+          ]
+        })
+      });
+
+    const { latestRef, root } = renderController({
+      fishmark: {
+        updateWorkspaceTabDraft,
+        openWorkspaceFileFromPath
+      } as unknown as Window["fishmark"],
+      initialSnapshot: createWorkspaceSnapshot({
+        activeTabId: "tab-1",
+        tabs: [
+          {
+            tabId: "tab-1",
+            path: "C:/notes/current.md",
+            name: "current.md",
+            content: "# Current\n"
+          }
+        ]
+      }),
+      getEditorContent: () => "# Current draft\n",
+      showNotification: vi.fn()
+    });
+
+    await act(async () => {
+      await latestRef.current?.openMarkdownFromPaths([
+        "C:/notes/alpha.md",
+        "C:/notes/beta.md"
+      ]);
+    });
+
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledTimes(1);
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledWith({
+      tabId: "tab-1",
+      content: "# Current draft\n"
+    });
+    expect(openWorkspaceFileFromPath.mock.calls).toEqual([
+      ["C:/notes/alpha.md"],
+      ["C:/notes/beta.md"]
+    ]);
+    expect(latestRef.current?.workspaceSnapshot?.activeDocument).toMatchObject({
+      tabId: "tab-3",
+      path: "C:/notes/beta.md",
+      content: "# Beta\n"
+    });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   it("flushes the active draft before creating an untitled workspace tab", async () => {
     const updateWorkspaceTabDraft = vi.fn(async () =>
       createWorkspaceSnapshot({

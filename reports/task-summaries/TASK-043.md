@@ -2,6 +2,38 @@
 
 结果：PASS
 
+## 2026-05-05 follow-up：多文件拖入覆盖防护
+
+结果：FAIL
+
+范围：
+- 修复同时拖入多个 Markdown 文件时，刚打开的新 tab 可能被旧活动编辑器内容覆盖的竞态。
+- 只收敛 renderer 批量拖入打开链路，不改 main / preload IPC contract。
+
+本轮完成：
+- 在 `useWorkspaceController` 增加批量 path-open 原语：批量开始前只 flush 一次当前活动 tab draft，随后连续打开目标路径并应用 workspace snapshot。
+- 将 App 的多文件 drop 入口改为调用批量 path-open，避免在 `alpha.md` 与 `beta.md` 之间重复 flush stale CodeMirror 内容。
+- 新增 controller 回归，覆盖“连续打开路径时 CodeMirror 仍停留在旧文档内容”的数据覆盖场景。
+- 更新 `docs/test-cases.md` 的拖拽打开人工回归步骤，明确多文件路径、内容和保存隔离。
+
+验证：
+- `npm.cmd run test -- src/renderer/editor/useWorkspaceController.test.tsx`：通过（1 个文件、9 项）
+- `npm.cmd run test -- src/renderer/app.autosave.test.ts -t "multiple files"`：通过（1 个相关场景）
+- `npm.cmd run lint`：通过（保留既有 Fast Refresh warning）
+- `npm.cmd run typecheck`：通过
+- `npm.cmd run build`：通过（保留既有 Vite chunk size warning）
+- `npm.cmd run test`：阻塞，当前工作区既有壳层 header 移除后，`src/renderer/app.autosave.test.ts` 仍有 10 条旧断言期待 workspace header DOM/CSS。
+
+人工验收：
+1. 打开一个已有 Markdown 文档并输入未保存内容。
+2. 在系统文件管理器中同时选中两个或更多 `.md` 文件，一次性拖入 FishMark。
+3. 确认每个拖入文件都创建独立标签，且标题、路径、正文内容分别对应原文件。
+4. 在拖入标签之间来回切换，确认不会把原活动文档或前一个拖入文件内容同步到其他标签。
+5. 编辑并保存其中一个拖入标签，确认只写回该标签对应的磁盘文件。
+
+剩余风险或未覆盖项：
+- 由于全量 Vitest 被既有 workspace header 测试不一致阻塞，本 follow-up 不能给仓库级 PASS；需要先把当前壳层 header 移除改动与 `src/renderer/app.autosave.test.ts` 的旧断言对齐。
+
 范围：
 - 在 `main` / `preload` / `renderer` 之间建立标签页工作区真值与受限 IPC 契约
 - 完成 `New` / `Open...` / 拖入文件 / 外部打开 / `File > New Window` 的统一标签 / 窗口决策

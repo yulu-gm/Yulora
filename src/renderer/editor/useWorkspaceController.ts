@@ -266,6 +266,45 @@ export function useWorkspaceController(input: {
     ]
   );
 
+  const openMarkdownFromPaths = useCallback(
+    async (targetPaths: string[]): Promise<boolean> => {
+      if (targetPaths.length === 0) {
+        return false;
+      }
+
+      try {
+        await flushActiveWorkspaceDraft();
+        setWorkspaceOpenState("opening");
+
+        for (const targetPath of targetPaths) {
+          const result = await fishmark.openWorkspaceFileFromPath(targetPath);
+
+          if (result.kind === "error") {
+            throw new Error(result.error.message);
+          }
+
+          applyWorkspaceWindowSnapshot(result.snapshot);
+        }
+
+        return true;
+      } catch (error) {
+        setWorkspaceOpenState("idle");
+        showNotification({
+          kind: "error",
+          message: error instanceof Error ? error.message : String(error)
+        });
+        return false;
+      }
+    },
+    [
+      applyWorkspaceWindowSnapshot,
+      fishmark,
+      flushActiveWorkspaceDraft,
+      setWorkspaceOpenState,
+      showNotification
+    ]
+  );
+
   const createUntitledMarkdown = useCallback(async (): Promise<boolean> => {
     try {
       await flushActiveWorkspaceDraft();
@@ -391,6 +430,7 @@ export function useWorkspaceController(input: {
     setWorkspaceOpenState,
     openMarkdown,
     openMarkdownFromPath,
+    openMarkdownFromPaths,
     createUntitledMarkdown,
     activateWorkspaceTab,
     closeWorkspaceTab,

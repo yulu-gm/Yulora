@@ -98,10 +98,7 @@ it("renders workspace tabs and delegates commands without owning persistence log
         externalFileConflictMessage: "",
         fishmarkPlatform: "win32",
         fontFamilies: [],
-        headerDetail: "C:/note.md",
-        headerEyebrow: "Current document",
         headerTitle: "note.md",
-        hintText: "Use File > Open...",
         isDocumentOpen: true,
         isOutlineOpen: true,
         isOutlinePanelVisible: true,
@@ -208,6 +205,9 @@ it("renders workspace tabs and delegates commands without owning persistence log
   expect(onTabActivate).toHaveBeenCalledWith("tab-2");
   expect(onDraftChange).toHaveBeenCalledWith("# Changed\n");
   expect(onNavigateToOutlineItem).toHaveBeenCalledWith(3);
+  expect(container.querySelector('[data-fishmark-region="workspace-header"]')).toBeNull();
+  expect(container.querySelector('[data-fishmark-region="workspace-tab"]')?.getAttribute("title"))
+    .toBe("C:/note.md");
 });
 
 it("renders recent files in the empty workspace and delegates open and clear actions", async () => {
@@ -236,10 +236,7 @@ it("renders recent files in the empty workspace and delegates open and clear act
         externalFileConflictMessage: "",
         fishmarkPlatform: "win32",
         fontFamilies: [],
-        headerDetail: "Open a document",
-        headerEyebrow: "FishMark",
         headerTitle: "Local-first Markdown writing",
-        hintText: "Use File > Open...",
         isDocumentOpen: false,
         isOutlineOpen: false,
         isOutlinePanelVisible: false,

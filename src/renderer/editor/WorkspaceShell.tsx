@@ -139,10 +139,7 @@ export type WorkspaceShellProps = {
   externalFileState: ExternalMarkdownFileState;
   fishmarkPlatform: NodeJS.Platform;
   fontFamilies: string[];
-  headerDetail: string;
-  headerEyebrow: string;
   headerTitle: string;
-  hintText: string;
   isDocumentOpen: boolean;
   isOutlineOpen: boolean;
   isOutlinePanelVisible: boolean;
@@ -292,10 +289,7 @@ export function WorkspaceShell({
   externalFileState,
   fishmarkPlatform,
   fontFamilies,
-  headerDetail,
-  headerEyebrow,
   headerTitle,
-  hintText,
   isDocumentOpen,
   isOutlineOpen,
   isOutlinePanelVisible,
@@ -658,20 +652,6 @@ export function WorkspaceShell({
               </div>
             </nav>
           ) : null}
-          <header
-            className="app-header workspace-header"
-            data-fishmark-region="workspace-header"
-            data-fishmark-surface="workspace-header"
-            data-visibility={isReadingMode ? "collapsed" : "visible"}
-          >
-            <div className="workspace-title-group">
-              <p className="workspace-kicker">{headerEyebrow}</p>
-              <h1 className="workspace-title">{headerTitle}</h1>
-              <p className="workspace-detail">{headerDetail}</p>
-            </div>
-            {!isDocumentOpen ? <p className="app-hint">{hintText}</p> : null}
-          </header>
-
           <section
             className={`workspace-canvas ${activeDocument ? "is-editor-open" : ""}`}
             data-fishmark-region="workspace-canvas"

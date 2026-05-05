@@ -3373,14 +3373,14 @@ describe("App autosave", () => {
     expect(container.textContent).toContain("today.md");
   });
 
-  it("renders rail, workspace header, status strip, and word count for an open document", async () => {
+  it("renders rail, workspace tabs, status strip, and word count for an open document", async () => {
     await renderAndOpenDocument();
 
     await clickEditorContent();
 
     const rail = container.querySelector('[data-fishmark-layout="rail"]');
     const workspace = container.querySelector('[data-fishmark-layout="workspace"]');
-    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
+    const activeTab = container.querySelector('[data-fishmark-region="workspace-tab"][data-active="true"]');
     const statusStrip = container.querySelector('[data-fishmark-region="status-strip"]');
     const outlineToggle = container.querySelector('[data-fishmark-region="outline-toggle"]');
     const outlinePanel = container.querySelector('[data-fishmark-region="outline-panel"]');
@@ -3389,27 +3389,28 @@ describe("App autosave", () => {
     expect(workspace).not.toBeNull();
     expect(outlineToggle).not.toBeNull();
     expect(outlinePanel).toBeNull();
-    expect(workspaceHeader?.textContent).toContain("today.md");
-    expect(workspaceHeader?.getAttribute("data-fishmark-surface")).toBe("workspace-header");
-    expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
+    expect(activeTab?.textContent).toContain("today.md");
+    expect(activeTab?.getAttribute("title")).toBe("C:/notes/today.md");
     expect(statusStrip?.textContent).toContain("All changes saved");
     expect(statusStrip?.textContent).toContain("字数 6");
-    expect(workspaceHeader?.textContent).not.toContain("All changes saved");
+    expect(activeTab?.textContent).not.toContain("All changes saved");
   });
 
-  it("uses the workspace header as the single open-document identity surface while the outline stays collapsed by default", async () => {
+  it("uses the workspace tab as the open-document identity surface while the outline stays collapsed by default", async () => {
     await renderAndOpenDocument();
 
     await clickEditorContent();
 
     const rail = container.querySelector('[data-fishmark-layout="rail"]');
+    const activeTab = container.querySelector('[data-fishmark-region="workspace-tab"][data-active="true"]');
     const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
     const documentHeader = container.querySelector('[data-fishmark-region="document-header"]');
     const outlineToggle = container.querySelector('[data-fishmark-region="outline-toggle"]');
     const outlinePanel = container.querySelector('[data-fishmark-region="outline-panel"]');
 
-    expect(workspaceHeader?.textContent).toContain("today.md");
-    expect(workspaceHeader?.textContent).toContain("C:/notes/today.md");
+    expect(activeTab?.textContent).toContain("today.md");
+    expect(activeTab?.getAttribute("title")).toBe("C:/notes/today.md");
+    expect(workspaceHeader).toBeNull();
     expect(rail?.textContent).not.toContain("Workspace");
     expect(rail?.textContent).not.toContain("Outline");
     expect(outlineToggle).not.toBeNull();
@@ -3509,7 +3510,7 @@ describe("App autosave", () => {
     expect(appWorkspace?.dataset.fishmarkHasDocument).toBe("false");
     expect(workspaceCanvas?.dataset.fishmarkHasDocument).toBe("false");
     expect(rail?.dataset.visibility).toBe("visible");
-    expect(workspaceHeader).not.toBeNull();
+    expect(workspaceHeader).toBeNull();
     expect(workspaceCanvas).not.toBeNull();
     expect(emptyState).not.toBeNull();
     expect(workspaceCanvas?.contains(emptyState)).toBe(true);
@@ -3543,12 +3544,11 @@ describe("App autosave", () => {
   it("renders a fixed app status bar outside the scrolling document flow", async () => {
     await renderAndOpenDocument();
 
-    const workspaceHeader = container.querySelector('[data-fishmark-region="workspace-header"]');
     const workspaceCanvas = container.querySelector('[data-fishmark-region="workspace-canvas"]');
     const documentHeader = container.querySelector('[data-fishmark-region="document-header"]');
     const appStatusBar = container.querySelector('[data-fishmark-region="app-status-bar"]');
 
-    expect(workspaceHeader).not.toBeNull();
+    expect(container.querySelector('[data-fishmark-region="workspace-header"]')).toBeNull();
     expect(workspaceCanvas).not.toBeNull();
     expect(documentHeader).toBeNull();
     expect(workspaceCanvas?.contains(appStatusBar)).toBe(false);
@@ -3960,7 +3960,7 @@ describe("App autosave", () => {
 
     const appShell = container.querySelector<HTMLElement>(".app-shell");
     const rail = container.querySelector<HTMLElement>('[data-fishmark-layout="rail"]');
-    const workspaceHeader = container.querySelector<HTMLElement>('[data-fishmark-region="workspace-header"]');
+    const tabStrip = container.querySelector<HTMLElement>('[data-fishmark-region="workspace-tab-strip"]');
     const statusBar = container.querySelector<HTMLElement>('[data-fishmark-region="app-status-bar"]');
     const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
 
@@ -3982,7 +3982,7 @@ describe("App autosave", () => {
 
     expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
     expect(rail?.dataset.visibility).toBe("collapsed");
-    expect(workspaceHeader?.dataset.visibility).toBe("collapsed");
+    expect(tabStrip?.dataset.visibility).toBe("collapsed");
     expect(statusBar?.dataset.visibility).toBe("collapsed");
     expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="mock-code-editor"]')).not.toBeNull();
@@ -3996,7 +3996,7 @@ describe("App autosave", () => {
 
     expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
     expect(rail?.dataset.visibility).toBe("visible");
-    expect(workspaceHeader?.dataset.visibility).toBe("visible");
+    expect(tabStrip?.dataset.visibility).toBe("visible");
     expect(statusBar?.dataset.visibility).toBe("visible");
     expect(container.querySelector('[data-fishmark-region="outline-panel"]')).not.toBeNull();
   });
@@ -4888,8 +4888,8 @@ describe("App autosave", () => {
       appUiStylesheet,
       '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"]'
     );
-    const headerRule = getCssRule(appUiStylesheet, ".app-header");
-    const collapsedHeaderRule = getCssRule(appUiStylesheet, '.app-header[data-visibility="collapsed"]');
+    const tabStripRule = getCssRule(appUiStylesheet, ".workspace-tab-strip");
+    const collapsedTabStripRule = getCssRule(appUiStylesheet, '.workspace-tab-strip[data-visibility="collapsed"]');
     const statusBarRule = getCssRule(appUiStylesheet, ".app-status-bar");
     const collapsedStatusBarRule = getCssRule(
       appUiStylesheet,
@@ -4901,24 +4901,24 @@ describe("App autosave", () => {
     expect(collapsedRailRule).toContain("opacity: 0;");
     expect(readingLayoutRule).toContain("grid-template-columns: 0 minmax(0, 1fr);");
     expect(readingWorkspaceRule).toContain("grid-template-rows: minmax(0, 1fr);");
-    expect(headerRule).toContain("transition:");
-    expect(collapsedHeaderRule).toContain("transform:");
+    expect(tabStripRule).toContain("transition:");
+    expect(collapsedTabStripRule).toContain("transform:");
     expect(statusBarRule).toContain("transition:");
     expect(collapsedStatusBarRule).toContain("transform:");
   });
 
   it("removes collapsed reading-mode chrome from workspace flow so the canvas stays pinned to the top", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
-    const collapsedReadingHeaderRule = getCssRule(
+    const collapsedReadingTabRule = getCssRule(
       appUiStylesheet,
-      '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-header[data-fishmark-region="workspace-header"][data-visibility="collapsed"]'
+      '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .workspace-tab-strip[data-fishmark-region="workspace-tab-strip"][data-visibility="collapsed"]'
     );
     const collapsedReadingStatusBarRule = getCssRule(
       appUiStylesheet,
       '.app-workspace[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] > .app-status-bar[data-fishmark-region="app-status-bar"][data-visibility="collapsed"]'
     );
 
-    expect(collapsedReadingHeaderRule).toContain("display: none;");
+    expect(collapsedReadingTabRule).toContain("display: none;");
     expect(collapsedReadingStatusBarRule).toContain("display: none;");
   });
 
@@ -5285,19 +5285,18 @@ describe("App autosave", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8").replace(/\r\n/g, "\n");
 
     expect(appUiStylesheet).toContain(
-      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {\n  grid-row: 1;\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
     );
     expect(appUiStylesheet).toContain(
       '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] .workspace-shell {\n  width: 100%;\n  max-width: none;\n  margin: 0;\n}'
     );
   });
 
-  it("anchors the workspace header to the left edge instead of centering it at wide zoomed widths", () => {
+  it("does not keep obsolete workspace header layout styles in the shell stylesheet", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
-    const headerRule = getCssRule(appUiStylesheet, ".app-header");
 
-    expect(headerRule).toContain("justify-self: start;");
-    expect(headerRule).toContain("margin: 0;");
+    expect(appUiStylesheet).not.toContain(".app-header");
+    expect(appUiStylesheet).not.toContain("workspace-header");
   });
 
   it("defines shared scrollbar styling for the desktop shell", () => {
@@ -5400,40 +5399,25 @@ describe("App autosave", () => {
       expect(stylesheet).toContain("backdrop-filter:");
     }
 
-    const rainGlassHeaderRule = getCssRule(
-      rainGlassUiStylesheet,
-      '[data-fishmark-surface="workspace-header"]'
-    );
     const rainGlassEditorRule = getCssRule(rainGlassUiStylesheet, ".document-editor");
-    const emberHeaderRule = getCssRule(
-      emberAscendUiStylesheet,
-      '[data-fishmark-surface="workspace-header"]'
-    );
     const emberEditorRule = getCssRule(emberAscendUiStylesheet, ".document-editor");
-    const pearlHeaderRule = getCssRule(
-      pearlDriftUiStylesheet,
-      '[data-fishmark-surface="workspace-header"]'
-    );
     const pearlEditorRule = getCssRule(pearlDriftUiStylesheet, ".document-editor");
 
-    expect(rainGlassHeaderRule).not.toContain("width:");
-    expect(rainGlassHeaderRule).not.toContain("margin:");
+    expect(rainGlassUiStylesheet).not.toContain('[data-fishmark-surface="workspace-header"]');
     expect(rainGlassEditorRule).not.toContain("width:");
     expect(rainGlassEditorRule).not.toContain("height:");
     expect(rainGlassEditorRule).not.toContain("margin:");
     expect(rainGlassEditorRule).not.toContain("padding:");
     expect(rainGlassEditorRule).not.toContain("grid-template-rows:");
     expect(rainGlassEditorRule).not.toContain("gap:");
-    expect(emberHeaderRule).not.toContain("width:");
-    expect(emberHeaderRule).not.toContain("margin:");
+    expect(emberAscendUiStylesheet).not.toContain('[data-fishmark-surface="workspace-header"]');
     expect(emberEditorRule).not.toContain("width:");
     expect(emberEditorRule).not.toContain("height:");
     expect(emberEditorRule).not.toContain("margin:");
     expect(emberEditorRule).not.toContain("padding:");
     expect(emberEditorRule).not.toContain("grid-template-rows:");
     expect(emberEditorRule).not.toContain("gap:");
-    expect(pearlHeaderRule).not.toContain("width:");
-    expect(pearlHeaderRule).not.toContain("margin:");
+    expect(pearlDriftUiStylesheet).not.toContain('[data-fishmark-surface="workspace-header"]');
     expect(pearlEditorRule).not.toContain("width:");
     expect(pearlEditorRule).not.toContain("height:");
     expect(pearlEditorRule).not.toContain("margin:");
@@ -5493,7 +5477,7 @@ describe("App autosave", () => {
 
     for (const { path, stylesheet } of themeSurfaceStylesheets) {
       if (path.endsWith("/ui.css")) {
-        expect(stylesheet).toContain('[data-fishmark-surface="workspace-header"]');
+        expect(stylesheet).not.toContain('[data-fishmark-surface="workspace-header"]');
         expect(stylesheet).toContain('[data-fishmark-surface="settings-drawer"]');
       }
       expect(stylesheet).toContain('[data-fishmark-surface="titlebar"]');

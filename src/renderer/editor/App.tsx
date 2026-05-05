@@ -424,7 +424,6 @@ function EditorShell({
   const {
     state,
     activeDocument,
-    openState,
     editorLoadRevision,
     getActiveDocument: getWorkspaceActiveDocument,
     reorderWorkspaceTab,
@@ -466,20 +465,9 @@ function EditorShell({
   const isReadingMode = shellMode === "reading";
   const isDocumentReadingMode = isDocumentOpen && isReadingMode;
   const isOutlinePanelVisible = isOutlineOpen || isOutlineClosing;
-  const hintText =
-    openState === "opening"
-      ? "Opening document..."
-      : "Use File > Open... to load a Markdown document.";
-  const headerEyebrow = isDocumentOpen ? "Current document" : "FishMark";
   const headerTitle = isDocumentOpen
     ? activeDocument?.name ?? "Untitled"
     : "Local-first Markdown writing";
-  const headerDetail =
-    openState === "opening"
-      ? "Opening document..."
-      : isDocumentOpen
-        ? activeDocument?.path ?? "Not saved yet."
-        : "Markdown remains the source of truth, and the writing canvas stays calm and stable.";
   const saveStatusLabel =
     effectiveSaveState === "manual-saving"
       ? "Saving changes..."
@@ -1607,10 +1595,7 @@ function EditorShell({
         externalFileState={externalConflictController.externalFileState}
         fishmarkPlatform={fishmark.platform}
         fontFamilies={fontFamilies}
-        headerDetail={headerDetail}
-        headerEyebrow={headerEyebrow}
         headerTitle={headerTitle}
-        hintText={hintText}
         isDocumentOpen={isDocumentOpen}
         isOutlineOpen={isOutlineOpen}
         isOutlinePanelVisible={isOutlinePanelVisible}
