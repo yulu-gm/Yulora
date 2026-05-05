@@ -3,20 +3,23 @@
   --fishmark-inline-code-text: var(--fishmark-markdown-inline-code-fg);
   --fishmark-list-marker: var(--fishmark-markdown-list-bullet);
   --fishmark-list-text: var(--fishmark-markdown-list-text);
+  --fishmark-markdown-boundary-radius: 4px;
   --fishmark-task-toggle-border: color-mix(in srgb, var(--fishmark-markdown-task-done) 42%, var(--fishmark-panel-border));
   --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-workspace-bg) 94%, transparent);
   --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-markdown-task-done) 12%, transparent);
   --fishmark-task-toggle-check: var(--fishmark-markdown-task-done);
-  --fishmark-task-toggle-radius: 0.24rem;
+  --fishmark-task-toggle-radius: var(--fishmark-markdown-boundary-radius);
   --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-markdown-quote-border) 10%, transparent);
   --fishmark-blockquote-border: var(--fishmark-markdown-quote-border);
+  --fishmark-blockquote-radius: var(--fishmark-markdown-boundary-radius);
   --fishmark-thematic-break: var(--fishmark-markdown-hr);
   --fishmark-code-block-bg: var(--fishmark-markdown-code-bg);
   --fishmark-code-block-text: var(--fishmark-markdown-code-fg);
+  --fishmark-code-block-radius: var(--fishmark-markdown-boundary-radius);
   --fishmark-table-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 94%, transparent);
   --fishmark-table-border-color: var(--fishmark-border-faint);
   --fishmark-table-cell-border-color: var(--fishmark-border-faint);
-  --fishmark-table-radius: 18px;
+  --fishmark-table-radius: var(--fishmark-markdown-boundary-radius);
   --fishmark-table-cell-bg: transparent;
   --fishmark-table-cell-active-bg: color-mix(
     in srgb,

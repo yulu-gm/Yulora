@@ -5770,6 +5770,7 @@ describe("App autosave", () => {
 
     expect(lightMarkdownRule).toContain("--fishmark-table-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-table-border-color:");
+    expect(lightMarkdownRule).toContain("--fishmark-table-radius: var(--fishmark-markdown-boundary-radius);");
     expect(lightMarkdownRule).toContain("--fishmark-table-cell-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-table-cell-active-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-table-text:");
@@ -5812,6 +5813,8 @@ describe("App autosave", () => {
     expect(lightMarkdownRule).toContain("--fishmark-task-toggle-radius:");
     expect(lightMarkdownRule).toContain("--fishmark-blockquote-bg:");
     expect(lightMarkdownRule).toContain("--fishmark-blockquote-border:");
+    expect(lightMarkdownRule).toContain("--fishmark-blockquote-radius:");
+    expect(lightMarkdownRule).toContain("--fishmark-code-block-radius:");
   });
 
   it("renders markdown lists and quotes with explicit markers instead of solid blocks", () => {
@@ -6028,6 +6031,30 @@ describe("App autosave", () => {
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-cell-active-bg);");
     expect(markdownRenderStylesheet).toContain("min-height: var(--fishmark-table-cell-min-height);");
     expect(markdownRenderStylesheet).toContain("font-weight: var(--fishmark-table-header-font-weight);");
+  });
+
+  it("renders bordered markdown surfaces through radius variables", () => {
+    const lightMarkdownStylesheet = readFileSync(lightMarkdownStylesheetPath, "utf-8");
+    const lightMarkdownRule = getCssRule(lightMarkdownStylesheet, ":root");
+    const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
+    const blockquoteStartRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote-start");
+    const blockquoteEndRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-blockquote-end");
+    const codeBlockStartRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-code-block-start");
+    const codeBlockEndRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-code-block-end");
+
+    expect(lightMarkdownRule).toContain("--fishmark-markdown-boundary-radius: 4px;");
+    expect(lightMarkdownRule).toContain("--fishmark-task-toggle-radius: var(--fishmark-markdown-boundary-radius);");
+    expect(lightMarkdownRule).toContain("--fishmark-blockquote-radius: var(--fishmark-markdown-boundary-radius);");
+    expect(lightMarkdownRule).toContain("--fishmark-code-block-radius: var(--fishmark-markdown-boundary-radius);");
+    expect(lightMarkdownRule).toContain("--fishmark-table-radius: var(--fishmark-markdown-boundary-radius);");
+    expect(blockquoteStartRule).toContain("border-top-left-radius: var(--fishmark-blockquote-radius, 0.7rem);");
+    expect(blockquoteStartRule).toContain("border-top-right-radius: var(--fishmark-blockquote-radius, 0.7rem);");
+    expect(blockquoteEndRule).toContain("border-bottom-left-radius: var(--fishmark-blockquote-radius, 0.7rem);");
+    expect(blockquoteEndRule).toContain("border-bottom-right-radius: var(--fishmark-blockquote-radius, 0.7rem);");
+    expect(codeBlockStartRule).toContain("border-top-left-radius: var(--fishmark-code-block-radius, 6px);");
+    expect(codeBlockStartRule).toContain("border-top-right-radius: var(--fishmark-code-block-radius, 6px);");
+    expect(codeBlockEndRule).toContain("border-bottom-left-radius: var(--fishmark-code-block-radius, 6px);");
+    expect(codeBlockEndRule).toContain("border-bottom-right-radius: var(--fishmark-code-block-radius, 6px);");
   });
 
   it("executes editor test commands through the allowlist driver and completes the result", async () => {

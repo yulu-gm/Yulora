@@ -508,14 +508,14 @@
 
 .document-editor .cm-inactive-blockquote-start {
   padding-top: 0.35rem;
-  border-top-left-radius: 0.7rem;
-  border-top-right-radius: 0.7rem;
+  border-top-left-radius: var(--fishmark-blockquote-radius, 0.7rem);
+  border-top-right-radius: var(--fishmark-blockquote-radius, 0.7rem);
 }
 
 .document-editor .cm-inactive-blockquote-end {
   padding-bottom: calc(0.35rem + 0.2rem);
-  border-bottom-left-radius: 0.7rem;
-  border-bottom-right-radius: 0.7rem;
+  border-bottom-left-radius: var(--fishmark-blockquote-radius, 0.7rem);
+  border-bottom-right-radius: var(--fishmark-blockquote-radius, 0.7rem);
 }
 
 .document-editor .cm-inactive-blockquote-marker {
@@ -551,8 +551,8 @@
 
 .document-editor .cm-inactive-code-block-start {
   padding-top: 0.65rem;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  border-top-left-radius: var(--fishmark-code-block-radius, 6px);
+  border-top-right-radius: var(--fishmark-code-block-radius, 6px);
   box-shadow:
     inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
     inset -1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
@@ -561,8 +561,8 @@
 
 .document-editor .cm-inactive-code-block-end {
   padding-bottom: calc(0.65rem + 0.35rem);
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
+  border-bottom-left-radius: var(--fishmark-code-block-radius, 6px);
+  border-bottom-right-radius: var(--fishmark-code-block-radius, 6px);
   position: relative;
   box-shadow:
     inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
