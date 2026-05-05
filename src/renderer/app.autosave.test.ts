@@ -5557,22 +5557,23 @@ describe("App autosave", () => {
     expect(primitivesStylesheet).toContain("color: var(--fishmark-text-muted);");
   });
 
-  it("routes welcome card copy and the rail settings button through theme-specific ui tokens", () => {
+  it("routes welcome card copy, recent files scroll, and the rail settings button through stable ui rules", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const primitivesStylesheet = readFileSync(primitivesStylesheetPath, "utf-8");
-    const welcomeHeadingRule = getCssRule(appUiStylesheet, ".empty-inner h1");
     const welcomeKickerRule = getCssRule(appUiStylesheet, ".empty-kicker");
     const welcomeCopyRule = getCssRule(appUiStylesheet, ".empty-copy");
     const welcomeMetaRule = getCssRule(appUiStylesheet, ".empty-meta");
+    const recentFileListRule = getCssRule(appUiStylesheet, ".recent-file-list");
     const settingsEntryRule = getCssRule(primitivesStylesheet, ".settings-entry");
     const settingsEntryHoverRule = getCssRule(primitivesStylesheet, ".settings-entry:hover");
 
-    expect(welcomeHeadingRule).toContain("color: var(--fishmark-welcome-heading, var(--fishmark-text-primary, #171a1f));");
     expect(welcomeKickerRule).toContain("color: var(--fishmark-welcome-kicker, var(--fishmark-text-muted, #687180));");
     expect(welcomeCopyRule).toContain("color: var(--fishmark-welcome-copy, var(--fishmark-text-muted, #687180));");
     expect(welcomeMetaRule).toContain("border: 1px solid var(--fishmark-welcome-meta-border, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)));");
     expect(welcomeMetaRule).toContain("background: var(--fishmark-welcome-meta-bg, transparent);");
     expect(welcomeMetaRule).toContain("color: var(--fishmark-welcome-meta-text, var(--fishmark-text-muted, #687180));");
+    expect(recentFileListRule).toContain("max-height: min(42vh, 18rem);");
+    expect(recentFileListRule).toContain("overflow-y: auto;");
     expect(settingsEntryRule).toContain("border: 1px solid var(--fishmark-rail-control-border, var(--fishmark-control-border));");
     expect(settingsEntryRule).toContain("background: var(--fishmark-rail-control-bg, var(--fishmark-control-bg));");
     expect(settingsEntryRule).toContain("color: var(--fishmark-rail-control-fg, var(--fishmark-control-fg));");

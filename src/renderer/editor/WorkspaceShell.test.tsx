@@ -210,7 +210,7 @@ it("renders workspace tabs and delegates commands without owning persistence log
     .toBe("C:/note.md");
 });
 
-it("renders recent files in the empty workspace and delegates open and clear actions", async () => {
+it("renders recent files without the old empty headline and delegates open and clear actions", async () => {
   const onOpenRecentFile = vi.fn();
   const onClearRecentFile = vi.fn();
   container = document.createElement("div");
@@ -333,6 +333,8 @@ it("renders recent files in the empty workspace and delegates open and clear act
 
   expect(container.textContent).toContain("today.md");
   expect(container.textContent).toContain("C:/notes/today.md");
+  expect(container.textContent).not.toContain("Your writing space");
+  expect(container.querySelector(".empty-inner h1")).toBeNull();
   expect(onOpenRecentFile).toHaveBeenCalledWith("C:/notes/today.md");
   expect(onClearRecentFile).toHaveBeenCalledWith("C:/notes/today.md");
 });

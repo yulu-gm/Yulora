@@ -796,7 +796,6 @@ export function WorkspaceShell({
                     </g>
                   </svg>
                   <p className="empty-kicker">FishMark</p>
-                  <h1>Your writing space<br />is ready.</h1>
                   <p className="empty-copy">
                     Open a Markdown file to begin. Edits are written back without reformatting.
                   </p>
