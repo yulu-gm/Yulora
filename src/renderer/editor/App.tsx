@@ -349,6 +349,7 @@ function EditorShell({
   const shortcutHintHoldTimerRef = useRef<number | null>(null);
   const lastEditorPointerIntentRef = useRef<"editing" | "blank" | null>(null);
   const pendingEditorOpenBlurTokenRef = useRef(0);
+  const suppressNextEditorBlurAutosaveRef = useRef(false);
   const lastThemeNotificationKeyRef = useRef<string | null>(null);
   const lastThemeDynamicNotificationKeyRef = useRef<string | null>(null);
   const fontFamilyLoadStateRef = useRef<"idle" | "loading" | "loaded">("idle");
@@ -613,12 +614,46 @@ function EditorShell({
     setShellMode("editing");
   }, []);
 
-  const blurFocusedEditorElement = useCallback((): void => {
+  const blurFocusedEditorElement = useCallback(
+    (options: { suppressAutosave?: boolean } = {}): void => {
+      const activeElement = document.activeElement;
+      if (
+        !(activeElement instanceof HTMLElement) ||
+        !editorContainerRef.current?.contains(activeElement)
+      ) {
+        return;
+      }
+
+      if (!options.suppressAutosave) {
+        activeElement.blur();
+        return;
+      }
+
+      suppressNextEditorBlurAutosaveRef.current = true;
+
+      try {
+        activeElement.blur();
+      } finally {
+        suppressNextEditorBlurAutosaveRef.current = false;
+      }
+    },
+    []
+  );
+
+  const handleEditorBlurFromShell = useCallback((): void => {
+    if (suppressNextEditorBlurAutosaveRef.current) {
+      return;
+    }
+
+    handleEditorBlur();
+  }, [handleEditorBlur]);
+
+  const blurFocusedEditorElementWithoutAutosave = useCallback((): void => {
     const activeElement = document.activeElement;
     if (activeElement instanceof HTMLElement && editorContainerRef.current?.contains(activeElement)) {
-      activeElement.blur();
+      blurFocusedEditorElement({ suppressAutosave: true });
     }
-  }, []);
+  }, [blurFocusedEditorElement]);
 
   const cancelPendingEditorOpenBlur = useCallback((): void => {
     pendingEditorOpenBlurTokenRef.current += 1;
@@ -627,22 +662,22 @@ function EditorShell({
   const blurFocusedEditorElementAfterOpen = useCallback((): void => {
     const blurToken = pendingEditorOpenBlurTokenRef.current + 1;
     pendingEditorOpenBlurTokenRef.current = blurToken;
-    blurFocusedEditorElement();
+    blurFocusedEditorElementWithoutAutosave();
     requestAnimationFrame(() => {
       if (pendingEditorOpenBlurTokenRef.current !== blurToken) {
         return;
       }
 
-      blurFocusedEditorElement();
+      blurFocusedEditorElementWithoutAutosave();
       requestAnimationFrame(() => {
         if (pendingEditorOpenBlurTokenRef.current !== blurToken) {
           return;
         }
 
-        blurFocusedEditorElement();
+        blurFocusedEditorElementWithoutAutosave();
       });
     });
-  }, [blurFocusedEditorElement]);
+  }, [blurFocusedEditorElementWithoutAutosave]);
 
   const enterReadingMode = useCallback((): void => {
     if (
@@ -1557,7 +1592,7 @@ function EditorShell({
         }}
         onDismissExternalFileConflict={externalConflictController.dismissConflict}
         onDraftChange={handleEditorContentChange}
-        onEditorBlur={handleEditorBlur}
+        onEditorBlur={handleEditorBlurFromShell}
         onImportClipboardImage={handleImportClipboardImage}
         onInsertTableColumnLeft={insertTableColumnLeft}
         onInsertTableColumnRight={insertTableColumnRight}

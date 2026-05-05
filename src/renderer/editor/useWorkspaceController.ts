@@ -174,11 +174,18 @@ export function useWorkspaceController(input: {
     [queueWorkspaceDraftSync]
   );
 
-  const refreshWorkspaceSnapshot = useCallback(async (): Promise<WorkspaceWindowSnapshot | null> => {
-    const snapshot = await fishmark.getWorkspaceSnapshot();
-    applyWorkspaceWindowSnapshot(snapshot, { preserveActiveDocumentDraft: true });
-    return snapshot;
-  }, [applyWorkspaceWindowSnapshot, fishmark]);
+  const refreshWorkspaceSnapshot = useCallback(
+    async (
+      options: { preserveActiveDocumentDraft?: boolean } = {}
+    ): Promise<WorkspaceWindowSnapshot | null> => {
+      const snapshot = await fishmark.getWorkspaceSnapshot();
+      applyWorkspaceWindowSnapshot(snapshot, {
+        preserveActiveDocumentDraft: options.preserveActiveDocumentDraft ?? true
+      });
+      return snapshot;
+    },
+    [applyWorkspaceWindowSnapshot, fishmark]
+  );
 
   const loadInitialWorkspaceSnapshot = useCallback(async (): Promise<void> => {
     try {

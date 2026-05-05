@@ -3755,6 +3755,49 @@ describe("App autosave", () => {
     expect(document.activeElement?.getAttribute("data-testid")).not.toBe("mock-code-editor");
   });
 
+  it("does not autosave the previous editor buffer into a newly opened document during open blur", async () => {
+    queueWorkspaceOpenDocuments(
+      {
+        path: "C:/notes/first.md",
+        name: "first.md",
+        content: "# First\n"
+      },
+      {
+        path: "C:/notes/test.md",
+        name: "test.md",
+        content: "# Test\n"
+      }
+    );
+
+    await renderAndOpenDocument();
+
+    const editorSurface = container.querySelector<HTMLElement>('[data-testid="mock-code-editor"]');
+
+    await act(async () => {
+      editorSurface?.focus();
+      await Promise.resolve();
+    });
+
+    updateWorkspaceTabDraft.mockClear();
+    saveMarkdownFile.mockClear();
+
+    await act(async () => {
+      menuCommandListener?.("open-markdown-file");
+      await Promise.resolve();
+    });
+
+    expect(openWorkspaceFile).toHaveBeenCalledTimes(2);
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalledWith({
+      tabId: "tab-2",
+      content: "# First\n"
+    });
+    expect(saveMarkdownFile).not.toHaveBeenCalledWith({
+      tabId: "tab-2",
+      path: "C:/notes/test.md"
+    });
+    expect(getWorkspaceTabContent("tab-2")).toBe("# Test\n");
+  });
+
   it("enters editing mode when the user clicks into the editor body", async () => {
     await renderAndOpenDocument();
 

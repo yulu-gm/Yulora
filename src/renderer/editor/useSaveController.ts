@@ -11,7 +11,9 @@ export function useSaveController(input: {
   getActiveDocument: () => WorkspaceDocumentSnapshot | null;
   getEditorContent: () => string;
   flushActiveWorkspaceDraft: () => Promise<void>;
-  refreshWorkspaceSnapshot: () => Promise<WorkspaceWindowSnapshot | null>;
+  refreshWorkspaceSnapshot: (
+    options?: { preserveActiveDocumentDraft?: boolean }
+  ) => Promise<WorkspaceWindowSnapshot | null>;
   hasExternalFileConflict: () => boolean;
   autosaveDelayMs: number;
   showNotification: (notification: AppNotification) => void;
@@ -79,10 +81,18 @@ export function useSaveController(input: {
   );
 
   const refreshMainWorkspaceSnapshotAfterSave = useCallback(
-    async (saveKind: "manual" | "autosave"): Promise<void> => {
+    async (saveKind: "manual" | "autosave", savedTabId: string): Promise<void> => {
       try {
-        await flushActiveWorkspaceDraft();
-        await refreshWorkspaceSnapshot();
+        const activeDocument = getActiveDocument();
+        const shouldPreserveActiveDraft = activeDocument?.tabId === savedTabId;
+
+        if (shouldPreserveActiveDraft) {
+          await flushActiveWorkspaceDraft();
+        }
+
+        await refreshWorkspaceSnapshot({
+          preserveActiveDocumentDraft: shouldPreserveActiveDraft
+        });
       } catch (error) {
         showNotification({
           kind: "error",
@@ -95,7 +105,7 @@ export function useSaveController(input: {
         });
       }
     },
-    [flushActiveWorkspaceDraft, refreshWorkspaceSnapshot, showNotification]
+    [flushActiveWorkspaceDraft, getActiveDocument, refreshWorkspaceSnapshot, showNotification]
   );
 
   const runAutosave = useCallback(async (): Promise<void> => {
@@ -119,6 +129,7 @@ export function useSaveController(input: {
 
     inFlightSaveOriginRef.current = "autosave";
     pendingAutosaveReplayRef.current = false;
+    const savedTabId = currentDocument.tabId;
 
     try {
       const result = await fishmark.saveMarkdownFile({
@@ -131,7 +142,7 @@ export function useSaveController(input: {
       }
 
       if (result.status === "success") {
-        await refreshMainWorkspaceSnapshotAfterSave("autosave");
+        await refreshMainWorkspaceSnapshotAfterSave("autosave", savedTabId);
       }
     } finally {
       inFlightSaveOriginRef.current = null;
@@ -198,6 +209,8 @@ export function useSaveController(input: {
 
       const shouldForceSaveAs =
         options.forceSaveAs ?? (!currentDocument.path || hasExternalFileConflictRef.current());
+      const savedTabId = currentDocument.tabId;
+
       try {
         const result = shouldForceSaveAs
           ? await fishmark.saveMarkdownFileAs({
@@ -216,7 +229,7 @@ export function useSaveController(input: {
         }
 
         if (result.status === "success") {
-          await refreshMainWorkspaceSnapshotAfterSave("manual");
+          await refreshMainWorkspaceSnapshotAfterSave("manual", savedTabId);
         }
       } finally {
         inFlightSaveOriginRef.current = null;
