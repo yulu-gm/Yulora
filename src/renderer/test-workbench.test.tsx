@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TestScenario } from "@fishmark/test-harness";
+import { DEFAULT_RECENT_FILES_SNAPSHOT } from "../shared/recent-files";
 import type {
   RunnerEventEnvelope,
   ScenarioRunTerminal,
@@ -144,12 +145,15 @@ describe("Test workbench shell", () => {
       onWorkspaceWindowCloseRequest: vi.fn(() => () => {}),
       getPreferences: vi.fn(),
       updatePreferences: vi.fn(),
+      getRecentFiles: vi.fn().mockResolvedValue(DEFAULT_RECENT_FILES_SNAPSHOT),
+      clearRecentFile: vi.fn().mockResolvedValue(DEFAULT_RECENT_FILES_SNAPSHOT),
       listFontFamilies: vi.fn().mockResolvedValue([]),
       listThemePackages: vi.fn().mockResolvedValue([]),
       refreshThemePackages: vi.fn().mockResolvedValue([]),
       openThemesDirectory: vi.fn().mockResolvedValue(undefined),
       checkForUpdates: vi.fn().mockResolvedValue(undefined),
       onPreferencesChanged: vi.fn(() => () => {}),
+      onRecentFilesChanged: vi.fn(() => () => {}),
       onAppUpdateState: vi.fn(() => () => {}),
       onAppNotification: vi.fn(() => () => {}),
       onExternalMarkdownFileChanged: vi.fn(() => () => {})

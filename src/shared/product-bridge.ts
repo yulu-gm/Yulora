@@ -37,6 +37,10 @@ import type {
   PreferencesUpdate,
   UpdatePreferencesResult
 } from "./preferences";
+import type {
+  ClearRecentFileInput,
+  RecentFilesSnapshot
+} from "./recent-files";
 import type { OpenWorkspacePathRequest } from "./workspace";
 import type { ThemePackageDescriptor } from "./theme-package";
 
@@ -74,6 +78,9 @@ export interface ProductBridge {
   getPreferences: () => Promise<Preferences>;
   updatePreferences: (patch: PreferencesUpdate) => Promise<UpdatePreferencesResult>;
   onPreferencesChanged: (listener: (preferences: Preferences) => void) => () => void;
+  getRecentFiles: () => Promise<RecentFilesSnapshot>;
+  clearRecentFile: (input: ClearRecentFileInput) => Promise<RecentFilesSnapshot>;
+  onRecentFilesChanged: (listener: (snapshot: RecentFilesSnapshot) => void) => () => void;
   onAppUpdateState: (listener: (state: AppUpdateState) => void) => () => void;
   onAppNotification: (listener: (notification: AppNotification) => void) => () => void;
   onExternalMarkdownFileChanged: (

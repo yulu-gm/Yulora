@@ -11,6 +11,10 @@ import type {
   PreferencesUpdate,
   UpdatePreferencesResult
 } from "../shared/preferences";
+import type {
+  ClearRecentFileInput,
+  RecentFilesSnapshot
+} from "../shared/recent-files";
 import type { ProductBridge } from "../shared/product-bridge";
 import type { SaveMarkdownFileAsInput, SaveMarkdownFileInput } from "../shared/save-markdown-file";
 import type {
@@ -107,6 +111,11 @@ import {
   SYNC_WATCHED_MARKDOWN_FILE_CHANNEL
 } from "../shared/external-file-change";
 import { GET_PREFERENCES_CHANNEL, PREFERENCES_CHANGED_EVENT, UPDATE_PREFERENCES_CHANNEL } from "../shared/preferences";
+import {
+  CLEAR_RECENT_FILE_CHANNEL,
+  GET_RECENT_FILES_CHANNEL,
+  RECENT_FILES_CHANGED_EVENT
+} from "../shared/recent-files";
 import {
   IMPORT_CLIPBOARD_IMAGE_CHANNEL,
   type ImportClipboardImageInput,
@@ -243,6 +252,9 @@ const productApi: ProductBridge = {
   getPreferences: (): Promise<Preferences> => ipcRenderer.invoke(GET_PREFERENCES_CHANNEL),
   updatePreferences: (patch: PreferencesUpdate): Promise<UpdatePreferencesResult> =>
     ipcRenderer.invoke(UPDATE_PREFERENCES_CHANNEL, patch),
+  getRecentFiles: (): Promise<RecentFilesSnapshot> => ipcRenderer.invoke(GET_RECENT_FILES_CHANNEL),
+  clearRecentFile: (input: ClearRecentFileInput): Promise<RecentFilesSnapshot> =>
+    ipcRenderer.invoke(CLEAR_RECENT_FILE_CHANNEL, input),
   listFontFamilies: (): Promise<string[]> => ipcRenderer.invoke(LIST_FONT_FAMILIES_CHANNEL),
   listThemePackages: (): Promise<ThemePackageDescriptor[]> =>
     ipcRenderer.invoke(LIST_THEME_PACKAGES_CHANNEL),
@@ -259,6 +271,17 @@ const productApi: ProductBridge = {
 
     return () => {
       ipcRenderer.off(PREFERENCES_CHANGED_EVENT, handlePreferencesChanged);
+    };
+  },
+  onRecentFilesChanged: (listener: (snapshot: RecentFilesSnapshot) => void) => {
+    const handleRecentFilesChanged = (_event: unknown, snapshot: RecentFilesSnapshot) => {
+      listener(snapshot);
+    };
+
+    ipcRenderer.on(RECENT_FILES_CHANGED_EVENT, handleRecentFilesChanged);
+
+    return () => {
+      ipcRenderer.off(RECENT_FILES_CHANGED_EVENT, handleRecentFilesChanged);
     };
   },
   onAppUpdateState: (listener: (state: AppUpdateState) => void) => {

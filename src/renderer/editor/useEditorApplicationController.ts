@@ -105,6 +105,27 @@ export function useEditorApplicationController(input: {
     [openWorkspaceMarkdownFromPath, resetAutosaveRuntime]
   );
 
+  const openRecentMarkdown = useCallback(
+    async (targetPath: string): Promise<boolean> => {
+      resetAutosaveRuntime();
+      const opened = await openWorkspaceMarkdownFromPath(targetPath);
+
+      if (!opened) {
+        try {
+          await fishmark.clearRecentFile({ path: targetPath });
+        } catch (error) {
+          showNotification({
+            kind: "error",
+            message: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      return opened;
+    },
+    [fishmark, openWorkspaceMarkdownFromPath, resetAutosaveRuntime, showNotification]
+  );
+
   const saveMarkdown = useCallback(async (): Promise<void> => {
     if (!getActiveDocument()) {
       return;
@@ -167,6 +188,7 @@ export function useEditorApplicationController(input: {
       createUntitledMarkdown,
       openMarkdown,
       openMarkdownFromPath,
+      openRecentMarkdown,
       runMenuCommand,
       saveMarkdown,
       saveMarkdownAs
@@ -176,6 +198,7 @@ export function useEditorApplicationController(input: {
       createUntitledMarkdown,
       openMarkdown,
       openMarkdownFromPath,
+      openRecentMarkdown,
       runMenuCommand,
       saveMarkdown,
       saveMarkdownAs

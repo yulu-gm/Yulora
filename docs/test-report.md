@@ -21,6 +21,13 @@
 | 2026-05-01 | header-zoom-anchor | `npm.cmd run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning。 |
 | 2026-05-01 | header-zoom-anchor | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
 | 2026-05-01 | header-zoom-anchor | `npm.cmd run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk size warning。 |
+| 2026-05-02 | TASK-006 | `npm run test -- src/shared/recent-files.test.ts src/main/recent-files-service.test.ts src/preload/preload.contract.test.ts src/renderer/editor/useEditorApplicationController.test.tsx src/renderer/editor/WorkspaceShell.test.tsx` | 通过 | 最近文件共享 contract、main service、preload bridge、controller 失败清理和空态 UI 目标测试通过；5 个文件、21 条测试通过。 |
+| 2026-05-02 | TASK-006 | `npm run test -- src/renderer/app.autosave.test.ts src/renderer/test-workbench.test.tsx` | 通过 | renderer 壳层回归与 test-workbench bridge mock 更新通过；2 个文件、155 条测试通过。 |
+| 2026-05-02 | TASK-006 | `npm run test -- src/renderer/code-editor.test.ts packages/editor-core/src/commands/table-commands.test.ts packages/editor-core/src/extensions/markdown-shortcuts.test.ts src/renderer/app.autosave.test.ts src/main/generate-icons.test.ts src/main/after-pack-win-icon.test.ts src/main/runtime-environment.test.ts src/main/build-win-release.test.ts` | 通过 | 复核全量失败中列出的无关超时文件；8 个文件、317 条测试通过，说明默认全量失败更像 runner/worker 资源问题。 |
+| 2026-05-02 | TASK-006 | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning。 |
+| 2026-05-02 | TASK-006 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-02 | TASK-006 | `npm run build` | 通过 | renderer / electron / cli 构建通过；保留既有 Vite chunk size warning。 |
+| 2026-05-02 | TASK-006 | `npm run test` | 阻塞 | 默认全量 Vitest 在 unrelated 文件上出现 worker / timeout 失败；失败文件单独重跑通过。`npm run test -- --fileParallelism=false` 和 `--pool=threads --fileParallelism=false` 仍在不同旧测试上超时，记录为当前环境 runner 风险。 |
 | 2026-04-30 | TASK-012 | `npm run test -- packages/editor-core/src/commands/list-edits.test.ts` | 通过 | 新增列表层级滚动回归：`Tab` / `Shift+Tab` 只提交当前 item subtree 的最小 diff，不再整段替换 root list；目标测试 26 项通过。 |
 | 2026-04-30 | TASK-012 | `npm run test -- packages/editor-core/src/commands/list-edits.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/editor-source-layout.test.ts` | 通过 | 列表层级、快捷键、列表装饰和主题列表几何规则回归通过；4 个测试文件、181 项通过。 |
 | 2026-04-30 | TASK-012 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |

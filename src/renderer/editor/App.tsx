@@ -22,6 +22,10 @@ import {
   type Preferences,
   type PreferencesUpdate,
 } from "../../shared/preferences";
+import {
+  DEFAULT_RECENT_FILES_SNAPSHOT,
+  type RecentFilesSnapshot
+} from "../../shared/recent-files";
 import type { CodeEditorHandle } from "../code-editor-view";
 import { deriveOutlineItems, type OutlineItem } from "../outline";
 import { createThemePackageRuntime } from "../theme-package-runtime";
@@ -311,6 +315,7 @@ function EditorShell({
   const [isOutlineClosing, setIsOutlineClosing] = useState(false);
   const [shellMode, setShellMode] = useState<ShellMode>("reading");
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES);
+  const [recentFiles, setRecentFiles] = useState<RecentFilesSnapshot>(DEFAULT_RECENT_FILES_SNAPSHOT);
   const [fontFamilies, setFontFamilies] = useState<string[]>([]);
   const [themePackages, setThemePackages] = useState<
     Awaited<ReturnType<Window["fishmark"]["listThemePackages"]>>
@@ -750,6 +755,10 @@ function EditorShell({
     scheduleAutosave();
   });
 
+  const handleRecentFilesSync = useEffectEvent((nextRecentFiles: RecentFilesSnapshot): void => {
+    setRecentFiles(nextRecentFiles);
+  });
+
   const handleWorkspaceWindowCloseRequest = useEffectEvent(async (): Promise<boolean> => {
     return editorCommands.confirmWorkspaceWindowClose();
   });
@@ -774,6 +783,21 @@ function EditorShell({
       void handleSaveMarkdownAs();
     }
   });
+
+  const handleClearRecentFile = useCallback(
+    async (targetPath: string): Promise<void> => {
+      try {
+        const nextRecentFiles = await fishmark.clearRecentFile({ path: targetPath });
+        setRecentFiles(nextRecentFiles);
+      } catch (error) {
+        showNotification({
+          kind: "error",
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+    },
+    [fishmark, showNotification]
+  );
 
   const handleLoadFontFamilies = useEffectEvent(async (): Promise<void> => {
     if (fontFamilyLoadStateRef.current !== "idle") {
@@ -838,6 +862,15 @@ function EditorShell({
     const result = await editorCommands.openMarkdown();
 
     if (result === "opened") {
+      setShellMode("reading");
+      blurFocusedEditorElementAfterOpen();
+    }
+  }
+
+  async function handleOpenRecentFile(targetPath: string): Promise<void> {
+    const opened = await editorCommands.openRecentMarkdown(targetPath);
+
+    if (opened) {
       setShellMode("reading");
       blurFocusedEditorElementAfterOpen();
     }
@@ -1147,13 +1180,30 @@ function EditorShell({
         setThemePackageCatalogState("failed");
       });
 
-    const detach = fishmark.onPreferencesChanged((nextPreferences) => {
+    void fishmark
+      .getRecentFiles()
+      .then((nextRecentFiles) => {
+        if (isCancelled) {
+          return;
+        }
+
+        handleRecentFilesSync(nextRecentFiles);
+      })
+      .catch(() => {
+        // Keep an empty recent list when the bridge is temporarily unavailable.
+      });
+
+    const detachPreferences = fishmark.onPreferencesChanged((nextPreferences) => {
       handlePreferencesSync(nextPreferences);
+    });
+    const detachRecentFiles = fishmark.onRecentFilesChanged((nextRecentFiles) => {
+      handleRecentFilesSync(nextRecentFiles);
     });
 
     return () => {
       isCancelled = true;
-      detach();
+      detachPreferences();
+      detachRecentFiles();
     };
   }, [fishmark]);
 
@@ -1572,6 +1622,7 @@ function EditorShell({
         notification={notification}
         notificationState={notificationState}
         outlineItems={outlineItems}
+        recentFiles={recentFiles}
         preferences={preferences}
         preferencesThemeEffectsMode={preferences.theme.effectsMode}
         resolvedThemeMode={resolvedThemeMode}
@@ -1608,6 +1659,12 @@ function EditorShell({
         onRefreshThemePackages={handleRefreshThemePackages}
         onSaveAs={handleSaveMarkdownAsCommand}
         onSettingsOpen={openSettingsDrawer}
+        onOpenRecentFile={(targetPath) => {
+          void handleOpenRecentFile(targetPath);
+        }}
+        onClearRecentFile={(targetPath) => {
+          void handleClearRecentFile(targetPath);
+        }}
         onTableToolHoverChange={handleTableToolHoverChange}
         onTabActivate={(tabId) => {
           void handleActivateWorkspaceTab(tabId);

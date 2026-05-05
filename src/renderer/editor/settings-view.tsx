@@ -36,6 +36,7 @@ type DraftState = {
   documentCjkFontFamily: string;
   documentFontSize: string;
   autosaveIdleDelayMs: string;
+  recentFilesMaxEntries: string;
 };
 
 type FontOption = {
@@ -136,7 +137,8 @@ function buildDraft(preferences: Preferences): DraftState {
     documentCjkFontFamily: preferences.document.cjkFontFamily ?? "",
     documentFontSize:
       preferences.document.fontSize === null ? "" : String(preferences.document.fontSize),
-    autosaveIdleDelayMs: String(preferences.autosave.idleDelayMs)
+    autosaveIdleDelayMs: String(preferences.autosave.idleDelayMs),
+    recentFilesMaxEntries: String(preferences.recentFiles.maxEntries)
   };
 }
 
@@ -607,6 +609,24 @@ export function SettingsView({
     void applyPatch({ autosave: { idleDelayMs: parsed } });
   }
 
+  function handleRecentFilesMaxCommit(): void {
+    const parsed = Number(draft.recentFilesMaxEntries);
+
+    if (!Number.isFinite(parsed)) {
+      setDraft((current) => ({
+        ...current,
+        recentFilesMaxEntries: String(preferences.recentFiles.maxEntries)
+      }));
+      return;
+    }
+
+    if (parsed === preferences.recentFiles.maxEntries) {
+      return;
+    }
+
+    void applyPatch({ recentFiles: { maxEntries: parsed } });
+  }
+
   function handleResetAll(): void {
     void applyPatch({
       theme: {
@@ -1019,7 +1039,7 @@ export function SettingsView({
             htmlFor="settings-recent-max"
           >
             <span>最多保留条数</span>
-            <span className="settings-hint">配置已持久化，将在 TASK-006 接入后开放。</span>
+            <span className="settings-hint">范围 0 - 100，设为 0 会隐藏最近文件列表。</span>
           </label>
           <input
             id="settings-recent-max"
@@ -1027,11 +1047,15 @@ export function SettingsView({
             type="number"
             min={0}
             max={100}
-            value={preferences.recentFiles.maxEntries}
-            disabled
-            readOnly
+            value={draft.recentFilesMaxEntries}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                recentFilesMaxEntries: event.target.value
+              }))
+            }
+            onBlur={handleRecentFilesMaxCommit}
           />
-          <p className="settings-inline-note">将在 TASK-006 接入后开放。</p>
         </SettingsRow>
       </SettingsGroup>
     );

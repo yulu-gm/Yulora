@@ -15,6 +15,7 @@ import type {
 } from "@fishmark/editor-core";
 import type { AppNotification } from "../../shared/app-update";
 import type { Preferences, PreferencesUpdate } from "../../shared/preferences";
+import type { RecentFilesSnapshot } from "../../shared/recent-files";
 import type { ThemeEffectsMode } from "../../shared/theme-package";
 import type { WorkspaceWindowSnapshot } from "../../shared/workspace";
 import { CodeEditorView, type CodeEditorHandle } from "../code-editor-view";
@@ -153,6 +154,7 @@ export type WorkspaceShellProps = {
   notification: AppNotification | null;
   notificationState: AppNotificationBannerState;
   outlineItems: OutlineItem[];
+  recentFiles: RecentFilesSnapshot;
   preferences: Preferences;
   preferencesThemeEffectsMode: ThemeEffectsMode;
   resolvedThemeMode: ResolvedThemeMode;
@@ -183,6 +185,8 @@ export type WorkspaceShellProps = {
   onKeepMemoryVersion: () => void;
   onNavigateToOutlineItem: (startOffset: number) => void;
   onOpenOutlinePanel: () => void;
+  onOpenRecentFile: (targetPath: string) => void;
+  onClearRecentFile: (targetPath: string) => void;
   onReloadExternalFile: () => void;
   onSaveAs: () => void;
   onSettingsOpen: () => void;
@@ -303,6 +307,7 @@ export function WorkspaceShell({
   notification,
   notificationState,
   outlineItems,
+  recentFiles,
   preferences,
   preferencesThemeEffectsMode,
   resolvedThemeMode,
@@ -334,6 +339,8 @@ export function WorkspaceShell({
   onKeepMemoryVersion,
   onNavigateToOutlineItem,
   onOpenOutlinePanel,
+  onOpenRecentFile,
+  onClearRecentFile,
   onReloadExternalFile,
   onRefreshThemePackages,
   onSaveAs,
@@ -814,6 +821,55 @@ export function WorkspaceShell({
                     Open a Markdown file to begin. Edits are written back without reformatting.
                   </p>
                   <p className="empty-meta">⌘ O · Ctrl O</p>
+                  {recentFiles.entries.length > 0 ? (
+                    <section
+                      className="recent-files"
+                      aria-label="Recent files"
+                    >
+                      <h2>Recent files</h2>
+                      <ul className="recent-file-list">
+                        {recentFiles.entries.map((entry) => (
+                          <li
+                            key={entry.path}
+                            className="recent-file-item"
+                          >
+                            <button
+                              type="button"
+                              className="recent-file-open"
+                              data-fishmark-recent-action="open"
+                              onClick={() => onOpenRecentFile(entry.path)}
+                            >
+                              <span className="recent-file-name">{entry.name}</span>
+                              <span className="recent-file-path">{entry.path}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="recent-file-clear"
+                              data-fishmark-recent-action="clear"
+                              aria-label={`Remove ${entry.name} from recent files`}
+                              onClick={() => onClearRecentFile(entry.path)}
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                                focusable="false"
+                              >
+                                <path
+                                  d="M18 6L6 18M6 6l12 12"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
                 </div>
               </section>
             )}

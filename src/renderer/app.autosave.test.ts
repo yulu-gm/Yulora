@@ -11,6 +11,10 @@ import type { AppNotification, AppUpdateState } from "../shared/app-update";
 import type { EditorTestCommandEnvelope } from "../shared/editor-test-command";
 import type { ExternalMarkdownFileChangedEvent } from "../shared/external-file-change";
 import { DEFAULT_PREFERENCES, type Preferences } from "../shared/preferences";
+import {
+  DEFAULT_RECENT_FILES_SNAPSHOT,
+  type RecentFilesSnapshot
+} from "../shared/recent-files";
 import type {
   SaveMarkdownFileAsInput,
   SaveMarkdownFileInput,
@@ -52,6 +56,7 @@ type EditorTestCommandListener = (payload: EditorTestCommandEnvelope) => void;
 type ScenarioRunEventListener = (payload: RunnerEventEnvelope) => void;
 type ScenarioRunTerminalListener = (payload: ScenarioRunTerminal) => void;
 type PreferencesChangedListener = (preferences: Preferences) => void;
+type RecentFilesChangedListener = (snapshot: RecentFilesSnapshot) => void;
 type ExternalMarkdownFileChangedListener = (event: ExternalMarkdownFileChangedEvent) => void;
 type OpenWorkspacePathListener = (payload: OpenWorkspacePathRequest) => void;
 type WorkspaceWindowCloseRequestListener = () => Promise<boolean>;
@@ -454,6 +459,7 @@ describe("App autosave", () => {
   let menuCommandListener: MenuCommandListener | null;
   let editorTestCommandListener: EditorTestCommandListener | null;
   let preferencesChangedListener: PreferencesChangedListener | null;
+  let recentFilesChangedListener: RecentFilesChangedListener | null;
   let appUpdateStateListener: ((state: AppUpdateState) => void) | null;
   let appNotificationListener: ((notification: AppNotification) => void) | null;
   let externalMarkdownFileChangedListener: ExternalMarkdownFileChangedListener | null;
@@ -817,6 +823,7 @@ describe("App autosave", () => {
     menuCommandListener = null;
     editorTestCommandListener = null;
     preferencesChangedListener = null;
+    recentFilesChangedListener = null;
     appUpdateStateListener = null;
     appNotificationListener = null;
     externalMarkdownFileChangedListener = null;
@@ -1028,6 +1035,16 @@ describe("App autosave", () => {
         return () => {
           if (preferencesChangedListener === listener) {
             preferencesChangedListener = null;
+          }
+        };
+      },
+      getRecentFiles: vi.fn().mockResolvedValue(DEFAULT_RECENT_FILES_SNAPSHOT),
+      clearRecentFile: vi.fn().mockResolvedValue(DEFAULT_RECENT_FILES_SNAPSHOT),
+      onRecentFilesChanged(listener: RecentFilesChangedListener) {
+        recentFilesChangedListener = listener;
+        return () => {
+          if (recentFilesChangedListener === listener) {
+            recentFilesChangedListener = null;
           }
         };
       },
@@ -3297,7 +3314,7 @@ describe("App autosave", () => {
     ).toBe(false);
   });
 
-  it("marks recent-files capacity as pending TASK-006 in settings", async () => {
+  it("lets recent-files capacity be edited from settings", async () => {
     await renderApp();
 
     const settingsButton = container.querySelector<HTMLButtonElement>(".settings-entry");
@@ -3312,8 +3329,9 @@ describe("App autosave", () => {
 
     const recentFilesInput = container.querySelector<HTMLInputElement>("#settings-recent-max");
 
-    expect(recentFilesInput?.disabled).toBe(true);
-    expect(container.textContent).toContain("将在 TASK-006 接入后开放");
+    expect(recentFilesInput?.disabled).toBe(false);
+    expect(container.textContent).toContain("范围 0 - 100");
+    expect(container.textContent).not.toContain("将在 TASK-006 接入后开放");
   });
 
   it("keeps the editor mounted when settings opens and closes the drawer on Escape", async () => {
@@ -4757,7 +4775,7 @@ describe("App autosave", () => {
     expect(uiFontSelect).toBeNull();
   });
 
-  it("switches settings to recent files while keeping the existing disabled pending control", async () => {
+  it("switches settings to recent files with an editable max-entry control", async () => {
     const driver = await renderEditorApp();
     await driver.openSettings();
 
@@ -4769,8 +4787,8 @@ describe("App autosave", () => {
 
     expect(getSettingsNavigationButton("最近文件").getAttribute("aria-current")).toBe("page");
     expect(activeSection?.textContent).toContain("最近文件");
-    expect(recentFilesInput?.disabled).toBe(true);
-    expect(activeSection?.textContent).toContain("将在 TASK-006 接入后开放");
+    expect(recentFilesInput?.disabled).toBe(false);
+    expect(activeSection?.textContent).toContain("范围 0 - 100");
     expect(themeSelect).toBeNull();
   });
 

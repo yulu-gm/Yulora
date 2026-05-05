@@ -47,7 +47,7 @@
 
 从源码可确认的未完成内容：
 - 图片粘贴与拖入还未接入完整链路
-- 最近文件列表与崩溃恢复尚未打通
+- 崩溃恢复尚未打通
 - 轮廓大纲、搜索替换、HTML/PDF 导出与图片导入仍待完善
 
 当前工作区依赖已安装，并已在 2026-04-16 本地环境里实际执行并通过 `npm run lint`、`npm run typecheck`、`npm run test`、`npm run build`。若环境差异较大，可按需重跑四项门禁命令复核。
@@ -76,7 +76,7 @@
 | TASK-003 | 打开 Markdown 文件 | DEV_DONE | 已接入安全打开桥接、UTF-8 读取、错误提示与临时 textarea 显示。 |
 | TASK-004 | 保存与另存为 | DEV_DONE | 已接入安全 Save / Save As bridge、主进程写入、dirty 状态与保存反馈。 |
 | TASK-005 | 自动保存 | DEV_DONE | 已接入 idle autosave、blur autosave、手动/自动保存状态区分，以及保存进行中再次编辑后的单次 replay autosave。 |
-| TASK-006 | 最近文件 | TODO | 最近文档列表与失效路径清理。 |
+| TASK-006 | 最近文件 | DEV_DONE | 已接入 main 持久化最近文件列表、preload 受限 bridge、空工作区入口、点击重开与失效路径清理。 |
 | TASK-007 | CodeMirror 6 接入 | DEV_DONE | 已用 CodeMirror 6 替换临时 textarea，并接入基础编辑面、快捷键与现有保存链路。 |
 | TASK-032 | 应用菜单与壳层收敛 | DEV_DONE | 已接入原生 `File` 菜单中的 `Open...`、`Save`、`Save As...`，并把 renderer 临时壳收敛为更像桌面编辑器的单栏界面。 |
 | TASK-008 | micromark block map | ACCEPTED | 已接入 `micromark` parser 事件流，输出 `heading` / `paragraph` / `list` / `blockquote` 的最小 block map，并通过 parser 单测与 repo 门禁验收。 |
@@ -107,7 +107,7 @@
 | TASK-034 | 行内格式渲染 | DEV_DONE | 已在 `markdown-engine` 建立 canonical `parseMarkdownDocument()` 与完整 inline AST，并接入 `editor-core` / renderer 的非激活态行内渲染；当前支持 bold / italic / inline code / strikethrough 及常见嵌套，光标回到对应 block 后恢复 Markdown 源码态。 |
 | TASK-035 | IME 基线保护 | ACCEPTED | 已完成 composition guard、autosave 光标回归修复与段落/标题/列表回归测试，并通过本轮中文 IME 人工验收。 |
 | TASK-036 | 外部文件变更检测 | DEV_DONE | 已接入按窗口绑定的当前文档 watcher、外部修改/删除提示、重载 / 保留当前编辑 / 另存为三条路径，以及冲突期间 autosave/Save 的保护规则。 |
-| TASK-037 | 偏好设置持久化 | DEV_DONE | 已建立 `app.getPath('userData')/preferences.json` 配置存储，覆盖 autosave 间隔、最近文件上限、应用 UI 字体与字号、文档字体与字号、主题设置；提供 schema 校验、范围 clamp、损坏文件备份恢复与原子写入；通过 `getPreferences` / `updatePreferences` / `onPreferencesChanged` bridge 对 renderer 暴露受限访问；设置页已接入颜色模式、主题家族、刷新主题、应用 UI 字体、应用 UI 字号、文档字号、文档字体与 autosave idle delay；社区主题统一从 `<userData>/themes/<familyId>/<mode>` 扫描，当前主题不支持所选 light/dark 模式时会回退到 `FishMark 默认` 并显示提示；`recentFiles.maxEntries` 仍待 `TASK-006` 接入。 |
+| TASK-037 | 偏好设置持久化 | DEV_DONE | 已建立 `app.getPath('userData')/preferences.json` 配置存储，覆盖 autosave 间隔、最近文件上限、应用 UI 字体与字号、文档字体与字号、主题设置；提供 schema 校验、范围 clamp、损坏文件备份恢复与原子写入；通过 `getPreferences` / `updatePreferences` / `onPreferencesChanged` bridge 对 renderer 暴露受限访问；设置页已接入颜色模式、主题家族、刷新主题、应用 UI 字体、应用 UI 字号、文档字号、文档字体与 autosave idle delay；社区主题统一从 `<userData>/themes/<familyId>/<mode>` 扫描，当前主题不支持所选 light/dark 模式时会回退到 `FishMark 默认` 并显示提示；最近文件列表已由 `TASK-006` 接入。 |
 | TASK-039 | 分割线渲染 | DEV_DONE | 已补齐 `thematicBreak` block map、`---` / `+++` 分割线解析、非激活态横线渲染与源码态恢复，并覆盖 CRLF 边界回归。 |
 | TASK-038 | 跨平台打包 | DEV_IN_PROGRESS | 已接入基于 `electron-builder` 的 Windows 本地 `package:win` / `release:win` 与 macOS 本地 `package:mac` / `release:mac` / `release:mac:beta` 入口，并在打包前按需从 `assets/branding/*.svg` 生成 `light` / `dark` 两套 PNG 与 Windows `icon.ico`；Windows release 继续产出 NSIS installer 与 `latest.yml`，正式 macOS release 现已具备 arm64 `.dmg` / `.zip` / `latest-mac.yml` 构建与 GitHub Release 上传脚本，且会在发布前强制校验 Developer ID Application 签名材料与 Apple notarization 凭据；beta macOS release 可在无 Apple 凭据时发布 ad-hoc signed、未公证的 arm64 `.dmg` 到 `v<version>-mac-beta` prerelease，不接入自动更新也不标记 latest。 |
 | TASK-041 | 默认 Markdown 切换型快捷键 | DEV_DONE | 已在 `packages/editor-core/src/commands/` 落地三层语义切换器（`semantic-context` / `semantic-edits` / `toggle-*-commands`），并在 markdown extension keymap 中接入 `Cmd/Ctrl+B`、`Cmd/Ctrl+I`、`Cmd/Ctrl+1..4`、`Shift+Cmd/Ctrl+7`、`Shift+Cmd/Ctrl+9`、`Alt+Shift+Cmd/Ctrl+C`；命令级、扩展级与 renderer 回归测试均覆盖到位，对应 IME composition guard、autosave、active block 与 inactive block decorations 未回归。 |

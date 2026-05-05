@@ -24,6 +24,12 @@ import {
   type Preferences,
   type PreferencesUpdate
 } from "../shared/preferences";
+import {
+  CLEAR_RECENT_FILE_CHANNEL,
+  GET_RECENT_FILES_CHANNEL,
+  RECENT_FILES_CHANGED_EVENT,
+  type RecentFilesSnapshot
+} from "../shared/recent-files";
 import type {
   PreloadPreferences,
   PreloadThemePackageDescriptor,
@@ -314,6 +320,7 @@ describe("preload contract", () => {
     const updatePreferencesInput: PreferencesUpdate = {
       theme: { effectsMode: "off" }
     };
+    const clearRecentFileInput = { path: "D:/fixtures/missing.md" };
 
     void api.openMarkdownFile();
     void api.openMarkdownFileFromPath(openPathInput.targetPath);
@@ -340,6 +347,8 @@ describe("preload contract", () => {
     void testApi.completeEditorTestCommand(completeInput);
     void api.getPreferences();
     void api.updatePreferences(updatePreferencesInput);
+    void api.getRecentFiles();
+    void api.clearRecentFile(clearRecentFileInput);
     expect(api).not.toHaveProperty("listThemes");
     expect(api).not.toHaveProperty("refreshThemes");
 
@@ -386,6 +395,8 @@ describe("preload contract", () => {
     expect(invoke.mock.calls).toContainEqual([COMPLETE_EDITOR_TEST_COMMAND_CHANNEL, completeInput]);
     expect(invoke.mock.calls).toContainEqual([GET_PREFERENCES_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([UPDATE_PREFERENCES_CHANNEL, updatePreferencesInput]);
+    expect(invoke.mock.calls).toContainEqual([GET_RECENT_FILES_CHANNEL]);
+    expect(invoke.mock.calls).toContainEqual([CLEAR_RECENT_FILE_CHANNEL, clearRecentFileInput]);
     expect(invoke.mock.calls).toContainEqual([LIST_FONT_FAMILIES_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([LIST_THEME_PACKAGES_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([REFRESH_THEME_PACKAGES_CHANNEL]);
@@ -419,6 +430,7 @@ describe("preload contract", () => {
     const editorListener = vi.fn();
     const menuListener = vi.fn();
     const preferencesListener = vi.fn();
+    const recentFilesListener = vi.fn();
     const updateListener = vi.fn();
     const notificationListener = vi.fn();
     const externalFileListener = vi.fn();
@@ -431,12 +443,13 @@ describe("preload contract", () => {
     const detachMenu = api.onMenuCommand(menuListener);
     const detachOpenWorkspacePath = api.onOpenWorkspacePath(openWorkspacePathListener);
     const detachPreferences = api.onPreferencesChanged(preferencesListener);
+    const detachRecentFiles = api.onRecentFilesChanged(recentFilesListener);
     const detachUpdate = api.onAppUpdateState(updateListener);
     const detachNotification = api.onAppNotification(notificationListener);
     const detachExternalFile = api.onExternalMarkdownFileChanged(externalFileListener);
     const detachWorkspaceWindowClose = api.onWorkspaceWindowCloseRequest(workspaceWindowCloseListener);
 
-    expect(on.mock.calls).toHaveLength(10);
+    expect(on.mock.calls).toHaveLength(11);
 
     const scenarioHandler = on.mock.calls[0]?.[1];
     const terminalHandler = on.mock.calls[1]?.[1];
@@ -444,10 +457,11 @@ describe("preload contract", () => {
     const menuHandler = on.mock.calls[3]?.[1];
     const openWorkspacePathHandler = on.mock.calls[4]?.[1];
     const preferencesHandler = on.mock.calls[5]?.[1];
-    const updateHandler = on.mock.calls[6]?.[1];
-    const notificationHandler = on.mock.calls[7]?.[1];
-    const externalFileHandler = on.mock.calls[8]?.[1];
-    const workspaceWindowCloseHandler = on.mock.calls[9]?.[1];
+    const recentFilesHandler = on.mock.calls[6]?.[1];
+    const updateHandler = on.mock.calls[7]?.[1];
+    const notificationHandler = on.mock.calls[8]?.[1];
+    const externalFileHandler = on.mock.calls[9]?.[1];
+    const workspaceWindowCloseHandler = on.mock.calls[10]?.[1];
 
     const scenarioPayload: RunnerEventEnvelope = {
       runId: "run-1",
@@ -487,6 +501,10 @@ describe("preload contract", () => {
       targetPath: "D:/fixtures/external.md"
     };
     const preferencesPayload: Preferences = DEFAULT_PREFERENCES;
+    const recentFilesPayload: RecentFilesSnapshot = {
+      version: 1,
+      entries: [{ path: "D:/fixtures/note.md", name: "note.md", lastOpenedAt: 100 }]
+    };
     const updatePayload: AppUpdateState = {
       kind: "downloading",
       version: "0.1.1",
@@ -508,6 +526,7 @@ describe("preload contract", () => {
     menuHandler?.({}, menuPayload);
     openWorkspacePathHandler?.({}, openWorkspacePathPayload);
     preferencesHandler?.({}, preferencesPayload);
+    recentFilesHandler?.({}, recentFilesPayload);
     updateHandler?.({}, updatePayload);
     notificationHandler?.({}, notificationPayload);
     externalFileHandler?.({}, externalFilePayload);
@@ -520,6 +539,7 @@ describe("preload contract", () => {
     expect(menuListener).toHaveBeenCalledWith(menuPayload);
     expect(openWorkspacePathListener).toHaveBeenCalledWith(openWorkspacePathPayload);
     expect(preferencesListener).toHaveBeenCalledWith(preferencesPayload);
+    expect(recentFilesListener).toHaveBeenCalledWith(recentFilesPayload);
     expect(updateListener).toHaveBeenCalledWith(updatePayload);
     expect(notificationListener).toHaveBeenCalledWith(notificationPayload);
     expect(externalFileListener).toHaveBeenCalledWith(externalFilePayload);
@@ -535,6 +555,7 @@ describe("preload contract", () => {
     detachMenu();
     detachOpenWorkspacePath();
     detachPreferences();
+    detachRecentFiles();
     detachUpdate();
     detachNotification();
     detachExternalFile();
@@ -547,6 +568,7 @@ describe("preload contract", () => {
       [APP_MENU_COMMAND_EVENT, menuHandler],
       [OPEN_WORKSPACE_PATH_EVENT, openWorkspacePathHandler],
       [PREFERENCES_CHANGED_EVENT, preferencesHandler],
+      [RECENT_FILES_CHANGED_EVENT, recentFilesHandler],
       [APP_UPDATE_STATE_EVENT, updateHandler],
       [APP_NOTIFICATION_EVENT, notificationHandler],
       [EXTERNAL_MARKDOWN_FILE_CHANGED_EVENT, externalFileHandler],

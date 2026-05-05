@@ -19,6 +19,7 @@ import {
 } from "./preview-asset-protocol";
 import { saveMarkdownFileToPath, showSaveMarkdownDialog } from "./save-markdown-file";
 import { createPreferencesService } from "./preferences-service";
+import { createRecentFilesService } from "./recent-files-service";
 import { createFontCatalogService } from "./font-catalog-service";
 import { openThemesDirectory } from "./open-themes-directory";
 import {
@@ -62,6 +63,12 @@ import {
   UPDATE_PREFERENCES_CHANNEL,
   type PreferencesUpdate
 } from "../shared/preferences";
+import {
+  CLEAR_RECENT_FILE_CHANNEL,
+  GET_RECENT_FILES_CHANNEL,
+  RECENT_FILES_CHANGED_EVENT,
+  type ClearRecentFileInput
+} from "../shared/recent-files";
 import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
 import {
   IMPORT_CLIPBOARD_IMAGE_CHANNEL,
@@ -245,6 +252,11 @@ app.whenReady().then(async () => {
   });
 
   const initialPreferences = await preferencesService.initialize();
+  const recentFilesService = createRecentFilesService({
+    userDataDir: app.getPath("userData"),
+    getPreferences: () => preferencesService.getPreferences()
+  });
+  await recentFilesService.initialize();
   const themePackageService = createThemePackageService({
     userDataDir: app.getPath("userData"),
     builtinPackagesDir: resolveBuiltinThemePackagesDir({ isPackaged: app.isPackaged })
@@ -298,6 +310,10 @@ app.whenReady().then(async () => {
 
   preferencesService.onChange((preferences) => {
     broadcastToWindows(PREFERENCES_CHANGED_EVENT, preferences);
+    void recentFilesService.applyMaxEntries(preferences.recentFiles.maxEntries);
+  });
+  recentFilesService.onChange((snapshot) => {
+    broadcastToWindows(RECENT_FILES_CHANGED_EVENT, snapshot);
   });
 
   const getAppUpdater = async (): Promise<AppUpdaterController> => {
@@ -522,6 +538,20 @@ app.whenReady().then(async () => {
     return snapshot;
   }
 
+  async function recordRecentFilePath(targetPath: string | null): Promise<void> {
+    if (!targetPath) {
+      return;
+    }
+
+    try {
+      await recentFilesService.recordFile(targetPath);
+    } catch (error) {
+      console.warn(
+        `[fishmark] recent file list could not be updated: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   ipcMain.handle(GET_WORKSPACE_SNAPSHOT_CHANNEL, async (event) => {
     const windowId = ensureWorkspaceWindow(event.sender);
     return syncWorkspaceWatch(event.sender, workspaceService.getWindowSnapshot(windowId));
@@ -576,6 +606,8 @@ app.whenReady().then(async () => {
       } satisfies OpenWorkspaceFileResult;
     }
 
+    await recordRecentFilePath(result.document.path);
+
     return {
       kind: "success",
       snapshot: await syncWorkspaceWatch(
@@ -608,6 +640,8 @@ app.whenReady().then(async () => {
       } satisfies OpenWorkspaceFileFromPathResult;
     }
 
+    await recordRecentFilePath(result.document.path);
+
     return {
       kind: "success",
       snapshot: await syncWorkspaceWatch(
@@ -635,6 +669,8 @@ app.whenReady().then(async () => {
 
         throw new Error(`Unable to reload Markdown file '${input.targetPath}'.`);
       }
+
+      await recordRecentFilePath(result.document.path);
 
       return syncWorkspaceWatch(event.sender, workspaceService.replaceTabDocument(input.tabId, result.document));
     }
@@ -685,6 +721,7 @@ app.whenReady().then(async () => {
     const result = await showOpenMarkdownDialog();
 
     if (result.status === "success") {
+      await recordRecentFilePath(result.document.path);
       await externalFileWatchService.syncDocumentPath(event.sender, result.document.path);
     }
 
@@ -694,6 +731,7 @@ app.whenReady().then(async () => {
     const result = await openMarkdownFileFromPath(input.targetPath);
 
     if (result.status === "success") {
+      await recordRecentFilePath(result.document.path);
       await externalFileWatchService.syncDocumentPath(event.sender, result.document.path);
     }
 
@@ -719,6 +757,7 @@ app.whenReady().then(async () => {
     const result = await workspaceApplication.saveTab(input);
 
     if (result.status === "success") {
+      await recordRecentFilePath(workspaceService.getTabPath(input.tabId));
       await externalFileWatchService.completeInternalWrite(event.sender, input.path);
       await externalFileWatchService.syncDocumentPath(
         event.sender,
@@ -739,6 +778,7 @@ app.whenReady().then(async () => {
 
     if (result.status === "success") {
       workspaceService.saveTabDocument(input.tabId, result.document);
+      await recordRecentFilePath(result.document.path);
       await externalFileWatchService.syncDocumentPath(
         event.sender,
         workspaceService.getTabPath(input.tabId)
@@ -761,6 +801,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(GET_PREFERENCES_CHANNEL, async () => preferencesService.getPreferences());
   ipcMain.handle(UPDATE_PREFERENCES_CHANNEL, async (_event, patch: PreferencesUpdate | undefined) =>
     preferencesService.updatePreferences(patch)
+  );
+  ipcMain.handle(GET_RECENT_FILES_CHANNEL, async () => recentFilesService.getRecentFiles());
+  ipcMain.handle(CLEAR_RECENT_FILE_CHANNEL, async (_event, input: ClearRecentFileInput) =>
+    recentFilesService.clearFile(input.path)
   );
   ipcMain.handle(LIST_FONT_FAMILIES_CHANNEL, async () => fontCatalogService.listFontFamilies());
   ipcMain.handle(CHECK_FOR_APP_UPDATES_CHANNEL, async () => runAppUpdateCheck("manual"));

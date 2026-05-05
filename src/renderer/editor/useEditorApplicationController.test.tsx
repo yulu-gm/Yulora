@@ -272,6 +272,42 @@ describe("useEditorApplicationController", () => {
       root.unmount();
     });
   });
+
+  it("clears a recent file entry when reopening it from disk fails", async () => {
+    const clearRecentFile = vi.fn(async () => ({ version: 1, entries: [] }));
+    const openWorkspaceFileFromPath = vi.fn(async () => ({
+      kind: "error" as const,
+      error: {
+        code: "file-not-found" as const,
+        message: "Selected file could not be found."
+      }
+    }));
+
+    const { latestRef, root } = renderController({
+      autosaveDelayMs: 25,
+      fishmark: {
+        getWorkspaceSnapshot: vi.fn(async () => emptySnapshot),
+        openWorkspaceFileFromPath,
+        clearRecentFile,
+        updateWorkspaceTabDraft: vi.fn(async () => emptySnapshot),
+        onExternalMarkdownFileChanged: vi.fn(() => () => {})
+      } as unknown as Window["fishmark"],
+      getEditorContent: () => "",
+      setEditorContentSnapshot: vi.fn(),
+      showNotification: vi.fn(),
+      updateOutline: vi.fn(),
+      initialSnapshot: emptySnapshot
+    });
+
+    await expect(latestRef.current?.commands.openRecentMarkdown("C:/missing.md")).resolves.toBe(false);
+
+    expect(openWorkspaceFileFromPath).toHaveBeenCalledWith("C:/missing.md");
+    expect(clearRecentFile).toHaveBeenCalledWith({ path: "C:/missing.md" });
+
+    act(() => {
+      root.unmount();
+    });
+  });
 });
 
 function createDeferred<T>() {
