@@ -96,7 +96,8 @@ export function computeMoveToTableRowBelow(ctx: TableContext | null): TableSeman
  * Plan a caret move that leaves the table upward.
  *
  * If the table is the very first line of the document, the edit prepends a newline and parks
- * the caret at the document start; otherwise it selects the previous line's start offset.
+ * the caret at the document start. A single structural blank separator above the table is
+ * skipped; user-authored extra blank rows remain reachable.
  */
 export function computeExitTableAbove(ctx: TableContext | null): TableSemanticEdit | null {
   if (!ctx) {
@@ -113,7 +114,8 @@ export function computeExitTableAbove(ctx: TableContext | null): TableSemanticEd
  * Plan a caret move that leaves the table downward.
  *
  * If the table is the last line of the document, the edit appends a newline and places the
- * caret past it; otherwise it selects the following line's start offset.
+ * caret past it. A single structural blank separator below the table is skipped; user-authored
+ * extra blank rows remain reachable.
  */
 export function computeExitTableBelow(ctx: TableContext | null): TableSemanticEdit | null {
   if (!ctx) {
@@ -131,6 +133,11 @@ function resolveExitAboveTarget(source: string, tableStartOffset: number): Table
 
   if (lineStart > 0) {
     const previousLineStart = findLineStartAt(source, lineStart - 1);
+    if (isSingleStructuralBlankAbove(source, previousLineStart)) {
+      const visibleLineStart = findLineStartAt(source, previousLineStart - 1);
+      return { kind: "outside", anchor: findLineEndAt(source, visibleLineStart) };
+    }
+
     return { kind: "outside", anchor: previousLineStart };
   }
 
@@ -145,7 +152,12 @@ function resolveExitBelowTarget(source: string, tableEndOffset: number): TableEx
   const nextNewline = source.indexOf("\n", tableEndOffset);
 
   if (nextNewline !== -1) {
-    return { kind: "outside", anchor: nextNewline + 1 };
+    const nextLineStart = nextNewline + 1;
+    const followingLineStart = isBlankLineAt(source, nextLineStart)
+      ? findNextLineStart(source, nextLineStart)
+      : null;
+
+    return { kind: "outside", anchor: followingLineStart ?? nextLineStart };
   }
 
   return {
@@ -156,8 +168,37 @@ function resolveExitBelowTarget(source: string, tableEndOffset: number): TableEx
 }
 
 function findLineStartAt(source: string, offset: number): number {
+  if (offset <= 0) {
+    return 0;
+  }
+
   const previousNewline = source.lastIndexOf("\n", Math.max(offset - 1, 0));
   return previousNewline === -1 ? 0 : previousNewline + 1;
+}
+
+function findLineEndAt(source: string, lineStart: number): number {
+  const nextNewline = source.indexOf("\n", lineStart);
+  const lineEnd = nextNewline === -1 ? source.length : nextNewline;
+
+  return source[lineEnd - 1] === "\r" ? lineEnd - 1 : lineEnd;
+}
+
+function findNextLineStart(source: string, lineStart: number): number | null {
+  const nextNewline = source.indexOf("\n", lineStart);
+  return nextNewline === -1 ? null : nextNewline + 1;
+}
+
+function isSingleStructuralBlankAbove(source: string, lineStart: number): boolean {
+  if (!isBlankLineAt(source, lineStart) || lineStart <= 0) {
+    return false;
+  }
+
+  const previousLineStart = findLineStartAt(source, lineStart - 1);
+  return !isBlankLineAt(source, previousLineStart);
+}
+
+function isBlankLineAt(source: string, lineStart: number): boolean {
+  return source.slice(lineStart, findLineEndAt(source, lineStart)).trim().length === 0;
 }
 
 export function computeMoveToPreviousTableCellAtBoundary(ctx: TableContext | null): TableSemanticEdit | null {

@@ -4426,7 +4426,7 @@ describe("createCodeEditorController", () => {
     host.remove();
   });
 
-  it("moves between table rows and exits to the next line on Enter from the last row", async () => {
+  it("moves between table rows and exits to the next visible block on Enter from the last row", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
     const source = [
@@ -4464,11 +4464,101 @@ describe("createCodeEditorController", () => {
     currentInput?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true, cancelable: true }));
     await flushMicrotasks();
 
-    expect(activeBlockTypes.at(-1)).toBe(null);
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
     expect(document.activeElement).not.toBe(currentInput);
     expect(controller.getContent()).toBe(source);
-    expect(getEditorView(host)?.state.selection.main.anchor).toBe(source.lastIndexOf("\n\n") + 1);
+    expect(getEditorView(host)?.state.selection.main.anchor).toBe(source.indexOf("After"));
     expect(controller.getContent().indexOf("After")).toBeGreaterThan(0);
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("skips the collapsed structural separator when ArrowDown exits below a table", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Before",
+      "",
+      "| name | qty |",
+      "| --- | ---: |",
+      "| pen | 2 |",
+      "",
+      "After"
+    ].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+
+    const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
+    const view = getEditorView(host);
+
+    expect(input).toBeInstanceOf(HTMLElement);
+    expect(view).not.toBeNull();
+
+    input?.focus();
+    input?.setSelectionRange(0, 0);
+    input?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", bubbles: true, cancelable: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(document.activeElement).not.toBe(input);
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf("After"));
+
+    const blankLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === ""
+    );
+
+    expect(blankLine?.classList.contains("cm-inactive-blank-line")).toBe(true);
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("skips the collapsed structural separator when ArrowUp exits above a table", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = ["Before", "", "| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+
+    const input = host.querySelector<HTMLInputElement>('[data-table-cell="0:0"]');
+    const view = getEditorView(host);
+
+    expect(input).toBeInstanceOf(HTMLElement);
+    expect(view).not.toBeNull();
+
+    input?.focus();
+    input?.setSelectionRange(0, 0);
+    input?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", code: "ArrowUp", bubbles: true, cancelable: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(document.activeElement).not.toBe(input);
+    expect(view?.state.selection.main.anchor).toBe("Before".length);
+
+    const blankLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === ""
+    );
+
+    expect(blankLine?.classList.contains("cm-inactive-blank-line")).toBe(true);
 
     controller.destroy();
     host.remove();
@@ -4522,9 +4612,9 @@ describe("createCodeEditorController", () => {
     input?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", code: "ArrowUp", bubbles: true, cancelable: true }));
     await flushMicrotasks();
 
-    expect(activeBlockTypes.at(-1)).toBe(null);
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
     expect(document.activeElement).not.toBe(input);
-    expect(getEditorView(host)?.state.selection.main.anchor).toBe(source.indexOf("\n\n") + 1);
+    expect(getEditorView(host)?.state.selection.main.anchor).toBe("Before".length);
 
     controller.destroy();
     host.remove();
@@ -4714,6 +4804,285 @@ describe("createCodeEditorController", () => {
     const highlightedCell = host.querySelector<HTMLElement>('.cm-table-widget-cell[data-active="true"]');
 
     expect(highlightedCell).toBeNull();
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("does not enter the previous table when ArrowDown is pressed from the paragraph below it", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Tables",
+      "",
+      "| Option | Description |",
+      "| --- | --- |",
+      "| data | path to data files to supply the data that will be passed into templates. |",
+      "| engine | engine to be used for processing templates. Handlebars is the default. |",
+      "| ext | extension to be used for dest files. |",
+      "",
+      "Right aligned columns"
+    ].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+    const paragraphStart = source.indexOf("Right aligned columns");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    view!.dispatch({ selection: { anchor: paragraphStart, head: paragraphStart } });
+    await flushMicrotasks();
+
+    const arrowDown = new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      code: "ArrowDown",
+      bubbles: true,
+      cancelable: true
+    });
+
+    view!.contentDOM.dispatchEvent(arrowDown);
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(arrowDown.defaultPrevented).toBe(true);
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(view!.state.selection.main.anchor).toBe(paragraphStart);
+    expect(host.querySelector('.cm-table-widget-cell[data-active="true"]')).toBeNull();
+    expect(document.activeElement?.classList.contains("cm-table-widget-input")).toBe(false);
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("handles ArrowDown from the paragraph below a table before default browser geometry can re-enter it", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Tables",
+      "",
+      "| Option | Description |",
+      "| --- | --- |",
+      "| data | path to data files. |",
+      "",
+      "Right aligned columns",
+      "Next paragraph line"
+    ].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+    const paragraphStart = source.indexOf("Right aligned columns");
+    const nextLineStart = source.indexOf("Next paragraph line");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    view!.dispatch({ selection: { anchor: paragraphStart, head: paragraphStart } });
+    await flushMicrotasks();
+
+    const arrowDown = new KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      code: "ArrowDown",
+      bubbles: true,
+      cancelable: true
+    });
+
+    view!.contentDOM.dispatchEvent(arrowDown);
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(arrowDown.defaultPrevented).toBe(true);
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(view!.state.selection.main.anchor).toBe(nextLineStart);
+    expect(host.querySelector('.cm-table-widget-cell[data-active="true"]')).toBeNull();
+    expect(document.activeElement?.classList.contains("cm-table-widget-input")).toBe(false);
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("focuses the following table instead of the previous table when ArrowDown enters a repeated cell coordinate", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Tables",
+      "",
+      "| Option | Description |",
+      "| --- | --- |",
+      "| data | path to data files. |",
+      "",
+      "Right aligned columns",
+      "",
+      "| Right | Amount |",
+      "| ---: | ---: |",
+      "| foo | 10 |"
+    ].join("\n");
+    const activeTableStarts: number[] = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        if (state.tableCursor?.mode === "inside") {
+          activeTableStarts.push(state.tableCursor.tableStartOffset);
+        }
+      }
+    });
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+    const paragraphStart = source.indexOf("Right aligned columns");
+    const followingTableStart = source.indexOf("| Right | Amount |");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    view!.dispatch({ selection: { anchor: paragraphStart, head: paragraphStart } });
+    await flushMicrotasks();
+
+    dispatchEditorKeydown(view, "ArrowDown");
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    const activeCell = host.querySelector<HTMLElement>('.cm-table-widget-cell[data-active="true"]');
+    const focusedTable = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(".cm-table-widget");
+
+    expect(activeTableStarts.at(-1)).toBe(followingTableStart);
+    expect(view!.state.selection.main.anchor).toBe(source.indexOf("Right", followingTableStart));
+    expect(activeCell?.closest<HTMLElement>(".cm-table-widget")?.dataset.tableStartOffset).toBe(
+      String(followingTableStart)
+    );
+    expect(focusedTable?.dataset.tableStartOffset).toBe(String(followingTableStart));
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("does not route ArrowDown back into a table after clicking the paragraph below it", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Tables",
+      "",
+      "| Option | Description |",
+      "| --- | --- |",
+      "| data | path to data files to supply the data that will be passed into templates. |",
+      "| engine | engine to be used for processing templates. Handlebars is the default. |",
+      "| ext | extension to be used for dest files. |",
+      "",
+      "Right aligned columns"
+    ].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+    const input = host.querySelector<HTMLInputElement>('[data-table-cell="0:0"]');
+    const paragraphLine = getLineElementByText(host, "Right aligned columns");
+    const view = getEditorView(host);
+
+    expect(input).toBeInstanceOf(HTMLElement);
+    expect(paragraphLine).toBeInstanceOf(HTMLElement);
+    expect(view).not.toBeNull();
+
+    input?.focus();
+    input?.setSelectionRange(0, 0);
+    paragraphLine?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    paragraphLine?.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+    paragraphLine?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    const keyTarget = document.activeElement instanceof HTMLElement ? document.activeElement : view!.contentDOM;
+
+    keyTarget.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        code: "ArrowDown",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(view!.state.selection.main.anchor).toBe(source.indexOf("Right aligned columns"));
+    expect(document.activeElement).not.toBe(input);
+    expect(host.querySelector('.cm-table-widget-cell[data-active="true"]')).toBeNull();
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("does not let a stale queued table focus pull the caret back from the paragraph below", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "Before",
+      "",
+      "| Option | Description |",
+      "| --- | --- |",
+      "| data | path to data files. |",
+      "",
+      "Right aligned columns"
+    ].join("\n");
+    const activeBlockTypes: Array<string | null> = [];
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      onActiveBlockChange: (state) => {
+        activeBlockTypes.push(state.activeBlock?.type ?? null);
+      }
+    });
+    const view = getEditorView(host);
+    const editorRoot = host.querySelector(".cm-editor");
+    const paragraphStart = source.indexOf("Right aligned columns");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    view!.dispatch({ selection: { anchor: source.indexOf("\n\n") + 1 } });
+    dispatchEditorKeydown(view, "ArrowDown");
+    view!.dispatch({ selection: { anchor: paragraphStart, head: paragraphStart } });
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(activeBlockTypes.at(-1)).toBe("paragraph");
+    expect(view!.state.selection.main.anchor).toBe(paragraphStart);
+    expect(host.querySelector('.cm-table-widget-cell[data-active="true"]')).toBeNull();
+    expect(document.activeElement?.classList.contains("cm-table-widget-input")).toBe(false);
 
     controller.destroy();
     host.remove();
@@ -5382,9 +5751,9 @@ describe("createCodeEditorController", () => {
     const blockquoteBlankLineStart = source.indexOf("\n\n```ts") + 1;
     const blockquoteTailAnchor = source.indexOf("第三条引用内容");
     const tableAboveBlankLineStart = source.indexOf("\n\n| name | qty | note |") + 1;
-    const tableHeadAnchor = source.indexOf("name") + "name".length;
+    const tableHeadAnchor = source.indexOf("name");
     const tableBelowBlankLineStart = source.indexOf("\n\n表格下方的普通段落第一行。") + 1;
-    const tableTailAnchor = source.indexOf("ink") + "ink".length;
+    const tableTailAnchor = source.indexOf("ink");
 
     view!.dispatch({
       selection: {

@@ -9,6 +9,21 @@
 
 ## 记录
 
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run test:cursor-hit-geometry` | 先失败后通过 | 新增 Electron/Chromium 几何 probe：修复前 `After break line` 可见文字中心被 `posAtCoords` 命中到后续 table 行，`After table line` 命中到下一行；将分割线与表格 widget 等垂直间距收敛进可测量 padding/box 后，fixture 中 8 个文本采样全部命中预期源码行。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run test:list-geometry` | 通过 | 复核既有列表几何 probe，active/inactive 列表 marker、正文起点、任务列表 marker 与 heading/paragraph left 对齐未回归。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run test -- src/renderer/editor-source-layout.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/decorations/block-decorations.test.ts` | 通过 | 覆盖 CSS 几何契约、CodeMirror renderer 交互与 editor-core block decoration 回归；3 个文件、193 项通过。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run test -- src/renderer/app.autosave.test.ts` | 通过 | 覆盖 renderer shell、主题/样式契约与 autosave 相关回归；1 个文件、151 项通过。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run test` | 通过 | Vitest 全量通过：94 个测试文件、947 项测试。 |
+| 2026-05-05 | cursor-hit-offset | `npm.cmd run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-05 | cursor-hit-offset | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run test -- src/renderer/app.autosave.test.ts -t "keeps editing mode when the user drags the editor scrollbar"` | 先失败后通过 | 新增回归先复现 editor scrollbar mousedown 会把 shell mode 从 editing 切到 reading；修复后目标用例通过。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run test -- src/renderer/app.autosave.test.ts` | 通过 | 覆盖阅读/编辑模式、焦点、settings、autosave 等 renderer 壳层回归；1 个文件、151 项通过。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx` Fast Refresh warning。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-05 | editor-scrollbar-mode-guard | `npm.cmd run test` | 通过 | Vitest 全量通过：94 个测试文件、947 项测试。 |
 | 2026-05-05 | ordered-list-caret-stability | `npm.cmd run test -- src/renderer/code-editor.test.ts packages/editor-core/src/commands/list-edits.test.ts packages/editor-core/src/commands/markdown-commands.test.ts` | 通过 | 覆盖有序列表边界 Backspace 与列表项中间 Enter 后的光标稳定性；ordered-list normalization 改为 marker 级最小 changes 后，光标不再被整段 list replacement 映射到列表末尾；3 个文件、192 项通过。 |
 | 2026-05-05 | ordered-list-caret-stability | `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/export-html.test.ts packages/editor-core/src/commands/list-edits.test.ts packages/editor-core/src/commands/markdown-commands.test.ts src/renderer/code-editor.test.ts src/shared/markdown-text-rendering-standard.test.ts src/renderer/editor-source-layout.test.ts` | 通过 | 复跑列表、结构性空白行、导出与样式契约组合回归；7 个文件、239 项通过。 |
 | 2026-05-05 | ordered-list-caret-stability | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |

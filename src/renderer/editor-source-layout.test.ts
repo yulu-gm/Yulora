@@ -283,6 +283,41 @@ describe("editor source layout stylesheet", () => {
     expect(blankLineRule).toContain("overflow: hidden;");
   });
 
+  it("keeps vertical editor spacing inside measured CodeMirror boxes", async () => {
+    const stylesheet = await readFile(resolve(process.cwd(), "src/renderer/styles/markdown-render.css"), "utf8");
+    const blockquoteEndRule = getCssRule(stylesheet, ".document-editor .cm-inactive-blockquote-end");
+    const codeBlockEndRule = getCssRule(stylesheet, ".document-editor .cm-inactive-code-block-end");
+    const thematicBreakRule = getCssRule(stylesheet, ".document-editor .cm-inactive-thematic-break");
+    const tableWidgetRule = getCssRule(stylesheet, ".document-editor .cm-table-widget");
+    const thematicBeforeTableRule = getCssRule(
+      stylesheet,
+      ".document-editor .cm-inactive-thematic-break:has(+ .cm-table-widget)"
+    );
+    const tableAfterThematicRule = getCssRule(
+      stylesheet,
+      ".document-editor .cm-inactive-thematic-break + .cm-table-widget"
+    );
+
+    expect(blockquoteEndRule).toContain("padding-bottom: calc(0.35rem + 0.2rem);");
+    expect(blockquoteEndRule).not.toContain("margin-bottom:");
+    expect(codeBlockEndRule).toContain("padding-bottom: calc(0.65rem + 0.35rem);");
+    expect(codeBlockEndRule).not.toContain("margin-bottom:");
+    expect(thematicBreakRule).toContain("padding-top: calc(0.95rem + 0.18rem);");
+    expect(thematicBreakRule).toContain("padding-bottom: calc(0.9rem + 0.28rem);");
+    expect(thematicBreakRule).toContain("margin: 0;");
+    expect(tableWidgetRule).toContain("box-sizing: border-box;");
+    expect(tableWidgetRule).toContain("padding: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
+    expect(tableWidgetRule).toContain("margin: 0;");
+    expect(thematicBeforeTableRule).toContain(
+      "var(--fishmark-table-after-break-padding-bottom) + var(--fishmark-table-after-break-margin-bottom)"
+    );
+    expect(thematicBeforeTableRule).not.toContain("margin-bottom:");
+    expect(tableAfterThematicRule).toContain(
+      "padding-top: calc(var(--fishmark-table-margin-top) + var(--fishmark-table-after-break-margin-top));"
+    );
+    expect(tableAfterThematicRule).not.toContain("margin-top:");
+  });
+
   it("measures list marker gaps and wrapped line alignment in a DOM geometry fixture", async () => {
     const standard = await readMarkdownTextStandard();
     const stylesheet = await readFile(resolve(process.cwd(), "src/renderer/styles/markdown-render.css"), "utf8");

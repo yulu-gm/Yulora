@@ -190,6 +190,22 @@ function resolveLineAfterStructuralSeparator(context: VerticalInteractionContext
   return blockBelow ? resolveVisibleBlockEntryAnchor(blockBelow, "start") : null;
 }
 
+function findTableAboveVisibleLine(
+  context: VerticalInteractionContext,
+  lineNumber: number
+): TableBlock | null {
+  const previousLineNumber = lineNumber - 1;
+  const previousBlock = findBlockForLine(context.document.blocks, previousLineNumber);
+
+  if (previousBlock?.type === "table" && previousBlock.endLine === previousLineNumber) {
+    return previousBlock as TableBlock;
+  }
+
+  const separatorBlock = findBlockAboveStructuralSeparator(context, previousLineNumber);
+
+  return separatorBlock?.type === "table" ? (separatorBlock as TableBlock) : null;
+}
+
 function resolveCollapsedSeparatorArrowUp(context: VerticalInteractionContext): number | null {
   const selection = context.view.state.selection.main;
 
@@ -252,6 +268,65 @@ function resolveCollapsedSeparatorArrowDown(context: VerticalInteractionContext)
   }
 
   return resolveLineAfterStructuralSeparator(context, currentLine.number + 1);
+}
+
+function resolveFirstLineBelowTableArrowDown(
+  context: VerticalInteractionContext
+): VerticalNavigationResult | null {
+  const selection = context.view.state.selection.main;
+
+  if (!selection.empty) {
+    return null;
+  }
+
+  const currentLine = context.view.state.doc.lineAt(context.lineStart);
+
+  if (isBlankLineText(currentLine.text)) {
+    return null;
+  }
+
+  const currentBlock = findBlockForLine(context.document.blocks, currentLine.number);
+
+  if (!currentBlock) {
+    return null;
+  }
+
+  if (!findTableAboveVisibleLine(context, currentLine.number)) {
+    return null;
+  }
+
+  const nextLineNumber = currentLine.number + 1;
+
+  if (nextLineNumber <= context.view.state.doc.lines) {
+    const nextLine = context.view.state.doc.line(nextLineNumber);
+    const nextBlock = findBlockForLine(context.document.blocks, nextLine.number);
+
+    if (!isBlankLineText(nextLine.text) && nextBlock) {
+      const currentVisible = createVisibleLine({
+        source: context.source,
+        block: currentBlock,
+        lineStart: currentLine.from,
+        lineEnd: currentLine.to
+      });
+      const nextVisible = createVisibleLine({
+        source: context.source,
+        block: nextBlock,
+        lineStart: nextLine.from,
+        lineEnd: nextLine.to
+      });
+      const column = context.goalColumn ?? visibleLineColumn(currentVisible, selection.anchor);
+
+      return {
+        anchor: anchorForVisibleLineColumn(nextVisible, column),
+        goalColumn: column
+      };
+    }
+  }
+
+  return {
+    anchor: selection.anchor,
+    goalColumn: context.goalColumn
+  };
 }
 
 function resolveSourceLineArrowUp(context: VerticalInteractionContext): VerticalNavigationResult | null {
@@ -480,6 +555,7 @@ export const lineBlockAdapter: BlockInteractionAdapter = {
   resolveArrowDown(context) {
     return (
       resolveCollapsedSeparatorArrowDown(context) ??
+      resolveFirstLineBelowTableArrowDown(context) ??
       resolveSourceLineArrowDown(context) ??
       resolveAdjacentBlockArrowDown(context)
     );

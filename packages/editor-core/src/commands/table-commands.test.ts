@@ -117,7 +117,74 @@ describe("table commands", () => {
     const harness = createHarness(doc, doc.indexOf("qty"));
 
     expect(runTableMoveUp(harness.view, harness.activeState)).toBe(true);
-    expect(harness.view.state.selection.main.anchor).toBe(doc.indexOf("\n\n") + 1);
+    expect(harness.view.state.selection.main.anchor).toBe("Paragraph".length);
+
+    harness.destroy();
+  });
+
+  it("exits below the table by skipping a single structural blank separator", () => {
+    const doc = ["| name | qty |", "| --- | ---: |", "| pen | 2 |", "", "After"].join("\n");
+    const harness = createHarness(doc, doc.indexOf("pen"));
+
+    expect(runTableMoveDown(harness.view, harness.activeState)).toBe(true);
+    expect(harness.view.state.selection.main.anchor).toBe(doc.indexOf("After"));
+
+    harness.destroy();
+  });
+
+  it("keeps the first extra blank row reachable below a table", () => {
+    const doc = ["| name | qty |", "| --- | ---: |", "| pen | 2 |", "", "", "After"].join("\n");
+    const extraBlankLineStart = doc.indexOf("\n\n\n") + 2;
+    const harness = createHarness(doc, doc.indexOf("pen"));
+
+    expect(runTableMoveDown(harness.view, harness.activeState)).toBe(true);
+    expect(harness.view.state.selection.main.anchor).toBe(extraBlankLineStart);
+
+    harness.destroy();
+  });
+
+  it("keeps the first extra blank row reachable above a table", () => {
+    const doc = ["Before", "", "", "| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
+    const extraBlankLineStart = doc.indexOf("\n\n\n") + 2;
+    const harness = createHarness(doc, doc.indexOf("qty"));
+
+    expect(runTableMoveUp(harness.view, harness.activeState)).toBe(true);
+    expect(harness.view.state.selection.main.anchor).toBe(extraBlankLineStart);
+
+    harness.destroy();
+  });
+
+  it("skips structural blank separators around tables when the document uses CRLF", () => {
+    const doc = [
+      "Before",
+      "",
+      "| name | qty |",
+      "| --- | ---: |",
+      "| pen | 2 |",
+      "",
+      "After"
+    ].join("\r\n");
+    const downHarness = createHarness(doc, doc.indexOf("pen"));
+
+    expect(runTableMoveDown(downHarness.view, downHarness.activeState)).toBe(true);
+    expect(downHarness.view.state.selection.main.anchor).toBe(doc.indexOf("After"));
+
+    downHarness.destroy();
+
+    const upHarness = createHarness(doc, doc.indexOf("qty"));
+
+    expect(runTableMoveUp(upHarness.view, upHarness.activeState)).toBe(true);
+    expect(upHarness.view.state.selection.main.anchor).toBe("Before".length);
+
+    upHarness.destroy();
+  });
+
+  it("keeps a leading user-authored blank row reachable above a table", () => {
+    const doc = ["", "| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
+    const harness = createHarness(doc, doc.indexOf("qty"));
+
+    expect(runTableMoveUp(harness.view, harness.activeState)).toBe(true);
+    expect(harness.view.state.selection.main.anchor).toBe(0);
 
     harness.destroy();
   });

@@ -485,6 +485,20 @@
 - 用 CRLF 文本替换当前文档后，分割线装饰不会整体错位
 - 现有 heading、paragraph、list、blockquote 与 code block 渲染不回归
 
+### TC-017A 鼠标点击文本命中行稳定
+
+步骤：
+1. 输入包含 heading、blockquote、fenced code block、分割线、表格和普通段落的混合 Markdown。
+2. 把光标移动到最后一个普通段落，让前面的块进入 inactive 阅读态。
+3. 分别点击 blockquote 后、code block 后、分割线后、表格后的普通文本中心位置。
+4. 如需自动化回归，运行 `npm run test:cursor-hit-geometry`（Windows PowerShell 可用 `npm.cmd run test:cursor-hit-geometry`）。
+
+预期：
+- 点击可见文本中心时，CodeMirror `posAtCoords` 命中的源码行必须与可见文本所在行一致。
+- 不需要把鼠标刻意偏到文字上方才能把光标放进目标行。
+- 分割线、表格等块级渲染的视觉间距不能通过 CodeMirror 测量不到的 vertical margin 实现。
+- 现有 list geometry、active block 切换、undo / redo 与 IME composition guard 不回归。
+
 ### TC-034 行内格式渲染
 
 步骤：

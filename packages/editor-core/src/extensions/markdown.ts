@@ -169,25 +169,48 @@ export function createFishMarkMarkdownExtensions(
 
   const focusTableCellEditor = (view: EditorView, target: TablePosition) => {
     queueMicrotask(() => {
-      const editor = view.dom.querySelector<HTMLElement>(
-        `[data-table-cell="${target.row}:${target.column}"]`
-      );
+      const liveActiveState = createLiveActiveBlockState(view.state);
+      const liveCursor = liveActiveState.tableCursor;
+
+      if (
+        liveCursor?.mode !== "inside" ||
+        liveCursor.tableStartOffset !== target.tableStartOffset ||
+        liveCursor.row !== target.row ||
+        liveCursor.column !== target.column
+      ) {
+        return;
+      }
+
+      const editor = findTableCellEditor(view, liveCursor);
 
       if (!editor) {
         return;
       }
 
+      const contentLength = readTableCellText(editor).length;
+      const nextOffset = Math.max(
+        0,
+        Math.min(liveCursor.offsetInCell ?? target.offsetInCell ?? contentLength, contentLength)
+      );
+
+      setTableCellSelection(editor, nextOffset);
+
       if (document.activeElement !== editor) {
         editor.focus();
       }
 
-      const contentLength = readTableCellText(editor).length;
-      const nextOffset = Math.max(
-        0,
-        Math.min(target.offsetInCell ?? contentLength, contentLength)
-      );
       setTableCellSelection(editor, nextOffset);
     });
+  };
+
+  const findTableCellEditor = (view: EditorView, target: Required<TablePosition>): HTMLElement | null => {
+    const tableRoot = Array.from(view.dom.querySelectorAll<HTMLElement>(".cm-table-widget")).find(
+      (root) => root.dataset.tableStartOffset === String(target.tableStartOffset)
+    );
+
+    return tableRoot?.querySelector<HTMLElement>(
+      `[data-table-cell="${target.row}:${target.column}"]`
+    ) ?? null;
   };
 
   const readTableCellText = (editor: HTMLElement) => editor.textContent ?? "";

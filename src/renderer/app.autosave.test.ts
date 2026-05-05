@@ -185,7 +185,7 @@ type MockCodeEditorModule = typeof codeEditorViewModule & {
     getRenderCount: () => number;
     emitActiveBlockChange: (state: unknown) => void;
     getNavigateCalls: () => number[];
-    setLayout: (layout: { hostLeft: number; hostWidth: number; contentLeft: number; contentWidth: number }) => void;
+    setLayout: (layout: MockEditorLayout) => void;
     triggerResize: () => void;
     reset: () => void;
   };
@@ -197,22 +197,40 @@ type MockEditorLayout = {
   hostWidth: number;
   contentLeft: number;
   contentWidth: number;
+  scrollerLeft?: number;
+  scrollerWidth?: number;
+  scrollerHeight?: number;
+  scrollerClientWidth?: number;
+  scrollerClientHeight?: number;
+  scrollerScrollWidth?: number;
+  scrollerScrollHeight?: number;
 };
 
-function createDomRect(left: number, width: number): DOMRect {
+function createDomRect(left: number, width: number, height = 100): DOMRect {
   return {
     x: left,
     y: 0,
     width,
-    height: 100,
+    height,
     top: 0,
     right: left + width,
-    bottom: 100,
+    bottom: height,
     left,
     toJSON() {
       return {};
     }
   } as DOMRect;
+}
+
+function setElementNumberProperty(
+  element: HTMLElement,
+  property: "clientHeight" | "clientWidth" | "offsetHeight" | "offsetWidth" | "scrollHeight" | "scrollWidth",
+  value: number
+): void {
+  Object.defineProperty(element, property, {
+    configurable: true,
+    value
+  });
 }
 
 class MockResizeObserver {
@@ -298,6 +316,7 @@ vi.mock("./code-editor-view", async () => {
     | undefined;
   let currentContent = "";
   let latestHostElement: HTMLDivElement | null = null;
+  let latestScrollerElement: HTMLDivElement | null = null;
   let latestContentElement: HTMLDivElement | null = null;
   let navigateCalls: number[] = [];
   let renderCount = 0;
@@ -307,6 +326,36 @@ vi.mock("./code-editor-view", async () => {
     contentLeft: 240,
     contentWidth: 520
   };
+
+  function applyMockEditorLayout(): void {
+    if (latestHostElement) {
+      latestHostElement.getBoundingClientRect = () => createDomRect(layout.hostLeft, layout.hostWidth);
+    }
+
+    if (latestScrollerElement) {
+      const scrollerLeft = layout.scrollerLeft ?? layout.hostLeft;
+      const scrollerWidth = layout.scrollerWidth ?? layout.hostWidth;
+      const scrollerHeight = layout.scrollerHeight ?? 100;
+      const scrollerClientWidth = layout.scrollerClientWidth ?? scrollerWidth;
+      const scrollerClientHeight = layout.scrollerClientHeight ?? scrollerHeight;
+      const scrollerScrollWidth = layout.scrollerScrollWidth ?? scrollerClientWidth;
+      const scrollerScrollHeight = layout.scrollerScrollHeight ?? scrollerClientHeight;
+
+      latestScrollerElement.getBoundingClientRect = () =>
+        createDomRect(scrollerLeft, scrollerWidth, scrollerHeight);
+      setElementNumberProperty(latestScrollerElement, "offsetWidth", scrollerWidth);
+      setElementNumberProperty(latestScrollerElement, "clientWidth", scrollerClientWidth);
+      setElementNumberProperty(latestScrollerElement, "scrollWidth", scrollerScrollWidth);
+      setElementNumberProperty(latestScrollerElement, "offsetHeight", scrollerHeight);
+      setElementNumberProperty(latestScrollerElement, "clientHeight", scrollerClientHeight);
+      setElementNumberProperty(latestScrollerElement, "scrollHeight", scrollerScrollHeight);
+    }
+
+    if (latestContentElement) {
+      latestContentElement.getBoundingClientRect = () =>
+        createDomRect(layout.contentLeft, layout.contentWidth);
+    }
+  }
 
   const CodeEditorView = React.forwardRef(function MockCodeEditorView(
     props: {
@@ -348,19 +397,13 @@ vi.mock("./code-editor-view", async () => {
     React.useEffect(() => {
       const hostElement = document.querySelector('[data-testid="mock-code-editor"]');
       latestHostElement = hostElement instanceof HTMLDivElement ? hostElement : null;
+      latestScrollerElement = latestHostElement?.querySelector(".cm-scroller") ?? null;
       latestContentElement = latestHostElement?.querySelector(".cm-content") ?? null;
-
-      if (latestHostElement) {
-        latestHostElement.getBoundingClientRect = () => createDomRect(layout.hostLeft, layout.hostWidth);
-      }
-
-      if (latestContentElement) {
-        latestContentElement.getBoundingClientRect = () =>
-          createDomRect(layout.contentLeft, layout.contentWidth);
-      }
+      applyMockEditorLayout();
 
       return () => {
         latestHostElement = null;
+        latestScrollerElement = null;
         latestContentElement = null;
       };
     }, []);
@@ -390,8 +433,12 @@ vi.mock("./code-editor-view", async () => {
         onBlur: () => props.onBlur?.()
       },
       React.createElement("div", {
+        className: "cm-scroller"
+      },
+      React.createElement("div", {
         className: "cm-content"
       })
+      )
     );
   });
 
@@ -422,15 +469,7 @@ vi.mock("./code-editor-view", async () => {
       },
       setLayout(nextLayout: MockEditorLayout) {
         layout = nextLayout;
-
-        if (latestHostElement) {
-          latestHostElement.getBoundingClientRect = () => createDomRect(layout.hostLeft, layout.hostWidth);
-        }
-
-        if (latestContentElement) {
-          latestContentElement.getBoundingClientRect = () =>
-            createDomRect(layout.contentLeft, layout.contentWidth);
-        }
+        applyMockEditorLayout();
       },
       triggerResize() {
         MockResizeObserver.trigger();
@@ -439,6 +478,7 @@ vi.mock("./code-editor-view", async () => {
         latestProps = undefined;
         currentContent = "";
         latestHostElement = null;
+        latestScrollerElement = null;
         latestContentElement = null;
         navigateCalls = [];
         renderCount = 0;
@@ -3922,6 +3962,42 @@ describe("App autosave", () => {
     expect(appShell?.dataset.fishmarkShellMode).toBe("reading");
   });
 
+  it("keeps editing mode when the user drags the editor scrollbar", async () => {
+    codeEditorMock.setLayout({
+      hostLeft: 0,
+      hostWidth: 880,
+      contentLeft: 240,
+      contentWidth: 520,
+      scrollerLeft: 0,
+      scrollerWidth: 880,
+      scrollerHeight: 100,
+      scrollerClientWidth: 864,
+      scrollerClientHeight: 100,
+      scrollerScrollHeight: 300
+    });
+
+    await renderAndOpenDocument();
+
+    const appShell = container.querySelector<HTMLElement>(".app-shell");
+    const editorScroller = container.querySelector<HTMLElement>(".cm-scroller");
+
+    await clickEditorContent();
+
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
+
+    await act(async () => {
+      editorScroller?.dispatchEvent(new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 0,
+        clientX: 872,
+        clientY: 40
+      }));
+      await Promise.resolve();
+    });
+
+    expect(appShell?.dataset.fishmarkShellMode).toBe("editing");
+  });
+
   it("exits editing mode when the user clicks workspace-canvas blank area outside the editor", async () => {
     await renderAndOpenDocument();
 
@@ -5943,7 +6019,8 @@ describe("App autosave", () => {
   it("renders table widgets through theme variables instead of hard-coded visual constants", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
 
-    expect(markdownRenderStylesheet).toContain("margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
+    expect(markdownRenderStylesheet).toContain("padding: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
+    expect(markdownRenderStylesheet).toContain("margin: 0;");
     expect(markdownRenderStylesheet).toContain("overflow-x: auto;");
     expect(markdownRenderStylesheet).toContain("table-layout: auto;");
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-bg);");

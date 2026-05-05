@@ -295,8 +295,8 @@ describe("createElectronStepHandlers", () => {
       },
       {
         type: "assert-editor-selection",
-        expectedAnchor: fixtureContent.indexOf("name") + "name".length,
-        expectedHead: fixtureContent.indexOf("name") + "name".length
+        expectedAnchor: fixtureContent.indexOf("name"),
+        expectedHead: fixtureContent.indexOf("name")
       },
       {
         type: "set-editor-selection",
@@ -308,8 +308,8 @@ describe("createElectronStepHandlers", () => {
       },
       {
         type: "assert-editor-selection",
-        expectedAnchor: fixtureContent.indexOf("ink") + "ink".length,
-        expectedHead: fixtureContent.indexOf("ink") + "ink".length
+        expectedAnchor: fixtureContent.indexOf("ink"),
+        expectedHead: fixtureContent.indexOf("ink")
       }
     ]);
   });

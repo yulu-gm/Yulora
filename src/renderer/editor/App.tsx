@@ -212,6 +212,38 @@ function isEditingContentPointerEvent(event: MouseEvent, editorContainer: HTMLEl
   return contentElement ? isPointerInsideRect(event, contentElement) : false;
 }
 
+function isEditorScrollbarPointerEvent(event: MouseEvent, editorContainer: HTMLElement): boolean {
+  const target = event.target;
+  const scrollerElement = target instanceof Element
+    ? target.closest<HTMLElement>(".cm-scroller")
+    : null;
+
+  if (!scrollerElement || !editorContainer.contains(scrollerElement)) {
+    return false;
+  }
+
+  const rect = scrollerElement.getBoundingClientRect();
+  const verticalScrollbarWidth = Math.max(0, scrollerElement.offsetWidth - scrollerElement.clientWidth);
+  const horizontalScrollbarHeight = Math.max(0, scrollerElement.offsetHeight - scrollerElement.clientHeight);
+  const hasVerticalScrollbar =
+    scrollerElement.scrollHeight > scrollerElement.clientHeight && verticalScrollbarWidth > 0;
+  const hasHorizontalScrollbar =
+    scrollerElement.scrollWidth > scrollerElement.clientWidth && horizontalScrollbarHeight > 0;
+
+  return (
+    (hasVerticalScrollbar &&
+      event.clientX >= rect.right - verticalScrollbarWidth &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom) ||
+    (hasHorizontalScrollbar &&
+      event.clientY >= rect.bottom - horizontalScrollbarHeight &&
+      event.clientY <= rect.bottom &&
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right)
+  );
+}
+
 export function isFocusedEditorInteractiveElement(editorContainer: HTMLElement | null): boolean {
   const activeElement = document.activeElement;
 
@@ -710,7 +742,10 @@ function EditorShell({
       if (
         editorContainer &&
         editorContainer.contains(target) &&
-        isEditingContentPointerEvent(event.nativeEvent, editorContainer)
+        (
+          isEditingContentPointerEvent(event.nativeEvent, editorContainer) ||
+          isEditorScrollbarPointerEvent(event.nativeEvent, editorContainer)
+        )
       ) {
         return;
       }
@@ -1238,6 +1273,12 @@ function EditorShell({
         }
 
         const isEditingContentClick = isEditingContentPointerEvent(event, editorContainer);
+        const isScrollbarClick = isEditorScrollbarPointerEvent(event, editorContainer);
+        if (isScrollbarClick) {
+          lastEditorPointerIntentRef.current = null;
+          return;
+        }
+
         lastEditorPointerIntentRef.current = isEditingContentClick ? "editing" : "blank";
 
         if (isEditingContentClick) {

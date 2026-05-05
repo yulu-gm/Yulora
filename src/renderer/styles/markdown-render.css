@@ -513,10 +513,9 @@
 }
 
 .document-editor .cm-inactive-blockquote-end {
-  padding-bottom: 0.35rem;
+  padding-bottom: calc(0.35rem + 0.2rem);
   border-bottom-left-radius: 0.7rem;
   border-bottom-right-radius: 0.7rem;
-  margin-bottom: 0.2rem;
 }
 
 .document-editor .cm-inactive-blockquote-marker {
@@ -561,10 +560,9 @@
 }
 
 .document-editor .cm-inactive-code-block-end {
-  padding-bottom: 0.65rem;
+  padding-bottom: calc(0.65rem + 0.35rem);
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
-  margin-bottom: 0.35rem;
   position: relative;
   box-shadow:
     inset 1px 0 0 0 var(--fishmark-markdown-code-border, rgba(31, 35, 40, 0.12)),
@@ -596,9 +594,9 @@
   color: transparent;
   font-size: 0;
   line-height: 0;
-  padding-top: 0.95rem;
-  padding-bottom: 0.9rem;
-  margin: 0.18rem 0 0.28rem;
+  padding-top: calc(0.95rem + 0.18rem);
+  padding-bottom: calc(0.9rem + 0.28rem);
+  margin: 0;
 }
 
 .document-editor .cm-inactive-thematic-break::before {
@@ -613,17 +611,20 @@
 }
 
 .document-editor .cm-table-widget {
-  margin: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);
+  box-sizing: border-box;
+  padding: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);
+  margin: 0;
   overflow-x: auto;
 }
 
 .document-editor .cm-inactive-thematic-break:has(+ .cm-table-widget) {
-  padding-bottom: var(--fishmark-table-after-break-padding-bottom);
-  margin-bottom: var(--fishmark-table-after-break-margin-bottom);
+  padding-bottom: calc(
+    var(--fishmark-table-after-break-padding-bottom) + var(--fishmark-table-after-break-margin-bottom)
+  );
 }
 
 .document-editor .cm-inactive-thematic-break + .cm-table-widget {
-  margin-top: var(--fishmark-table-after-break-margin-top);
+  padding-top: calc(var(--fishmark-table-margin-top) + var(--fishmark-table-after-break-margin-top));
 }
 
 .document-editor .cm-table-widget-table {
