@@ -1,0 +1,40 @@
+:root {
+  --fishmark-editor-font-family: "Aptos", "Inter", "Segoe UI", sans-serif;
+  --fishmark-editor-font-size: 1.05rem;
+  --fishmark-editor-caret: var(--fishmark-sakura-petal, #d96380);
+}
+
+.document-editor .cm-editor {
+  background: transparent;
+  color: var(--fishmark-text-body);
+}
+
+.document-editor .cm-scroller {
+  background: transparent;
+}
+
+.document-editor .cm-content {
+  caret-color: var(--fishmark-caret-color);
+}
+
+.document-editor .cm-content ::selection,
+.document-editor .cm-line::selection,
+.document-editor .cm-selectionLayer .cm-selectionBackground,
+.document-editor .cm-selectionBackground {
+  background: var(--fishmark-selection-bg);
+  color: var(--fishmark-selection-fg);
+}
+
+.document-editor .cm-activeLine {
+  background: var(--fishmark-current-line-bg);
+}
+
+.document-editor .cm-gutters,
+.document-editor .cm-gutterElement {
+  color: var(--fishmark-gutter-fg);
+}
+
+.document-editor .cm-gutters {
+  background: transparent;
+  border-right: 0;
+}

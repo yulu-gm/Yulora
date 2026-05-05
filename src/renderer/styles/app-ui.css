@@ -578,9 +578,13 @@
   align-items: stretch;
   gap: 0;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow-x: clip;
+  scrollbar-width: none;
   padding: 0 var(--fishmark-shell-gutter);
+}
+
+.workspace-tab-strip-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .workspace-tab-shell {
@@ -834,6 +838,7 @@
   grid-template-columns: clamp(56px, 6vw, 112px) minmax(0, 1fr);
   column-gap: var(--fishmark-space-4);
   align-items: stretch;
+  padding-inline-end: calc(clamp(56px, 6vw, 112px) + var(--fishmark-space-4));
 }
 
 .workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {
@@ -844,6 +849,7 @@
 
 .workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"].is-editor-open {
   grid-template-columns: minmax(0, 1fr);
+  padding-inline-end: 0;
 }
 
 .workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] .shortcut-hint-overlay-shell {
@@ -1337,55 +1343,63 @@
   display: grid;
   place-items: center;
   z-index: 1;
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 50%,
+    color-mix(in srgb, var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 36%, transparent) 0%,
+    transparent 100%
+  );
 }
 
 .empty-inner {
-  width: min(100%, 56ch);
-  padding: var(--fishmark-space-12) clamp(24px, 5vw, 48px);
-  border: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
-  border-radius: var(--fishmark-radius-xl);
-  background: var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92));
-  box-shadow: var(--fishmark-panel-shadow, var(--fishmark-shadow-3));
+  width: min(100%, 52ch);
+  padding: var(--fishmark-space-14) clamp(24px, 5vw, 48px);
   text-align: center;
+}
+
+.empty-mark {
+  display: block;
+  margin: 0 auto var(--fishmark-space-6);
+  color: var(--fishmark-welcome-kicker, var(--fishmark-text-muted, #687180));
+  opacity: 0.48;
 }
 
 .empty-kicker {
   margin: 0;
   color: var(--fishmark-welcome-kicker, var(--fishmark-text-muted, #687180));
-  font-size: 0.74rem;
-  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 .empty-inner h1 {
   width: 100%;
-  margin: var(--fishmark-space-3) auto 0;
+  margin: var(--fishmark-space-4) auto 0;
   color: var(--fishmark-welcome-heading, var(--fishmark-text-primary, #171a1f));
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-  font-weight: 620;
-  line-height: 1.18;
-  letter-spacing: -0.01em;
+  font-size: clamp(2.2rem, 4.5vw, 3rem);
+  font-weight: 660;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
 }
 
 .empty-copy {
-  width: min(100%, 48ch);
-  margin: var(--fishmark-space-4) auto 0;
+  width: min(100%, 44ch);
+  margin: var(--fishmark-space-5) auto 0;
   color: var(--fishmark-welcome-copy, var(--fishmark-text-muted, #687180));
-  font-size: 0.96rem;
-  line-height: 1.6;
+  font-size: 0.93rem;
+  line-height: 1.65;
 }
 
 .empty-meta {
   display: inline-block;
-  margin: var(--fishmark-space-6) auto 0;
-  padding: 4px 12px;
+  margin: var(--fishmark-space-8) auto 0;
+  padding: 5px 16px;
   border: 1px solid var(--fishmark-welcome-meta-border, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)));
   border-radius: var(--fishmark-radius-pill);
   background: var(--fishmark-welcome-meta-bg, transparent);
   color: var(--fishmark-welcome-meta-text, var(--fishmark-text-muted, #687180));
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-family: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 @media (max-width: 980px) {

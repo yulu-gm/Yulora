@@ -1,0 +1,221 @@
+:root {
+  /* Petal accents borrowed from the cat illustration palette — used for
+     status indicators, focus rings, and decorative seams. */
+  --fishmark-sakura-petal: #d96380;
+  --fishmark-sakura-petal-soft: #ffb3c0;
+  --fishmark-sakura-petal-deep: #a23857;
+  --fishmark-sakura-cream: #fff5f6;
+  --fishmark-sakura-blossom: #ffe0e7;
+
+  --fishmark-dirty-text: #b85a72;
+  --fishmark-clean-text: var(--fishmark-sakura-petal-deep);
+  --fishmark-danger-bg: color-mix(in srgb, var(--fishmark-surface-bg) 84%, #c94f6a 16%);
+  --fishmark-danger-border: color-mix(in srgb, var(--fishmark-border-subtle) 56%, #c94f6a 44%);
+  --fishmark-danger-text: #8b1e3a;
+  --fishmark-focus-ring: var(--fishmark-sakura-petal);
+  --fishmark-welcome-heading: color-mix(in srgb, var(--fishmark-text-strong) 92%, var(--fishmark-sakura-petal-deep) 8%);
+  --fishmark-welcome-kicker: color-mix(in srgb, var(--fishmark-text-subtle) 84%, var(--fishmark-sakura-petal) 16%);
+  --fishmark-welcome-copy: color-mix(in srgb, var(--fishmark-text-secondary) 88%, var(--fishmark-workspace-bg));
+  --fishmark-welcome-meta-bg: color-mix(in srgb, var(--fishmark-surface-muted-bg) 60%, transparent);
+  --fishmark-welcome-meta-border: color-mix(in srgb, var(--fishmark-border-subtle) 70%, var(--fishmark-sakura-petal-soft) 30%);
+  --fishmark-welcome-meta-text: color-mix(in srgb, var(--fishmark-text-subtle) 84%, var(--fishmark-sakura-petal) 16%);
+  --fishmark-rail-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, transparent);
+  --fishmark-rail-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 92%, transparent);
+  --fishmark-rail-control-border: var(--fishmark-border-subtle);
+  --fishmark-rail-control-border-hover: var(--fishmark-border-muted);
+  --fishmark-rail-control-fg: var(--fishmark-text-secondary);
+  --fishmark-rail-control-fg-hover: var(--fishmark-text-strong);
+  --fishmark-rail-control-shadow: 0 8px 18px rgba(217, 99, 128, 0.14);
+}
+
+:root[data-fishmark-theme-mode="dark"] {
+  --fishmark-sakura-petal: #ff9eb5;
+  --fishmark-sakura-petal-soft: #ffc6d1;
+  --fishmark-sakura-petal-deep: #f08aa3;
+  --fishmark-sakura-cream: #2c1a22;
+  --fishmark-sakura-blossom: #36202a;
+  --fishmark-dirty-text: #ffb6c5;
+  --fishmark-clean-text: var(--fishmark-sakura-petal-soft);
+  --fishmark-danger-bg: color-mix(in srgb, var(--fishmark-surface-bg) 78%, #c94f6a 22%);
+  --fishmark-danger-border: color-mix(in srgb, var(--fishmark-border-subtle) 50%, #c94f6a 50%);
+  --fishmark-danger-text: #ffc6d1;
+  --fishmark-welcome-heading: color-mix(in srgb, var(--fishmark-text-strong) 92%, var(--fishmark-sakura-petal-soft) 8%);
+  --fishmark-welcome-kicker: color-mix(in srgb, var(--fishmark-text-subtle) 80%, var(--fishmark-sakura-petal-soft) 20%);
+  --fishmark-welcome-copy: color-mix(in srgb, var(--fishmark-text-secondary) 88%, var(--fishmark-sakura-petal-soft) 12%);
+  --fishmark-welcome-meta-bg: color-mix(in srgb, var(--fishmark-surface-muted-bg) 70%, transparent);
+  --fishmark-welcome-meta-border: color-mix(in srgb, var(--fishmark-border-subtle) 64%, var(--fishmark-sakura-petal-soft) 22%);
+  --fishmark-welcome-meta-text: color-mix(in srgb, var(--fishmark-text-subtle) 76%, var(--fishmark-sakura-petal-soft) 24%);
+  --fishmark-rail-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 80%, var(--fishmark-surface-muted-bg));
+  --fishmark-rail-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 90%, var(--fishmark-surface-raised-bg));
+  --fishmark-rail-control-border: color-mix(in srgb, var(--fishmark-border-subtle) 84%, rgba(255, 158, 181, 0.18));
+  --fishmark-rail-control-border-hover: color-mix(in srgb, var(--fishmark-border-muted) 80%, rgba(255, 158, 181, 0.32));
+  --fishmark-rail-control-fg: color-mix(in srgb, var(--fishmark-text-secondary) 88%, var(--fishmark-sakura-petal-soft) 12%);
+  --fishmark-rail-control-fg-hover: color-mix(in srgb, var(--fishmark-text-strong) 84%, var(--fishmark-sakura-petal-soft) 16%);
+  --fishmark-rail-control-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+}
+
+/* Titlebar — gentle pink wash, like the top of a strawberry milk. */
+[data-fishmark-surface="titlebar"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-sakura-blossom) 80%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 60%, transparent)
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--fishmark-border-subtle) 70%, transparent);
+}
+
+/* Side rail — soft petal panel hugging the left edge. */
+[data-fishmark-layout="rail"].app-rail {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 86%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-subtle-bg) 70%, transparent)
+    );
+  border-right-color: color-mix(in srgb, var(--fishmark-border-subtle) 78%, transparent);
+  box-shadow:
+    inset -1px 0 0 color-mix(in srgb, var(--fishmark-glass-sheen) 60%, transparent);
+}
+
+/* Editor card — white-cream surface with a blush pink border + soft shadow,
+   matching the rounded workspace card in the design. */
+.document-editor {
+  border: 1px solid color-mix(in srgb, var(--fishmark-border-muted) 80%, transparent);
+  border-radius: calc(var(--fishmark-radius-xl) + 4px);
+  background: var(--fishmark-surface-raised-bg);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 60%, transparent) inset,
+    0 22px 48px rgba(217, 99, 128, 0.12);
+}
+
+[data-fishmark-region="empty-state"] .empty-inner {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 60%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-subtle-bg) 36%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--fishmark-border-subtle) 70%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 70%, transparent),
+    0 12px 28px rgba(217, 99, 128, 0.12);
+}
+
+[data-fishmark-surface="workspace-header"] {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.outline-panel,
+[data-fishmark-region="outline-panel"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 76%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-subtle-bg) 60%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--fishmark-border-subtle) 78%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 60%, transparent),
+    -10px 0 26px rgba(217, 99, 128, 0.12);
+}
+
+[data-fishmark-surface="settings-drawer"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 72%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--fishmark-border-muted) 76%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 72%, transparent),
+    0 26px 56px rgba(217, 99, 128, 0.18);
+}
+
+[data-fishmark-dialog="settings-drawer"] {
+  background: color-mix(in srgb, var(--fishmark-scrim) 32%, transparent);
+}
+
+.settings-group {
+  background: color-mix(in srgb, var(--fishmark-surface-muted-bg) 36%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fishmark-border-subtle) 60%, transparent);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 60%, transparent);
+}
+
+/* Kitty face stamped before each tab label, like the cat in the design. */
+.workspace-tab {
+  padding-left: 8px;
+}
+
+.workspace-tab-label::before {
+  content: "🐱";
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.92em;
+  vertical-align: -0.05em;
+  filter: saturate(0.95);
+}
+
+/* Active-tab underline blooms in petal-pink rather than blue. */
+.workspace-tab-shell.is-active::before {
+  background: var(--fishmark-sakura-petal);
+}
+
+/* Paw stamp tucked into the status bar, like the bottom-right cat badge. */
+.app-status-bar [data-fishmark-region="status-strip"]::after {
+  content: "🐾";
+  margin-left: auto;
+  padding-left: 0.6em;
+  font-size: 0.9em;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Save indicator: bloom for clean, paw for dirty — keeps the playful tone
+   without losing the at-a-glance state read. */
+.save-status.is-clean::before {
+  content: "🌸";
+  margin-right: 0.4em;
+  font-size: 0.92em;
+}
+
+.save-status.is-dirty::before {
+  content: "🐾";
+  margin-right: 0.4em;
+  font-size: 0.92em;
+}
+
+/* Welcome / empty state — sleeping cat watermark in the corner. */
+[data-fishmark-region="empty-state"] .empty-inner {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-fishmark-region="empty-state"] .empty-inner::after {
+  content: "🐈";
+  position: absolute;
+  right: 1.2em;
+  bottom: 0.6em;
+  font-size: 2.4em;
+  opacity: 0.35;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.app-notification-banner,
+[data-fishmark-region="app-notification-banner"] {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fishmark-surface-muted-bg) 80%, transparent),
+      color-mix(in srgb, var(--fishmark-surface-subtle-bg) 60%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--fishmark-border-subtle) 76%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--fishmark-glass-sheen) 64%, transparent),
+    0 10px 24px rgba(217, 99, 128, 0.14);
+}

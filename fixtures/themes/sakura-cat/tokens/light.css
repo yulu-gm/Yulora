@@ -1,0 +1,98 @@
+:root {
+  /* Sakura Cat — warm cream-pink page with dusty rose ink and petal accents.
+     Tuned to keep "deep mauve on cream" 7:1+ contrast for long reading. */
+  --fishmark-page-bg: #fff5f6;
+  --fishmark-surface-bg: #fff9fa;
+  --fishmark-surface-raised-bg: #ffffff;
+  --fishmark-surface-muted-bg: #ffe9ee;
+  --fishmark-surface-subtle-bg: #ffe0e7;
+  --fishmark-surface-blockquote-bg: #ffeef2;
+
+  --fishmark-border-strong: #f4bcc8;
+  --fishmark-border-muted: #f9cfd8;
+  --fishmark-border-subtle: #fcdce3;
+  --fishmark-border-faint: #fee8ed;
+
+  --fishmark-text-strong: #5e2030;
+  --fishmark-text-body: #7c3344;
+  --fishmark-text-muted: #a87280;
+  --fishmark-text-subtle: #c69aa5;
+  --fishmark-text-secondary: #6e2d3d;
+
+  --fishmark-app-bg: var(--fishmark-page-bg);
+  --fishmark-workspace-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, transparent);
+  --fishmark-rail-bg: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 84%, var(--fishmark-page-bg));
+  --fishmark-panel-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 96%, var(--fishmark-surface-muted-bg));
+  --fishmark-panel-border: color-mix(in srgb, var(--fishmark-border-muted) 88%, rgba(255, 255, 255, 0.6));
+  --fishmark-panel-shadow: 0 22px 48px rgba(217, 99, 128, 0.14);
+  --fishmark-statusbar-bg: color-mix(in srgb, var(--fishmark-surface-muted-bg) 78%, transparent);
+  --fishmark-statusbar-border: color-mix(in srgb, var(--fishmark-border-subtle) 72%, transparent);
+  --fishmark-titlebar-bg: color-mix(in srgb, var(--fishmark-surface-muted-bg) 82%, transparent);
+
+  --fishmark-text-primary: var(--fishmark-text-strong);
+  --fishmark-text-accent: #c2546b;
+  --fishmark-text-danger: #b03050;
+  --fishmark-text-on-accent: #ffffff;
+
+  --fishmark-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 90%, var(--fishmark-surface-muted-bg));
+  --fishmark-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 88%, var(--fishmark-surface-raised-bg));
+  --fishmark-control-bg-active: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 88%, rgba(217, 99, 128, 0.12));
+  --fishmark-control-border: var(--fishmark-border-subtle);
+  --fishmark-control-fg: var(--fishmark-text-secondary);
+
+  --fishmark-focus-ring: #d96380;
+  --fishmark-selection-bg: rgba(217, 99, 128, 0.18);
+  --fishmark-selection-fg: #5e2030;
+
+  --fishmark-banner-info-bg: color-mix(in srgb, #d96380 12%, var(--fishmark-surface-raised-bg));
+  --fishmark-banner-warning-bg: color-mix(in srgb, #f0a79a 18%, var(--fishmark-surface-raised-bg));
+  --fishmark-banner-error-bg: color-mix(in srgb, #c94f6a 14%, var(--fishmark-surface-raised-bg));
+
+  --fishmark-editor-bg: transparent;
+  --fishmark-editor-fg: var(--fishmark-text-body);
+  --fishmark-editor-muted: var(--fishmark-text-muted);
+  --fishmark-caret-color: #d96380;
+  --fishmark-current-line-bg: rgba(217, 99, 128, 0.06);
+  --fishmark-gutter-fg: var(--fishmark-text-subtle);
+  --fishmark-active-block-bg: rgba(255, 255, 255, 0.72);
+  --fishmark-active-block-border: rgba(217, 99, 128, 0.18);
+
+  --fishmark-markdown-body: var(--fishmark-text-body);
+  --fishmark-markdown-heading: var(--fishmark-text-strong);
+  --fishmark-markdown-heading-marker: var(--fishmark-text-subtle);
+  --fishmark-markdown-link: #c2546b;
+  --fishmark-markdown-link-hover: #a23857;
+  --fishmark-markdown-strong: var(--fishmark-text-strong);
+  --fishmark-markdown-emphasis: var(--fishmark-text-body);
+  --fishmark-markdown-quote-fg: var(--fishmark-text-secondary);
+  --fishmark-markdown-quote-border: #f4a8b8;
+  --fishmark-markdown-list-bullet: #d96380;
+  --fishmark-markdown-list-text: var(--fishmark-text-secondary);
+  --fishmark-markdown-task-done: var(--fishmark-text-secondary);
+  --fishmark-markdown-hr: var(--fishmark-border-muted);
+  --fishmark-markdown-inline-code-bg: #ffe1e8;
+  --fishmark-markdown-inline-code-fg: #b03857;
+  --fishmark-markdown-code-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 88%, #ffd5dc 12%);
+  --fishmark-markdown-code-fg: #5e2030;
+  --fishmark-markdown-code-border: var(--fishmark-border-subtle);
+  --fishmark-markdown-table-border: color-mix(in srgb, var(--fishmark-border-faint) 72%, rgba(217, 99, 128, 0.18));
+  --fishmark-markdown-table-header-bg: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 84%, var(--fishmark-surface-raised-bg));
+  --fishmark-markdown-table-header-fg: var(--fishmark-text-strong);
+  --fishmark-markdown-table-cell-bg: transparent;
+  --fishmark-markdown-table-row-stripe: rgba(217, 99, 128, 0.04);
+  --fishmark-markdown-code-token-keyword: #c2546b;
+  --fishmark-markdown-code-token-string: #2f8a6e;
+  --fishmark-markdown-code-token-number: #b45309;
+  --fishmark-markdown-code-token-comment: #c69aa5;
+  --fishmark-markdown-code-token-function: #a23857;
+  --fishmark-markdown-code-token-type: #7c3aed;
+
+  --fishmark-scrollbar-thumb: rgba(217, 99, 128, 0.28);
+  --fishmark-scrollbar-thumb-hover: rgba(217, 99, 128, 0.5);
+
+  --fishmark-glass-bg: rgba(255, 233, 238, 0.5);
+  --fishmark-glass-strong-bg: rgba(255, 248, 250, 0.74);
+  --fishmark-glass-border: rgba(255, 220, 228, 0.78);
+  --fishmark-glass-sheen: rgba(255, 255, 255, 0.6);
+  --fishmark-scrim: rgba(94, 32, 48, 0.16);
+}

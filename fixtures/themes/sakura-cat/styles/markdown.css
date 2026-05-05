@@ -1,0 +1,121 @@
+:root {
+  --fishmark-inline-code-bg: #ffe1e8;
+  --fishmark-inline-code-text: #b03857;
+  --fishmark-list-marker: #d96380;
+  --fishmark-list-text: var(--fishmark-text-secondary);
+  --fishmark-task-toggle-border: #e8a3b1;
+  --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-surface-bg) 92%, #ffb3c0 8%);
+  --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-surface-bg) 80%, #ffb3c0 20%);
+  --fishmark-task-toggle-check: #d96380;
+  --fishmark-task-toggle-radius: 999px;
+  --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-surface-blockquote-bg) 88%, transparent);
+  --fishmark-blockquote-border: color-mix(in srgb, #f4a8b8 72%, var(--fishmark-border-muted));
+  --fishmark-thematic-break: #f4cfd8;
+  --fishmark-code-block-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 88%, #ffd5dc 12%);
+  --fishmark-code-block-text: #5e2030;
+  --fishmark-table-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, #ffe1e8 8%);
+  --fishmark-table-border-color: color-mix(in srgb, var(--fishmark-border-faint) 70%, rgba(217, 99, 128, 0.2));
+  --fishmark-table-cell-border-color: color-mix(in srgb, var(--fishmark-border-faint) 72%, rgba(217, 99, 128, 0.16));
+  --fishmark-table-radius: 18px;
+  --fishmark-table-cell-bg: transparent;
+  --fishmark-table-cell-active-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 64%, rgba(217, 99, 128, 0.18));
+  --fishmark-table-text: var(--fishmark-text-body);
+  --fishmark-table-header-text: var(--fishmark-text-strong);
+
+  --fishmark-sakura-paw-glyph: "🐾";
+  --fishmark-sakura-cat-glyph: "🐱";
+  --fishmark-sakura-heart-glyph: "💕";
+  --fishmark-sakura-blossom-glyph: "🌸";
+}
+
+:root[data-fishmark-theme-mode="dark"] {
+  --fishmark-inline-code-bg: rgba(255, 158, 181, 0.18);
+  --fishmark-inline-code-text: #ffd1da;
+  --fishmark-list-marker: #ff9eb5;
+  --fishmark-list-text: var(--fishmark-text-secondary);
+  --fishmark-task-toggle-border: #6e3a4a;
+  --fishmark-task-toggle-bg: color-mix(in srgb, var(--fishmark-surface-bg) 90%, #ff9eb5 10%);
+  --fishmark-task-toggle-checked-bg: color-mix(in srgb, var(--fishmark-surface-bg) 78%, #ff9eb5 22%);
+  --fishmark-task-toggle-check: #ff9eb5;
+  --fishmark-task-toggle-radius: 999px;
+  --fishmark-blockquote-bg: color-mix(in srgb, var(--fishmark-surface-blockquote-bg) 88%, transparent);
+  --fishmark-blockquote-border: color-mix(in srgb, #b95d75 60%, var(--fishmark-border-muted));
+  --fishmark-thematic-break: #4a2a36;
+  --fishmark-code-block-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, #100309 8%);
+  --fishmark-code-block-text: #fce3e9;
+  --fishmark-table-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, #1a070d 8%);
+  --fishmark-table-border-color: color-mix(in srgb, var(--fishmark-border-faint) 78%, rgba(255, 158, 181, 0.18));
+  --fishmark-table-cell-border-color: color-mix(in srgb, var(--fishmark-border-faint) 76%, rgba(255, 158, 181, 0.14));
+  --fishmark-table-cell-active-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 60%, rgba(255, 158, 181, 0.2));
+  --fishmark-table-text: var(--fishmark-text-body);
+  --fishmark-table-header-text: var(--fishmark-text-strong);
+}
+
+/* Paw-print bullet — replaces the small dot for unordered lists. */
+.document-editor .cm-inactive-list-unordered .cm-inactive-list-marker {
+  width: auto;
+  min-width: 1.1em;
+  height: 1.84em;
+  color: transparent;
+}
+
+.document-editor .cm-inactive-list-unordered .cm-inactive-list-marker::before {
+  content: var(--fishmark-sakura-paw-glyph, "🐾");
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border-radius: 0;
+  font-size: 0.78em;
+  line-height: 1;
+  color: var(--fishmark-list-marker);
+  transform: translateY(-50%);
+}
+
+/* Paw-print task checkbox — hide the square+tick and stamp a paw instead.
+   The paw stays subtle when unchecked and lights up rose when done. */
+.document-editor .cm-inactive-task-marker-box {
+  border-color: transparent;
+  background: transparent;
+}
+
+.document-editor .cm-inactive-task-marker-check {
+  display: none;
+}
+
+.document-editor .cm-inactive-task-marker::after {
+  content: var(--fishmark-sakura-paw-glyph, "🐾");
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.92em;
+  line-height: 1;
+  opacity: 0.45;
+  transition: opacity 120ms ease;
+}
+
+.document-editor .cm-inactive-task-marker[data-task-state="checked"]::after {
+  opacity: 1;
+}
+
+/* Blockquote — soft pink card with a tiny heart sticker, matching the
+   highlighted intro panel in the design. */
+.document-editor .cm-inactive-blockquote {
+  position: relative;
+  border-radius: 14px;
+  padding-right: 2em;
+}
+
+.document-editor .cm-inactive-blockquote::after {
+  content: var(--fishmark-sakura-heart-glyph, "💕");
+  position: absolute;
+  right: 0.6em;
+  bottom: 0.4em;
+  font-size: 0.85em;
+  opacity: 0.9;
+  pointer-events: none;
+}

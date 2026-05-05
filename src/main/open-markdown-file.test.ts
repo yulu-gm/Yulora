@@ -20,6 +20,40 @@ describe("openMarkdownFileFromPath", () => {
     });
   });
 
+  it("normalizes CRLF line endings to LF", async () => {
+    const result = await openMarkdownFileFromPath("C:/notes/today.md", {
+      readFile: vi.fn().mockResolvedValue(Buffer.from("# Today\r\nParagraph\r\n", "utf8")),
+      stat: vi.fn().mockResolvedValue({ isFile: () => true })
+    });
+
+    expect(result).toEqual({
+      status: "success",
+      document: {
+        path: "C:/notes/today.md",
+        name: "today.md",
+        content: "# Today\nParagraph\n",
+        encoding: "utf-8"
+      }
+    });
+  });
+
+  it("normalizes lone CR line endings to LF", async () => {
+    const result = await openMarkdownFileFromPath("C:/notes/today.md", {
+      readFile: vi.fn().mockResolvedValue(Buffer.from("# Today\rParagraph\r", "utf8")),
+      stat: vi.fn().mockResolvedValue({ isFile: () => true })
+    });
+
+    expect(result).toEqual({
+      status: "success",
+      document: {
+        path: "C:/notes/today.md",
+        name: "today.md",
+        content: "# Today\nParagraph\n",
+        encoding: "utf-8"
+      }
+    });
+  });
+
   it("returns file-not-found when the selected path does not exist", async () => {
     const result = await openMarkdownFileFromPath("C:/missing.md", {
       readFile: vi.fn(),

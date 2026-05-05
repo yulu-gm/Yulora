@@ -96,7 +96,8 @@ export async function showOpenMarkdownDialog(
 
 function decodeUtf8(fileBuffer: Buffer): string | null {
   try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(fileBuffer);
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(fileBuffer);
+    return text.replace(/\r\n|\r/g, "\n");
   } catch {
     return null;
   }

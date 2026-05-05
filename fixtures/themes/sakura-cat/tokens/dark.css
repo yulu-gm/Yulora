@@ -1,0 +1,98 @@
+:root[data-fishmark-theme-mode="dark"] {
+  /* Sakura Cat dark — dusky plum night with petal-pink accents.
+     Keeps the cuteness without burning eyes; petal pink reads on plum. */
+  --fishmark-page-bg: #1a0d12;
+  --fishmark-surface-bg: #221319;
+  --fishmark-surface-raised-bg: #2c1a22;
+  --fishmark-surface-muted-bg: #361e28;
+  --fishmark-surface-subtle-bg: #28171f;
+  --fishmark-surface-blockquote-bg: #2a1822;
+
+  --fishmark-border-strong: #4d2a37;
+  --fishmark-border-muted: #3e2230;
+  --fishmark-border-subtle: #321b27;
+  --fishmark-border-faint: #271521;
+
+  --fishmark-text-strong: #fce3e9;
+  --fishmark-text-body: #f7d1da;
+  --fishmark-text-muted: #c99fa9;
+  --fishmark-text-subtle: #a07884;
+  --fishmark-text-secondary: #e9bcc6;
+
+  --fishmark-app-bg: var(--fishmark-page-bg);
+  --fishmark-workspace-bg: color-mix(in srgb, var(--fishmark-surface-bg) 86%, transparent);
+  --fishmark-rail-bg: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 88%, var(--fishmark-page-bg));
+  --fishmark-panel-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 90%, var(--fishmark-surface-muted-bg));
+  --fishmark-panel-border: color-mix(in srgb, var(--fishmark-border-muted) 88%, rgba(255, 158, 181, 0.2));
+  --fishmark-panel-shadow: 0 28px 60px rgba(0, 0, 0, 0.42);
+  --fishmark-statusbar-bg: color-mix(in srgb, var(--fishmark-panel-bg) 80%, transparent);
+  --fishmark-statusbar-border: color-mix(in srgb, var(--fishmark-panel-border) 70%, transparent);
+  --fishmark-titlebar-bg: color-mix(in srgb, var(--fishmark-panel-bg) 84%, transparent);
+
+  --fishmark-text-primary: var(--fishmark-text-strong);
+  --fishmark-text-accent: #ff9eb5;
+  --fishmark-text-danger: #ffb6c1;
+  --fishmark-text-on-accent: #1a0d12;
+
+  --fishmark-control-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 84%, var(--fishmark-surface-muted-bg));
+  --fishmark-control-bg-hover: color-mix(in srgb, var(--fishmark-surface-muted-bg) 90%, var(--fishmark-surface-raised-bg));
+  --fishmark-control-bg-active: color-mix(in srgb, var(--fishmark-surface-muted-bg) 80%, rgba(255, 158, 181, 0.18));
+  --fishmark-control-border: color-mix(in srgb, var(--fishmark-border-subtle) 88%, rgba(255, 158, 181, 0.16));
+  --fishmark-control-fg: var(--fishmark-text-secondary);
+
+  --fishmark-focus-ring: #ff9eb5;
+  --fishmark-selection-bg: rgba(255, 158, 181, 0.24);
+  --fishmark-selection-fg: #fce3e9;
+
+  --fishmark-banner-info-bg: color-mix(in srgb, #ff9eb5 16%, var(--fishmark-surface-raised-bg));
+  --fishmark-banner-warning-bg: color-mix(in srgb, #f0a79a 20%, var(--fishmark-surface-raised-bg));
+  --fishmark-banner-error-bg: color-mix(in srgb, #c94f6a 22%, var(--fishmark-surface-raised-bg));
+
+  --fishmark-editor-bg: transparent;
+  --fishmark-editor-fg: var(--fishmark-text-body);
+  --fishmark-editor-muted: var(--fishmark-text-muted);
+  --fishmark-caret-color: #ff9eb5;
+  --fishmark-current-line-bg: rgba(255, 158, 181, 0.07);
+  --fishmark-gutter-fg: var(--fishmark-text-subtle);
+  --fishmark-active-block-bg: rgba(44, 26, 34, 0.78);
+  --fishmark-active-block-border: rgba(255, 158, 181, 0.2);
+
+  --fishmark-markdown-body: var(--fishmark-text-body);
+  --fishmark-markdown-heading: var(--fishmark-text-strong);
+  --fishmark-markdown-heading-marker: var(--fishmark-text-subtle);
+  --fishmark-markdown-link: #ff9eb5;
+  --fishmark-markdown-link-hover: #ffc6d1;
+  --fishmark-markdown-strong: var(--fishmark-text-strong);
+  --fishmark-markdown-emphasis: var(--fishmark-text-body);
+  --fishmark-markdown-quote-fg: var(--fishmark-text-secondary);
+  --fishmark-markdown-quote-border: #b95d75;
+  --fishmark-markdown-list-bullet: #ff9eb5;
+  --fishmark-markdown-list-text: var(--fishmark-text-secondary);
+  --fishmark-markdown-task-done: var(--fishmark-text-secondary);
+  --fishmark-markdown-hr: var(--fishmark-border-muted);
+  --fishmark-markdown-inline-code-bg: rgba(255, 158, 181, 0.16);
+  --fishmark-markdown-inline-code-fg: #ffd1da;
+  --fishmark-markdown-code-bg: color-mix(in srgb, var(--fishmark-surface-raised-bg) 92%, #100309 8%);
+  --fishmark-markdown-code-fg: #fce3e9;
+  --fishmark-markdown-code-border: var(--fishmark-border-subtle);
+  --fishmark-markdown-table-border: color-mix(in srgb, var(--fishmark-border-faint) 78%, rgba(255, 158, 181, 0.18));
+  --fishmark-markdown-table-header-bg: color-mix(in srgb, var(--fishmark-surface-subtle-bg) 86%, var(--fishmark-surface-raised-bg));
+  --fishmark-markdown-table-header-fg: var(--fishmark-text-strong);
+  --fishmark-markdown-table-cell-bg: transparent;
+  --fishmark-markdown-table-row-stripe: rgba(255, 158, 181, 0.05);
+  --fishmark-markdown-code-token-keyword: #ffafc6;
+  --fishmark-markdown-code-token-string: #86efac;
+  --fishmark-markdown-code-token-number: #fbbf24;
+  --fishmark-markdown-code-token-comment: #a07884;
+  --fishmark-markdown-code-token-function: #ffc6d1;
+  --fishmark-markdown-code-token-type: #d4b3ff;
+
+  --fishmark-scrollbar-thumb: rgba(255, 158, 181, 0.26);
+  --fishmark-scrollbar-thumb-hover: rgba(255, 158, 181, 0.5);
+
+  --fishmark-glass-bg: rgba(34, 19, 25, 0.5);
+  --fishmark-glass-strong-bg: rgba(44, 26, 34, 0.7);
+  --fishmark-glass-border: rgba(255, 158, 181, 0.16);
+  --fishmark-glass-sheen: rgba(255, 220, 228, 0.08);
+  --fishmark-scrim: rgba(0, 0, 0, 0.4);
+}
