@@ -1294,7 +1294,7 @@ describe("createCodeEditorController", () => {
     expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote")).toBe(true);
     expect(secondQuoteLine?.classList.contains("cm-inactive-blockquote-start")).toBe(false);
     expect(quoteMarkers.length).toBe(2);
-    expect(Array.from(quoteMarkers, (marker) => marker.textContent)).toEqual([">", ">"]);
+    expect(Array.from(quoteMarkers, (marker) => marker.textContent)).toEqual(["> ", "> "]);
 
     controller.destroy();
   });
@@ -2345,6 +2345,28 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("continues a nested blockquote line on Enter while preserving its source prefix", () => {
+    const host = document.createElement("div");
+    const source = "> > quote";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("> > quote\n> > ");
+
+    controller.destroy();
+  });
+
   it("inserts an inline hard break on Shift+Enter", () => {
     const host = document.createElement("div");
     const source = "AlphaBeta";
@@ -2480,6 +2502,28 @@ describe("createCodeEditorController", () => {
     advancedController.pressEnter();
 
     expect(controller.getContent()).toBe("> quote\n");
+
+    controller.destroy();
+  });
+
+  it("exits an empty nested blockquote line on Enter", () => {
+    const host = document.createElement("div");
+    const source = ["> > quote", "> > "].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressEnter: () => void;
+    };
+
+    advancedController.setSelection(source.length);
+    advancedController.pressEnter();
+
+    expect(controller.getContent()).toBe("> > quote\n");
 
     controller.destroy();
   });
@@ -2674,6 +2718,36 @@ describe("createCodeEditorController", () => {
     expect(view?.state.selection.main.anchor).toBe(source.indexOf("> quote two") - 1);
     expect(host.querySelector(".cm-inactive-blockquote")).not.toBeNull();
     expect(host.querySelectorAll(".cm-inactive-blockquote-marker")).toHaveLength(2);
+
+    controller.destroy();
+  });
+
+  it("keeps compact nested blockquote content intact when Backspace is pressed at content start", async () => {
+    const host = document.createElement("div");
+    const source = [">> quote one", ">> quote two"].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const view = getEditorView(host);
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(view).not.toBeNull();
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+
+    advancedController.setSelection(source.indexOf("quote two"));
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(source);
+    expect(view?.state.selection.main.anchor).toBe(source.indexOf(">> quote two") - 1);
 
     controller.destroy();
   });

@@ -409,7 +409,7 @@ describe("createFishMarkMarkdownExtensions", () => {
       changedRanges.push({ fromA, toA, fromB, toB });
     }, true);
 
-    expect(view.state.doc.toString()).toBe(["1. one", "2. two", "", "1. third", "2. four"].join("\n"));
+    expect(view.state.doc.toString()).toBe(["1. one", "2. two", "", "3. third", "4. four"].join("\n"));
     expect(changedRanges).not.toEqual([
       {
         fromA: 0,
