@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createApplicationMenuTemplate } from "./application-menu";
 
 describe("createApplicationMenuTemplate", () => {
-  it("defines File commands for new, open, new window, save, and save as", () => {
+  it("defines File commands for new, open, new window, save, save as, and HTML export", () => {
     const dispatchCommand = vi.fn();
     const template = createApplicationMenuTemplate({ dispatchCommand });
     const fileMenu = template.find((item) => item.label === "File");
@@ -17,14 +17,16 @@ describe("createApplicationMenuTemplate", () => {
       "Open...",
       "New Window",
       "Save",
-      "Save As..."
+      "Save As...",
+      "Export HTML..."
     ]);
     expect(commandItems.map((item) => item.accelerator)).toEqual([
       "CmdOrCtrl+N",
       "CmdOrCtrl+O",
       "Shift+CmdOrCtrl+N",
       "CmdOrCtrl+S",
-      "Shift+CmdOrCtrl+S"
+      "Shift+CmdOrCtrl+S",
+      undefined
     ]);
 
     commandItems.forEach((item) => item.click?.());
@@ -34,7 +36,8 @@ describe("createApplicationMenuTemplate", () => {
       ["open-markdown-file"],
       ["new-editor-window"],
       ["save-markdown-file"],
-      ["save-markdown-file-as"]
+      ["save-markdown-file-as"],
+      ["export-html-file"]
     ]);
   });
 

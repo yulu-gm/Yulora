@@ -16,6 +16,7 @@ import type {
   RecentFilesSnapshot
 } from "../shared/recent-files";
 import type { ProductBridge } from "../shared/product-bridge";
+import type { ExportHtmlFileInput } from "../shared/export-html-file";
 import type { SaveMarkdownFileAsInput, SaveMarkdownFileInput } from "../shared/save-markdown-file";
 import type {
   RunnerEventEnvelope,
@@ -129,6 +130,7 @@ import {
   START_SCENARIO_RUN_CHANNEL
 } from "../shared/test-run-session";
 import { SAVE_MARKDOWN_FILE_AS_CHANNEL, SAVE_MARKDOWN_FILE_CHANNEL } from "../shared/save-markdown-file";
+import { EXPORT_HTML_FILE_CHANNEL } from "../shared/export-html-file";
 // Preload runs inside Electron's sandboxed environment, so only preload-local
 // runtime helpers stay here. Contract shapes and IPC names come from shared modules.
 const RUNTIME_MODE_ARGUMENT_PREFIX = "--fishmark-runtime-mode=";
@@ -198,6 +200,8 @@ const productApi: ProductBridge = {
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_CHANNEL, input),
   saveMarkdownFileAs: (input: SaveMarkdownFileAsInput) =>
     ipcRenderer.invoke(SAVE_MARKDOWN_FILE_AS_CHANNEL, input),
+  exportHtmlFile: (input: ExportHtmlFileInput) =>
+    ipcRenderer.invoke(EXPORT_HTML_FILE_CHANNEL, input),
   syncWatchedMarkdownFile: (input: SyncWatchedMarkdownFileInput): Promise<void> =>
     ipcRenderer.invoke(SYNC_WATCHED_MARKDOWN_FILE_CHANNEL, input),
   importClipboardImage: (input: ImportClipboardImageInput): Promise<ImportClipboardImageResult> =>

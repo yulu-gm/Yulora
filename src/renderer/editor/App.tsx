@@ -769,6 +769,11 @@ function EditorShell({
 
     if (command === "save-markdown-file-as") {
       void handleSaveMarkdownAs();
+      return;
+    }
+
+    if (command === "export-html-file") {
+      void handleExportHtml();
     }
   });
 
@@ -1015,6 +1020,10 @@ function EditorShell({
 
   async function handleSaveMarkdownAs(): Promise<void> {
     await editorCommands.saveMarkdownAs();
+  }
+
+  async function handleExportHtml(): Promise<void> {
+    await editorCommands.exportHtml();
   }
 
   async function handleImportClipboardImage(

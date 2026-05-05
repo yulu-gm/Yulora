@@ -3,6 +3,11 @@ import { useCallback, useMemo } from "react";
 import type { AppNotification } from "../../shared/app-update";
 import type { AppMenuCommand } from "../../shared/menu-command";
 import type { WorkspaceWindowSnapshot } from "../../shared/workspace";
+import {
+  collectReadableStyleSheetText,
+  collectRootExportAttributes,
+  createFishmarkExportHtml
+} from "../export-html";
 import { useEditorWorkflowController } from "./useEditorWorkflowController";
 import { useExternalConflictController } from "./useExternalConflictController";
 import { useSaveController } from "./useSaveController";
@@ -151,6 +156,56 @@ export function useEditorApplicationController(input: {
     await runManualSave({ forceSaveAs: true });
   }, [getActiveDocument, runManualSave]);
 
+  const exportHtml = useCallback(async (): Promise<void> => {
+    const activeDocument = getActiveDocument();
+
+    if (!activeDocument) {
+      return;
+    }
+
+    try {
+      await flushActiveWorkspaceDraft();
+
+      const html = createFishmarkExportHtml({
+        markdown: getEditorContent(),
+        title: activeDocument.name,
+        cssText: collectReadableStyleSheetText(document),
+        rootAttributes: collectRootExportAttributes(document)
+      });
+      const result = await fishmark.exportHtmlFile({
+        tabId: activeDocument.tabId,
+        currentPath: activeDocument.path,
+        html
+      });
+
+      if (result.status === "error") {
+        showNotification({
+          kind: "error",
+          message: result.error.message
+        });
+        return;
+      }
+
+      if (result.status === "success") {
+        showNotification({
+          kind: "info",
+          message: "HTML exported."
+        });
+      }
+    } catch (error) {
+      showNotification({
+        kind: "error",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }, [
+    fishmark,
+    flushActiveWorkspaceDraft,
+    getActiveDocument,
+    getEditorContent,
+    showNotification
+  ]);
+
   const confirmWorkspaceWindowClose = useCallback(async (): Promise<boolean> => {
     try {
       await flushActiveWorkspaceDraft();
@@ -186,9 +241,14 @@ export function useEditorApplicationController(input: {
         return true;
       }
 
+      if (command === "export-html-file") {
+        void exportHtml();
+        return true;
+      }
+
       return false;
     },
-    [createUntitledMarkdown, openMarkdown, saveMarkdown, saveMarkdownAs]
+    [createUntitledMarkdown, exportHtml, openMarkdown, saveMarkdown, saveMarkdownAs]
   );
 
   const commands = useMemo(
@@ -200,6 +260,7 @@ export function useEditorApplicationController(input: {
       openRecentMarkdown,
       openMarkdownFromPaths,
       runMenuCommand,
+      exportHtml,
       saveMarkdown,
       saveMarkdownAs
     }),
@@ -211,6 +272,7 @@ export function useEditorApplicationController(input: {
       openRecentMarkdown,
       openMarkdownFromPaths,
       runMenuCommand,
+      exportHtml,
       saveMarkdown,
       saveMarkdownAs
     ]

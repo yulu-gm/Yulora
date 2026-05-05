@@ -6,6 +6,7 @@ export const APP_MENU_COMMANDS = [
   "new-editor-window",
   "save-markdown-file",
   "save-markdown-file-as",
+  "export-html-file",
   "check-for-updates"
 ] as const;
 

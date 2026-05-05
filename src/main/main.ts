@@ -18,6 +18,7 @@ import {
   registerPreviewAssetScheme
 } from "./preview-asset-protocol";
 import { saveMarkdownFileToPath, showSaveMarkdownDialog } from "./save-markdown-file";
+import { showExportHtmlDialog } from "./export-html-file";
 import { createPreferencesService } from "./preferences-service";
 import { createRecentFilesService } from "./recent-files-service";
 import { createFontCatalogService } from "./font-catalog-service";
@@ -80,6 +81,10 @@ import {
   type SaveMarkdownFileAsInput,
   type SaveMarkdownFileInput
 } from "../shared/save-markdown-file";
+import {
+  EXPORT_HTML_FILE_CHANNEL,
+  type ExportHtmlFileInput
+} from "../shared/export-html-file";
 import {
   SYNC_WATCHED_MARKDOWN_FILE_CHANNEL,
   type SyncWatchedMarkdownFileInput
@@ -787,6 +792,9 @@ app.whenReady().then(async () => {
 
     return result;
   });
+  ipcMain.handle(EXPORT_HTML_FILE_CHANNEL, async (_event, input: ExportHtmlFileInput) =>
+    showExportHtmlDialog(input)
+  );
   ipcMain.handle(
     SYNC_WATCHED_MARKDOWN_FILE_CHANNEL,
     async (event, input: SyncWatchedMarkdownFileInput) =>

@@ -1009,6 +1009,9 @@ describe("App autosave", () => {
       getPathForDroppedFile,
       saveMarkdownFile,
       saveMarkdownFileAs,
+      exportHtmlFile: vi.fn().mockResolvedValue({
+        status: "cancelled"
+      }),
       syncWatchedMarkdownFile,
       importClipboardImage,
       onMenuCommand(listener: MenuCommandListener) {

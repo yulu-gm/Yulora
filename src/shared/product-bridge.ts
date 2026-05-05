@@ -23,6 +23,10 @@ import type {
   SaveMarkdownFileResult
 } from "./save-markdown-file";
 import type {
+  ExportHtmlFileInput,
+  ExportHtmlFileResult
+} from "./export-html-file";
+import type {
   AppNotification,
   AppUpdateState
 } from "./app-update";
@@ -69,6 +73,7 @@ export interface ProductBridge {
   updateWorkspaceTabDraft: (input: UpdateWorkspaceTabDraftInput) => Promise<WorkspaceWindowSnapshot>;
   saveMarkdownFile: (input: SaveMarkdownFileInput) => Promise<SaveMarkdownFileResult>;
   saveMarkdownFileAs: (input: SaveMarkdownFileAsInput) => Promise<SaveMarkdownFileResult>;
+  exportHtmlFile: (input: ExportHtmlFileInput) => Promise<ExportHtmlFileResult>;
   syncWatchedMarkdownFile: (input: SyncWatchedMarkdownFileInput) => Promise<void>;
   importClipboardImage: (input: ImportClipboardImageInput) => Promise<ImportClipboardImageResult>;
   onMenuCommand: (listener: (command: AppMenuCommand) => void) => () => void;

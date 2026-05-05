@@ -19,6 +19,9 @@ describe("package scripts", () => {
       "dist-electron/shared/save-markdown-file.js"
     );
     expect(packageJson.scripts?.["dev:electron"]).toContain(
+      "dist-electron/shared/export-html-file.js"
+    );
+    expect(packageJson.scripts?.["dev:electron"]).toContain(
       "dist-electron/shared/preload-bridge-mode.js"
     );
     expect(packageJson.scripts?.["dev:electron"]).toContain(

@@ -148,6 +148,71 @@ describe("useEditorApplicationController", () => {
     });
   });
 
+  it("exports the active document as standalone FishMark HTML without saving Markdown", async () => {
+    const exportedSnapshot: WorkspaceWindowSnapshot = {
+      ...savedSnapshot,
+      activeDocument: {
+        ...savedSnapshot.activeDocument!,
+        content: "# Exported\n",
+        isDirty: true
+      }
+    };
+    const updateWorkspaceTabDraft = vi.fn(async () => exportedSnapshot);
+    const saveMarkdownFile = vi.fn();
+    const exportHtmlFile = vi.fn(async () => ({
+      status: "success" as const,
+      path: "C:/notes/note.html",
+      name: "note.html"
+    }));
+    const showNotification = vi.fn();
+
+    const { latestRef, root } = renderController({
+      autosaveDelayMs: 25,
+      fishmark: {
+        updateWorkspaceTabDraft,
+        saveMarkdownFile,
+        exportHtmlFile,
+        getWorkspaceSnapshot: vi.fn(async () => savedSnapshot),
+        onExternalMarkdownFileChanged: vi.fn(() => () => {})
+      } as unknown as Window["fishmark"],
+      getEditorContent: () => "# Exported\n",
+      setEditorContentSnapshot: vi.fn(),
+      showNotification,
+      updateOutline: vi.fn(),
+      initialSnapshot: {
+        ...savedSnapshot,
+        activeDocument: {
+          ...savedSnapshot.activeDocument!,
+          content: "# Draft\n",
+          isDirty: true
+        }
+      }
+    });
+
+    await act(async () => {
+      await latestRef.current?.commands.exportHtml();
+    });
+
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledWith({
+      tabId: "tab-1",
+      content: "# Exported\n"
+    });
+    expect(saveMarkdownFile).not.toHaveBeenCalled();
+    expect(exportHtmlFile).toHaveBeenCalledWith({
+      tabId: "tab-1",
+      currentPath: "C:/notes/note.md",
+      html: expect.stringContaining("cm-line cm-inactive-heading cm-inactive-heading-depth-1")
+    });
+    expect(showNotification).toHaveBeenCalledWith({
+      kind: "info",
+      message: "HTML exported."
+    });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   it("exposes menu-scale open commands without App wiring workspace and autosave controllers", async () => {
     const openWorkspaceFile = vi.fn(async () => ({
       kind: "opened" as const,

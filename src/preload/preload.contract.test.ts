@@ -41,6 +41,10 @@ import {
   SAVE_MARKDOWN_FILE_CHANNEL
 } from "../shared/save-markdown-file";
 import {
+  EXPORT_HTML_FILE_CHANNEL,
+  type ExportHtmlFileInput
+} from "../shared/export-html-file";
+import {
   IMPORT_CLIPBOARD_IMAGE_CHANNEL,
   type ImportClipboardImageInput
 } from "../shared/clipboard-image-import";
@@ -282,6 +286,11 @@ describe("preload contract", () => {
     };
     const saveInput = { tabId: "tab-2", path: "D:/fixtures/note.md" };
     const saveAsInput = { tabId: "tab-2", currentPath: "D:/fixtures/note.md" };
+    const exportHtmlInput: ExportHtmlFileInput = {
+      tabId: "tab-2",
+      currentPath: "D:/fixtures/note.md",
+      html: "<!doctype html>"
+    };
     const createWorkspaceTabInput = { kind: "untitled" } as const;
     const activateWorkspaceTabInput = { tabId: "tab-2" };
     const closeWorkspaceTabInput = { tabId: "tab-2" };
@@ -339,6 +348,7 @@ describe("preload contract", () => {
     void api.confirmWorkspaceWindowClose();
     void api.saveMarkdownFile(saveInput);
     void api.saveMarkdownFileAs(saveAsInput);
+    void api.exportHtmlFile(exportHtmlInput);
     void api.syncWatchedMarkdownFile(syncWatchedFileInput);
     void api.importClipboardImage(importClipboardImageInput);
     void testApi.openEditorTestWindow();
@@ -387,6 +397,7 @@ describe("preload contract", () => {
     expect(invoke.mock.calls).toContainEqual([CONFIRM_WORKSPACE_WINDOW_CLOSE_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_CHANNEL, saveInput]);
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput]);
+    expect(invoke.mock.calls).toContainEqual([EXPORT_HTML_FILE_CHANNEL, exportHtmlInput]);
     expect(invoke.mock.calls).toContainEqual([SYNC_WATCHED_MARKDOWN_FILE_CHANNEL, syncWatchedFileInput]);
     expect(invoke.mock.calls).toContainEqual([IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput]);
     expect(invoke.mock.calls).toContainEqual([OPEN_EDITOR_TEST_WINDOW_CHANNEL]);

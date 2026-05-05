@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  EXPORT_HTML_FILE_CHANNEL
+} from "../shared/export-html-file";
+import {
   LIST_THEME_PACKAGES_CHANNEL,
   OPEN_THEMES_DIRECTORY_CHANNEL,
   REFRESH_THEME_PACKAGES_CHANNEL
@@ -262,5 +265,19 @@ describe("preload bridge", () => {
     void api.openThemesDirectory();
 
     expect(invoke.mock.calls).toContainEqual([OPEN_THEMES_DIRECTORY_CHANNEL]);
+  });
+
+  it("exposes an HTML export bridge method", async () => {
+    const { api } = await loadApi();
+    const input = {
+      tabId: "tab-1",
+      currentPath: "D:/fixtures/note.md",
+      html: "<!doctype html>"
+    };
+
+    expect(api).toHaveProperty("exportHtmlFile");
+    void api.exportHtmlFile(input);
+
+    expect(invoke.mock.calls).toContainEqual([EXPORT_HTML_FILE_CHANNEL, input]);
   });
 });

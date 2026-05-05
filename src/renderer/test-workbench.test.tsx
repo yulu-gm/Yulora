@@ -137,6 +137,9 @@ describe("Test workbench shell", () => {
       getPathForDroppedFile: vi.fn().mockReturnValue(""),
       saveMarkdownFile: vi.fn(),
       saveMarkdownFileAs: vi.fn(),
+      exportHtmlFile: vi.fn().mockResolvedValue({
+        status: "cancelled"
+      }),
       syncWatchedMarkdownFile: vi.fn().mockResolvedValue(undefined),
       importClipboardImage: vi.fn(),
       onMenuCommand: vi.fn(() => () => {}),

@@ -39,6 +39,7 @@ export function createApplicationMenuTemplate({
         { type: "separator" },
         createCommandItem("Save", "CmdOrCtrl+S", "save-markdown-file", dispatchCommand),
         createCommandItem("Save As...", "Shift+CmdOrCtrl+S", "save-markdown-file-as", dispatchCommand),
+        createCommandItem("Export HTML...", undefined, "export-html-file", dispatchCommand),
         { type: "separator" },
         { role: "close" }
       ]
