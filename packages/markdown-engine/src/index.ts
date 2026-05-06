@@ -34,6 +34,10 @@ export type {
   InlineText
 } from "./inline-ast";
 export { parseBlockquoteLinePrefix, type BlockquoteLinePrefix } from "./blockquote";
+export {
+  resolveIndentedCodeContentStartOffset,
+  type CodeBlockKind
+} from "./code-block";
 export { parseBlockMap } from "./parse-block-map";
 export {
   formatTableMarkdown,

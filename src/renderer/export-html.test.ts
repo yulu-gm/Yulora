@@ -111,6 +111,27 @@ describe("createFishmarkExportHtml", () => {
     );
   });
 
+  it("exports indented code blocks with their source indentation marker hidden from text flow", () => {
+    const html = createFishmarkExportHtml({
+      markdown: [
+        "Indented code",
+        "",
+        "    // Some comments",
+        "    line 1 of code",
+        "    line 2 of code"
+      ].join("\n"),
+      title: "code.md"
+    });
+    const exported = new DOMParser().parseFromString(html, "text/html");
+    const codeLines = Array.from(exported.querySelectorAll<HTMLElement>(".cm-inactive-code-block"));
+
+    expect(codeLines).toHaveLength(3);
+    expect(codeLines[0]?.classList.contains("cm-inactive-code-block-start")).toBe(true);
+    expect(codeLines[2]?.classList.contains("cm-inactive-code-block-end")).toBe(true);
+    expect(codeLines[0]?.textContent).toBe("    // Some comments");
+    expect(codeLines[0]?.querySelector(".cm-inactive-code-block-indent-marker")?.textContent).toBe("    ");
+  });
+
   it("escapes title, Markdown text, and inline CSS terminators", () => {
     const html = createFishmarkExportHtml({
       markdown: "# 1 < 2 & 3",

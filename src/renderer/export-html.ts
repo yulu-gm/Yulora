@@ -1,6 +1,7 @@
 import {
   parseInlineAst,
   parseMarkdownDocument,
+  resolveIndentedCodeContentStartOffset,
   type BlockquoteBlock,
   type CodeFenceBlock,
   type HeadingBlock,
@@ -352,6 +353,10 @@ function renderCodeFenceBlock(block: CodeFenceBlock, source: string): string {
     return "";
   }
 
+  if (block.kind === "indented") {
+    return renderIndentedCodeBlock(lines, source);
+  }
+
   const fenceLineIndexes = new Set<number>([0]);
   const lastLine = lines[lines.length - 1];
   if (lines.length > 1 && lastLine && isCodeFenceLine(lastLine.text)) {
@@ -386,6 +391,31 @@ function renderCodeFenceBlock(block: CodeFenceBlock, source: string): string {
         escapeHtml(line.text) || "<br>",
         index === lastContentLineIndex && languageLabel ? { "data-language": languageLabel } : {}
       );
+    })
+    .join("");
+}
+
+function renderIndentedCodeBlock(lines: SourceLine[], source: string): string {
+  const lastIndex = lines.length - 1;
+
+  return lines
+    .map((line, index) => {
+      const lineClasses = ["cm-inactive-code-block"];
+      if (index === 0) {
+        lineClasses.push("cm-inactive-code-block-start");
+      }
+      if (index === lastIndex) {
+        lineClasses.push("cm-inactive-code-block-end");
+      }
+
+      const contentStartOffset = resolveIndentedCodeContentStartOffset(source, line.startOffset, line.endOffset);
+      const markerHtml = renderSpan(
+        "cm-inactive-code-block-indent-marker",
+        source.slice(line.startOffset, contentStartOffset)
+      );
+      const codeHtml = escapeHtml(source.slice(contentStartOffset, line.endOffset));
+
+      return renderLine(lineClasses.join(" "), markerHtml + (codeHtml || "<br>"));
     })
     .join("");
 }

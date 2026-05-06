@@ -1705,6 +1705,46 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("renders indented code blocks as inactive code when focus moves into another block", () => {
+    const host = document.createElement("div");
+    const source = [
+      "Indented code",
+      "",
+      "    // Some comments",
+      "    line 1 of code",
+      "    line 2 of code",
+      "    line 3 of code",
+      "",
+      "Paragraph"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+
+    const firstCodeLine = getLineElementByText(host, "// Some comments");
+    const lastCodeLine = getLineElementByText(host, "line 3 of code");
+    const indentMarkers = host.querySelectorAll(".cm-inactive-code-block-indent-marker");
+
+    expect(firstCodeLine).not.toBeNull();
+    expect(firstCodeLine?.classList.contains("cm-inactive-code-block")).toBe(true);
+    expect(firstCodeLine?.classList.contains("cm-inactive-code-block-start")).toBe(true);
+    expect(lastCodeLine).not.toBeNull();
+    expect(lastCodeLine?.classList.contains("cm-inactive-code-block")).toBe(true);
+    expect(lastCodeLine?.classList.contains("cm-inactive-code-block-end")).toBe(true);
+    expect(indentMarkers.length).toBe(4);
+
+    controller.destroy();
+  });
+
   it("restores fenced code block markdown when the opening fence becomes active again", async () => {
     const host = document.createElement("div");
     const source = ["```ts", "const answer = 42;", "```", "", "Paragraph"].join("\n");

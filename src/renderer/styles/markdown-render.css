@@ -531,6 +531,12 @@
   font-size: 0;
 }
 
+.document-editor .cm-inactive-code-block-indent-marker {
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+}
+
 .document-editor .cm-inactive-code-block {
   color: var(--fishmark-markdown-code-fg, #1f2328);
   background: var(--fishmark-markdown-code-bg, #f6f8fa);

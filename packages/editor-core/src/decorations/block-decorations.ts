@@ -112,7 +112,7 @@ export function createBlockDecorations(
 
       if (activeCodeFenceInContentEdit && block.type === "codeFence") {
         signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
-        appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info);
+        appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info, block.kind);
         continue;
       }
 
@@ -177,7 +177,7 @@ export function createBlockDecorations(
     }
 
     if (block.type === "codeFence") {
-      appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info);
+      appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info, block.kind);
       continue;
     }
 
@@ -211,13 +211,14 @@ function appendCodeFenceDecorations(
   endOffset: number,
   source: string,
   ranges: Range<Decoration>[],
-  info: string | null = null
+  info: string | null = null,
+  blockKind: "fenced" | "indented" = "fenced"
 ): void {
   let contentStart: number | null = null;
   let contentEnd: number | null = null;
   const languageLabel = formatLanguageLabel(info);
 
-  for (const line of getInactiveCodeFenceLines(startOffset, endOffset, source)) {
+  for (const line of getInactiveCodeFenceLines(startOffset, endOffset, source, blockKind)) {
     if (line.kind === "fence") {
       ranges.push(
         Decoration.line({
@@ -261,8 +262,18 @@ function appendCodeFenceDecorations(
       }).range(line.lineStart)
     );
 
+    if (line.contentStart > line.lineStart) {
+      ranges.push(
+        Decoration.mark({
+          attributes: {
+            class: "cm-inactive-code-block-indent-marker"
+          }
+        }).range(line.lineStart, line.contentStart)
+      );
+    }
+
     if (contentStart === null) {
-      contentStart = line.lineStart;
+      contentStart = line.contentStart;
     }
     contentEnd = line.lineEnd;
   }
@@ -406,7 +417,7 @@ function isCodeFenceContentSelection(
   selectionHead: number,
   source: string
 ): boolean {
-  const line = getInactiveCodeFenceLines(block.startOffset, block.endOffset, source).find(
+  const line = getInactiveCodeFenceLines(block.startOffset, block.endOffset, source, block.kind).find(
     (entry) => selectionHead >= entry.lineStart && selectionHead <= entry.lineEnd
   );
 

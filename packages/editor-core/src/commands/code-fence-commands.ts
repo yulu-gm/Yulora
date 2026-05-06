@@ -17,7 +17,7 @@ export function runCodeFenceEnter(view: EditorView, activeState: ActiveBlockStat
   }
 
   const activeCodeFence = activeState.activeBlock?.type === "codeFence" ? activeState.activeBlock : null;
-  if (activeCodeFence && isClosedCodeFenceBlock(view.state.doc.toString(), activeCodeFence)) {
+  if (activeCodeFence?.kind === "fenced" && isClosedCodeFenceBlock(view.state.doc.toString(), activeCodeFence)) {
     return false;
   }
 
@@ -93,6 +93,10 @@ function getAdjacentClosedCodeFenceBlock(
 
   for (const block of [...activeState.blockMap.blocks].reverse()) {
     if (block.type !== "codeFence") {
+      continue;
+    }
+
+    if (block.kind !== "fenced") {
       continue;
     }
 

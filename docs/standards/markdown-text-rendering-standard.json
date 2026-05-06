@@ -317,7 +317,7 @@
         "checked and unchecked task list",
         "blockquote with two lines",
         "nested blockquote using > >, >>, and >    > source prefixes",
-        "inline code and fenced code block",
+        "inline code, fenced code block, and indented code block",
         "table with header and body"
       ],
       "viewportsPx": [

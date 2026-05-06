@@ -6011,12 +6011,18 @@ describe("App autosave", () => {
   it("renders code blocks with visual wrapping instead of a horizontal scrollbar", () => {
     const markdownRenderStylesheet = readFileSync(markdownRenderStylesheetPath, "utf-8");
     const codeBlockRule = getCssRule(markdownRenderStylesheet, ".document-editor .cm-inactive-code-block");
+    const codeBlockIndentMarkerRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-inactive-code-block-indent-marker"
+    );
 
     expect(markdownRenderStylesheet).toContain(".document-editor .cm-inactive-code-block");
     expect(codeBlockRule).toContain("white-space: pre-wrap !important;");
     expect(codeBlockRule).toContain("overflow-x: hidden;");
     expect(markdownRenderStylesheet).not.toContain("white-space: pre !important;");
     expect(codeBlockRule).not.toContain("overflow-x: auto;");
+    expect(codeBlockIndentMarkerRule).toContain("color: transparent;");
+    expect(codeBlockIndentMarkerRule).toContain("font-size: 0;");
   });
 
   it("renders table widgets through theme variables instead of hard-coded visual constants", () => {

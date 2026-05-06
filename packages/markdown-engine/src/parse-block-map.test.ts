@@ -676,6 +676,59 @@ describe("parseBlockMap", () => {
     );
   });
 
+  it("captures top-level indented code blocks as code blocks with exact source slices", () => {
+    const source = [
+      "Indented code",
+      "",
+      "    // Some comments",
+      "    line 1 of code",
+      "    line 2 of code",
+      "    line 3 of code",
+      "",
+      "Paragraph"
+    ].join("\n");
+
+    const result = parseBlockMap(source);
+
+    expect(result.blocks).toMatchObject([
+      {
+        id: "paragraph:0-13",
+        type: "paragraph",
+        startOffset: 0,
+        endOffset: 13,
+        startLine: 1,
+        endLine: 1
+      },
+      {
+        id: "codeFence:15-92",
+        type: "codeFence",
+        startOffset: 15,
+        endOffset: 92,
+        startLine: 3,
+        endLine: 6,
+        kind: "indented",
+        info: null
+      },
+      {
+        id: "paragraph:94-103",
+        type: "paragraph",
+        startOffset: 94,
+        endOffset: 103,
+        startLine: 8,
+        endLine: 8
+      }
+    ]);
+
+    expect(source.slice(result.blocks[1]!.startOffset, result.blocks[1]!.endOffset)).toBe(
+      [
+        "    // Some comments",
+        "    line 1 of code",
+        "    line 2 of code",
+        "    line 3 of code"
+      ].join("\n")
+    );
+  });
+
   it("captures thematic breaks for both CommonMark dashes and FishMark plus separators", () => {
     const source = ["Paragraph", "", "---", "", "+++", "", "After"].join("\n");
     const result = parseBlockMap(source);

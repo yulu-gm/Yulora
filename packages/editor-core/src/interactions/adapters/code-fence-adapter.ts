@@ -4,7 +4,7 @@ import { getInactiveCodeFenceLines } from "../../decorations";
 import type { BlockInteractionAdapter, PointerInteractionContext, VerticalInteractionContext } from "../types";
 
 function getCodeFenceBoundaryAnchors(block: CodeFenceBlock, source: string) {
-  const lines = getInactiveCodeFenceLines(block.startOffset, block.endOffset, source);
+  const lines = getInactiveCodeFenceLines(block.startOffset, block.endOffset, source, block.kind);
   const openingFence = lines[0];
   const closingFence = lines.at(-1);
   const firstContent = lines.find((line) => line.kind === "content" && line.isFirstContentLine);

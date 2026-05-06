@@ -585,6 +585,62 @@ describe("createBlockDecorations", () => {
     ]);
   });
 
+  it("renders indented code blocks as inactive code and hides the source indentation marker", () => {
+    const source = [
+      "Indented code",
+      "",
+      "    // Some comments",
+      "    line 1 of code",
+      "    line 2 of code"
+    ].join("\n");
+
+    const ranges = createInactiveInlineDecorations(source);
+    const firstCodeLineStart = source.indexOf("    // Some comments");
+    const secondCodeLineStart = source.indexOf("    line 1 of code");
+    const thirdCodeLineStart = source.indexOf("    line 2 of code");
+
+    expect(ranges).toEqual(
+      expect.arrayContaining([
+        {
+          from: firstCodeLineStart,
+          to: firstCodeLineStart,
+          className: "cm-inactive-code-block cm-inactive-code-block-start",
+          text: ""
+        },
+        {
+          from: firstCodeLineStart,
+          to: firstCodeLineStart + 4,
+          className: "cm-inactive-code-block-indent-marker",
+          text: "    "
+        },
+        {
+          from: secondCodeLineStart,
+          to: secondCodeLineStart,
+          className: "cm-inactive-code-block",
+          text: ""
+        },
+        {
+          from: secondCodeLineStart,
+          to: secondCodeLineStart + 4,
+          className: "cm-inactive-code-block-indent-marker",
+          text: "    "
+        },
+        {
+          from: thirdCodeLineStart,
+          to: thirdCodeLineStart,
+          className: "cm-inactive-code-block cm-inactive-code-block-end",
+          text: ""
+        },
+        {
+          from: thirdCodeLineStart,
+          to: thirdCodeLineStart + 4,
+          className: "cm-inactive-code-block-indent-marker",
+          text: "    "
+        }
+      ])
+    );
+  });
+
   it("keeps thematic-break continuation lines rendered when a list becomes inactive", () => {
     const source = ["- item", "continued", "+++", "# Heading"].join("\n");
     const blockMap = parseMarkdownDocument(source);
@@ -1012,6 +1068,7 @@ describe("block decoration line helpers", () => {
 
     expect(getInactiveCodeFenceLines(0, source.length, source)).toEqual([
       {
+        contentStart: 0,
         lineStart: 0,
         lineEnd: 5,
         kind: "fence",
@@ -1019,6 +1076,7 @@ describe("block decoration line helpers", () => {
         isLastContentLine: false
       },
       {
+        contentStart: 6,
         lineStart: 6,
         lineEnd: 24,
         kind: "content",
@@ -1026,11 +1084,35 @@ describe("block decoration line helpers", () => {
         isLastContentLine: true
       },
       {
+        contentStart: 25,
         lineStart: 25,
         lineEnd: 28,
         kind: "fence",
         isFirstContentLine: false,
         isLastContentLine: false
+      }
+    ]);
+  });
+
+  it("returns indented code line metadata with content starting after the Markdown indent marker", () => {
+    const source = ["    // Some comments", "    line 1 of code"].join("\n");
+
+    expect(getInactiveCodeFenceLines(0, source.length, source, "indented")).toEqual([
+      {
+        contentStart: 4,
+        lineStart: 0,
+        lineEnd: 20,
+        kind: "content",
+        isFirstContentLine: true,
+        isLastContentLine: false
+      },
+      {
+        contentStart: 25,
+        lineStart: 21,
+        lineEnd: 39,
+        kind: "content",
+        isFirstContentLine: false,
+        isLastContentLine: true
       }
     ]);
   });

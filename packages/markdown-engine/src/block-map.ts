@@ -1,4 +1,5 @@
 import type { InlineRoot } from "./inline-ast";
+import type { CodeBlockKind } from "./code-block";
 
 export interface BlockquoteMarker {
   markerStart: number;
@@ -97,6 +98,7 @@ export interface BlockquoteBlock extends BaseBlock {
 
 export interface CodeFenceBlock extends BaseBlock {
   type: "codeFence";
+  kind: CodeBlockKind;
   info: string | null;
 }
 

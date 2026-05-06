@@ -57,6 +57,11 @@ export function parseTopLevelBlocks(source: string): MarkdownBlock[] {
         continue;
       }
 
+      if (token.type === "codeIndented") {
+        blocks.push(createIndentedCodeBlock(token));
+        continue;
+      }
+
       if (token.type === "htmlFlow") {
         const htmlImageBlock = createHtmlImageBlock(token, source);
 
@@ -138,7 +143,16 @@ function createCodeFenceBlock(token: Token, source: string): CodeFenceBlock {
 
   return {
     ...base,
+    kind: "fenced",
     info: getCodeFenceInfo(source.slice(base.startOffset, base.endOffset))
+  };
+}
+
+function createIndentedCodeBlock(token: Token): CodeFenceBlock {
+  return {
+    ...createBaseBlock("codeFence", token),
+    kind: "indented",
+    info: null
   };
 }
 

@@ -9,6 +9,11 @@
 
 ## 记录
 
+| 2026-05-06 | indented-code-block | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/code-editor.test.ts src/renderer/export-html.test.ts src/renderer/app.autosave.test.ts` | 通过 | 覆盖 CommonMark indented code block 的 parser block map、CodeMirror inactive decoration、HTML export 和 CSS 隐藏缩进 marker 契约；5 个文件、396 项通过。 |
+| 2026-05-06 | indented-code-block | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-06 | indented-code-block | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |
+| 2026-05-06 | indented-code-block | `npm run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-06 | indented-code-block | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
 | 2026-05-05 | cursor-hit-offset | `npm.cmd run test:cursor-hit-geometry` | 先失败后通过 | 新增 Electron/Chromium 几何 probe：修复前 `After break line` 可见文字中心被 `posAtCoords` 命中到后续 table 行，`After table line` 命中到下一行；将分割线与表格 widget 等垂直间距收敛进可测量 padding/box 后，fixture 中 8 个文本采样全部命中预期源码行。 |
 | 2026-05-05 | cursor-hit-offset | `npm.cmd run test:list-geometry` | 通过 | 复核既有列表几何 probe，active/inactive 列表 marker、正文起点、任务列表 marker 与 heading/paragraph left 对齐未回归。 |
 | 2026-05-05 | cursor-hit-offset | `npm.cmd run test -- src/renderer/editor-source-layout.test.ts src/renderer/code-editor.test.ts packages/editor-core/src/decorations/block-decorations.test.ts` | 通过 | 覆盖 CSS 几何契约、CodeMirror renderer 交互与 editor-core block decoration 回归；3 个文件、193 项通过。 |

@@ -1,4 +1,8 @@
-import { parseBlockquoteLinePrefix } from "@fishmark/markdown-engine";
+import {
+  parseBlockquoteLinePrefix,
+  resolveIndentedCodeContentStartOffset,
+  type CodeBlockKind
+} from "@fishmark/markdown-engine";
 
 export type BlockLineInfo = {
   lineStart: number;
@@ -16,6 +20,7 @@ export type InactiveBlockquoteLine = {
 };
 
 export type InactiveCodeFenceLine = {
+  contentStart: number;
   lineStart: number;
   lineEnd: number;
   kind: "fence" | "content";
@@ -85,7 +90,8 @@ export function getInactiveBlockquoteLines(
 export function getInactiveCodeFenceLines(
   startOffset: number,
   endOffset: number,
-  source: string
+  source: string,
+  blockKind: CodeBlockKind = "fenced"
 ): InactiveCodeFenceLine[] {
   const lines = getBlockLineInfos(startOffset, endOffset, source);
 
@@ -93,9 +99,23 @@ export function getInactiveCodeFenceLines(
     return [];
   }
 
+  if (blockKind === "indented") {
+    const lastIndex = lines.length - 1;
+
+    return lines.map((line, index) => ({
+      contentStart: resolveIndentedCodeContentStartOffset(source, line.lineStart, line.lineEnd),
+      lineStart: line.lineStart,
+      lineEnd: line.lineEnd,
+      kind: "content",
+      isFirstContentLine: index === 0,
+      isLastContentLine: index === lastIndex
+    }));
+  }
+
   const lastIndex = lines.length - 1;
 
   return lines.map((line, index) => ({
+    contentStart: line.lineStart,
     lineStart: line.lineStart,
     lineEnd: line.lineEnd,
     kind: index === 0 || index === lastIndex ? "fence" : "content",
