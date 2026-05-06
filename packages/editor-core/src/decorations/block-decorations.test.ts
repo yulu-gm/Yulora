@@ -65,6 +65,21 @@ const collectWidgets = (source: string, decorationSet: ReturnType<typeof createB
   return widgets;
 };
 
+const collectBlockReplacements = (
+  source: string,
+  decorationSet: ReturnType<typeof createBlockDecorations>["decorationSet"]
+) => {
+  const replacements: Array<{ from: number; to: number; text: string }> = [];
+
+  decorationSet.between(0, source.length, (from, to, value) => {
+    if (value.spec.block === true && !value.spec.widget) {
+      replacements.push({ from, to, text: source.slice(from, to) });
+    }
+  });
+
+  return replacements;
+};
+
 const createInactiveInlineDecorations = (source: string) => {
   const blockMap = parseMarkdownDocument(source);
   const activeState = createActiveBlockStateFromBlockMap(blockMap, {
@@ -790,6 +805,38 @@ describe("createBlockDecorations", () => {
     expect(
       ranges.some((range) => range.text === "[x]" && range.className.includes("cm-inactive-task-marker"))
     ).toBe(false);
+  });
+
+  it("renders reference-style Markdown images as image widgets and hides inactive definitions", () => {
+    const source = [
+      "![Alt text][id]",
+      "",
+      '[id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"',
+      "",
+      "Paragraph"
+    ].join("\n");
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.indexOf("Paragraph"),
+      head: source.indexOf("Paragraph")
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+
+    expect(collectWidgets(source, result.decorationSet)).toEqual([
+      { from: 0, to: "![Alt text][id]".length, name: "MarkdownImagePreviewWidget" }
+    ]);
+    expect(collectBlockReplacements(source, result.decorationSet)).toEqual([
+      {
+        from: source.indexOf("[id]:"),
+        to: source.indexOf("\n\nParagraph"),
+        text: '[id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"'
+      }
+    ]);
   });
 
   it("applies active paragraph line classes to keep body typography consistent", () => {

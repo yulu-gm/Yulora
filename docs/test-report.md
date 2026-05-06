@@ -9,6 +9,11 @@
 
 ## 记录
 
+| 2026-05-06 | reference-style-image | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/export-html.test.ts` | 通过 | 覆盖 reference-style image 的 parser definition resolution、CodeMirror 图片 widget 与 HTML export 不泄漏 definition 行；3 个文件、85 项通过。 |
+| 2026-05-06 | reference-style-image | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-06 | reference-style-image | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |
+| 2026-05-06 | reference-style-image | `npm run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-06 | reference-style-image | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
 | 2026-05-06 | indented-code-block | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/decorations/block-decorations.test.ts src/renderer/code-editor.test.ts src/renderer/export-html.test.ts src/renderer/app.autosave.test.ts` | 通过 | 覆盖 CommonMark indented code block 的 parser block map、CodeMirror inactive decoration、HTML export 和 CSS 隐藏缩进 marker 契约；5 个文件、396 项通过。 |
 | 2026-05-06 | indented-code-block | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
 | 2026-05-06 | indented-code-block | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |

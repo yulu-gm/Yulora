@@ -1,7 +1,12 @@
 import { Decoration, WidgetType, type DecorationSet } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 
-import { parseInlineAst, type ListItemBlock } from "@fishmark/markdown-engine";
+import {
+  collectReferenceDefinitions,
+  parseInlineAst,
+  type ListItemBlock,
+  type InlineReferenceDefinition
+} from "@fishmark/markdown-engine";
 
 import type { ActiveBlockState } from "../active-block";
 import { getInactiveBlockquoteLines, getInactiveCodeFenceLines } from "./block-lines";
@@ -61,6 +66,7 @@ export function createBlockDecorations(
   const activeSelectionLineStart = hasEditorFocus
     ? resolveLineStartOffset(source, activeBlockState.selection.head)
     : null;
+  const referenceDefinitions = collectReferenceDefinitions(source);
   const ranges: Range<Decoration>[] = [];
   const signatures: string[] = [
     `active:${activeBlockId ?? "none"}:blank-line:${activeSelectionLineStart ?? "none"}`
@@ -118,7 +124,14 @@ export function createBlockDecorations(
 
       if (block.type === "list") {
         signatures.push(`${createBlockDecorationSignature(block)}:line-edit:${activeListLineStart ?? "none"}`);
-        appendActiveListDecorations(block, source, activeListLineStart, ranges, resolveImagePreviewUrl);
+        appendActiveListDecorations(
+          block,
+          source,
+          activeListLineStart,
+          ranges,
+          resolveImagePreviewUrl,
+          referenceDefinitions
+        );
         continue;
       }
 
@@ -166,7 +179,7 @@ export function createBlockDecorations(
     }
 
     if (block.type === "list") {
-      appendInactiveListDecorations(block, source, ranges, resolveImagePreviewUrl);
+      appendInactiveListDecorations(block, source, ranges, resolveImagePreviewUrl, referenceDefinitions);
       continue;
     }
 
@@ -178,6 +191,11 @@ export function createBlockDecorations(
 
     if (block.type === "codeFence") {
       appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info, block.kind);
+      continue;
+    }
+
+    if (block.type === "definition") {
+      ranges.push(Decoration.replace({ block: true }).range(block.startOffset, block.endOffset));
       continue;
     }
 
@@ -428,22 +446,32 @@ function appendInactiveListDecorations(
   block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "list" }>,
   source: string,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
-  appendInactiveListScopeDecorations(block, source, ranges, resolveImagePreviewUrl);
+  appendInactiveListScopeDecorations(block, source, ranges, resolveImagePreviewUrl, referenceDefinitions);
 }
 
 function appendInactiveListScopeDecorations(
   block: Extract<NonNullable<ActiveBlockState["activeBlock"]>, { type: "list" }>,
   source: string,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
   for (const item of block.items) {
-    appendListItemDecorations(item, source, null, block.ordered, ranges, resolveImagePreviewUrl);
+    appendListItemDecorations(
+      item,
+      source,
+      null,
+      block.ordered,
+      ranges,
+      resolveImagePreviewUrl,
+      referenceDefinitions
+    );
 
     for (const child of item.children) {
-      appendInactiveListScopeDecorations(child, source, ranges, resolveImagePreviewUrl);
+      appendInactiveListScopeDecorations(child, source, ranges, resolveImagePreviewUrl, referenceDefinitions);
     }
   }
 }
@@ -453,9 +481,17 @@ function appendActiveListDecorations(
   source: string,
   activeLineStart: number | null,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
-  appendActiveListScopeDecorations(block, source, activeLineStart, ranges, resolveImagePreviewUrl);
+  appendActiveListScopeDecorations(
+    block,
+    source,
+    activeLineStart,
+    ranges,
+    resolveImagePreviewUrl,
+    referenceDefinitions
+  );
 }
 
 function appendActiveListScopeDecorations(
@@ -463,13 +499,29 @@ function appendActiveListScopeDecorations(
   source: string,
   activeLineStart: number | null,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
   for (const item of block.items) {
-    appendListItemDecorations(item, source, activeLineStart, block.ordered, ranges, resolveImagePreviewUrl);
+    appendListItemDecorations(
+      item,
+      source,
+      activeLineStart,
+      block.ordered,
+      ranges,
+      resolveImagePreviewUrl,
+      referenceDefinitions
+    );
 
     for (const child of item.children) {
-      appendActiveListScopeDecorations(child, source, activeLineStart, ranges, resolveImagePreviewUrl);
+      appendActiveListScopeDecorations(
+        child,
+        source,
+        activeLineStart,
+        ranges,
+        resolveImagePreviewUrl,
+        referenceDefinitions
+      );
     }
   }
 }
@@ -480,7 +532,8 @@ function appendListItemDecorations(
   activeLineStart: number | null,
   ordered: boolean,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
   const contentEndOffset = item.children[0]?.startOffset ?? item.endOffset;
   const lines = createLineInfosInRange(source, item.startOffset, contentEndOffset);
@@ -502,7 +555,8 @@ function appendListItemDecorations(
         line.endOffset,
         false,
         ranges,
-        resolveImagePreviewUrl
+        resolveImagePreviewUrl,
+        referenceDefinitions
       );
 
       continue;
@@ -548,7 +602,8 @@ function appendListItemDecorations(
       line.endOffset,
       false,
       ranges,
-      resolveImagePreviewUrl
+      resolveImagePreviewUrl,
+      referenceDefinitions
     );
   }
 }
@@ -952,7 +1007,8 @@ function appendInlineDecorationsForLine(
   lineEndOffset: number,
   active: boolean,
   ranges: Range<Decoration>[],
-  resolveImagePreviewUrl?: (href: string | null) => string | null
+  resolveImagePreviewUrl?: (href: string | null) => string | null,
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>
 ): void {
   const contentEndOffset = trimTrailingCarriageReturn(source, contentStartOffset, lineEndOffset);
 
@@ -960,7 +1016,7 @@ function appendInlineDecorationsForLine(
     return;
   }
 
-  const inline = parseInlineAst(source, contentStartOffset, contentEndOffset);
+  const inline = parseInlineAst(source, contentStartOffset, contentEndOffset, { referenceDefinitions });
   if (active) {
     ranges.push(...createActiveInlineImageDecorations(inline, source, resolveImagePreviewUrl));
     ranges.push(...createActiveInlineDecorations(inline));

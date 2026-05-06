@@ -1,4 +1,5 @@
 import {
+  collectReferenceDefinitions,
   parseInlineAst,
   parseMarkdownDocument,
   resolveIndentedCodeContentStartOffset,
@@ -37,6 +38,7 @@ type SourceLine = {
   startOffset: number;
   text: string;
 };
+type ReferenceDefinitions = ReturnType<typeof collectReferenceDefinitions>;
 
 const EXPORT_ROOT_CLASS_NAME = "fishmark-html-export-root";
 
@@ -164,6 +166,7 @@ export function collectRootExportAttributes(targetDocument: Document = document)
 
 function renderMarkdownContent(markdown: string): string {
   const documentModel = parseMarkdownDocument(markdown);
+  const referenceDefinitions = collectReferenceDefinitions(markdown);
   const chunks: string[] = [];
   let cursor = 0;
 
@@ -172,7 +175,7 @@ function renderMarkdownContent(markdown: string): string {
       chunks.push(renderPlainLines(markdown, cursor, block.startOffset));
     }
 
-    chunks.push(renderBlock(block, markdown));
+    chunks.push(renderBlock(block, markdown, referenceDefinitions));
     cursor = Math.max(cursor, block.endOffset);
   }
 
@@ -187,18 +190,20 @@ function renderMarkdownContent(markdown: string): string {
   return chunks.filter(Boolean).join("");
 }
 
-function renderBlock(block: MarkdownBlock, source: string): string {
+function renderBlock(block: MarkdownBlock, source: string, referenceDefinitions: ReferenceDefinitions): string {
   switch (block.type) {
     case "heading":
       return renderHeadingBlock(block, source);
     case "paragraph":
-      return renderParagraphBlock(block, source);
+      return renderParagraphBlock(block, source, referenceDefinitions);
     case "list":
-      return renderListBlock(block, source);
+      return renderListBlock(block, source, referenceDefinitions);
     case "blockquote":
       return renderBlockquoteBlock(block, source);
     case "codeFence":
       return renderCodeFenceBlock(block, source);
+    case "definition":
+      return renderDefinitionBlock();
     case "thematicBreak":
       return renderThematicBreakBlock(block, source);
     case "htmlImage":
@@ -232,32 +237,45 @@ function renderHeadingBlock(block: HeadingBlock, source: string): string {
   );
 }
 
-function renderParagraphBlock(block: ParagraphBlock, source: string): string {
+function renderParagraphBlock(
+  block: ParagraphBlock,
+  source: string,
+  referenceDefinitions: ReferenceDefinitions
+): string {
   return createSourceLines(source, block.startOffset, block.endOffset)
     .map((line) =>
       renderLine(
         "cm-inactive-paragraph cm-inactive-paragraph-leading",
-        renderInlineRange(source, line.startOffset, line.endOffset) || "<br>"
+        renderInlineRange(source, line.startOffset, line.endOffset, referenceDefinitions) || "<br>"
       )
     )
     .join("");
 }
 
-function renderListBlock(block: ListBlock, source: string): string {
-  return block.items.map((item) => renderListItem(item, source, block.ordered)).join("");
+function renderListBlock(
+  block: ListBlock,
+  source: string,
+  referenceDefinitions: ReferenceDefinitions
+): string {
+  return block.items.map((item) => renderListItem(item, source, block.ordered, referenceDefinitions)).join("");
 }
 
-function renderListItem(item: ListItemBlock, source: string, ordered: boolean): string {
+function renderListItem(
+  item: ListItemBlock,
+  source: string,
+  ordered: boolean,
+  referenceDefinitions: ReferenceDefinitions
+): string {
   const contentUpperBound = item.children[0]?.startOffset ?? item.endOffset;
   const lines = createSourceLines(source, item.startOffset, contentUpperBound);
   const chunks = lines.map((line) =>
     line.startOffset === item.startOffset
-      ? renderListItemFirstLine(item, source, line, ordered)
-      : renderListItemContinuationLine(item, source, line, ordered)
+      ? renderListItemFirstLine(item, source, line, ordered, referenceDefinitions)
+      : renderListItemContinuationLine(item, source, line, ordered, referenceDefinitions)
   );
 
   for (const child of item.children) {
-    chunks.push(renderListBlock(child, source));
+    chunks.push(renderListBlock(child, source, referenceDefinitions));
   }
 
   return chunks.filter(Boolean).join("");
@@ -267,7 +285,8 @@ function renderListItemFirstLine(
   item: ListItemBlock,
   source: string,
   line: SourceLine,
-  ordered: boolean
+  ordered: boolean,
+  referenceDefinitions: ReferenceDefinitions
 ): string {
   const contentStartOffset = resolveListItemContentStartOffset(item, source, line.endOffset);
   const lineAttributes = createListItemLineAttributes(item, source, ordered, "first");
@@ -281,7 +300,7 @@ function renderListItemFirstLine(
     renderSpan("cm-inactive-list-source-prefix", source.slice(item.markerEnd, taskStartOffset)),
     taskHtml,
     renderSpan("cm-inactive-list-source-prefix", source.slice(taskEndOffset, inlineStart)),
-    renderInlineRange(source, inlineStart, line.endOffset)
+    renderInlineRange(source, inlineStart, line.endOffset, referenceDefinitions)
   ].join("");
 
   return renderLine(lineAttributes.className, innerHtml || "<br>", { style: lineAttributes.style });
@@ -291,7 +310,8 @@ function renderListItemContinuationLine(
   item: ListItemBlock,
   source: string,
   line: SourceLine,
-  ordered: boolean
+  ordered: boolean,
+  referenceDefinitions: ReferenceDefinitions
 ): string {
   if (isExplicitThematicBreakLine(line.text)) {
     return renderLine(
@@ -310,7 +330,7 @@ function renderListItemContinuationLine(
   );
   const innerHtml = [
     renderSpan("cm-inactive-list-source-prefix", source.slice(line.startOffset, contentStartOffset)),
-    renderInlineRange(source, contentStartOffset, line.endOffset)
+    renderInlineRange(source, contentStartOffset, line.endOffset, referenceDefinitions)
   ].join("");
 
   return renderLine(lineAttributes.className, innerHtml || "<br>", { style: lineAttributes.style });
@@ -440,6 +460,10 @@ function renderHtmlImageBlock(block: HtmlImageBlock): string {
   });
 }
 
+function renderDefinitionBlock(): string {
+  return "";
+}
+
 function renderTableBlock(block: TableBlock): string {
   const headerRows = block.hasHeader
     ? `<thead>${renderTableRow(block.header, true)}</thead>`
@@ -515,12 +539,17 @@ function skipSingleLeadingLineBreak(source: string, startOffset: number, endOffs
   return startOffset;
 }
 
-function renderInlineRange(source: string, startOffset: number, endOffset: number): string {
+function renderInlineRange(
+  source: string,
+  startOffset: number,
+  endOffset: number,
+  referenceDefinitions: ReferenceDefinitions = new Map()
+): string {
   if (endOffset <= startOffset) {
     return "";
   }
 
-  return renderInlineRoot(parseInlineAst(source, startOffset, endOffset), source);
+  return renderInlineRoot(parseInlineAst(source, startOffset, endOffset, { referenceDefinitions }), source);
 }
 
 function renderInlineRoot(root: InlineRoot, source: string): string {

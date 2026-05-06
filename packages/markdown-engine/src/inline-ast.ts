@@ -63,6 +63,15 @@ export interface InlineImage extends InlineContainerNode {
   titleEndOffset: number | null;
 }
 
+export interface InlineReferenceDefinition {
+  href: string;
+  title: string | null;
+  destinationStartOffset: number;
+  destinationEndOffset: number;
+  titleStartOffset: number | null;
+  titleEndOffset: number | null;
+}
+
 export interface InlineRoot extends InlineBaseNode {
   type: "root";
   children: InlineNode[];

@@ -3,6 +3,7 @@ export type {
   BlockquoteBlock,
   BlockquoteMarker,
   CodeFenceBlock,
+  DefinitionBlock,
   HeadingBlock,
   HtmlImageBlock,
   InlineLine,
@@ -28,6 +29,7 @@ export type {
   InlineLink,
   InlineMarker,
   InlineNode,
+  InlineReferenceDefinition,
   InlineRoot,
   InlineStrong,
   InlineStrikethrough,
@@ -45,8 +47,8 @@ export {
   type FormattedTableWithOffsets,
   type TableCellOffset
 } from "./format-table-markdown";
-export { parseInlineAst } from "./parse-inline-ast";
-export { parseMarkdownDocument } from "./parse-markdown-document";
+export { normalizeReferenceIdentifier, parseInlineAst, type ParseInlineAstOptions } from "./parse-inline-ast";
+export { collectReferenceDefinitions, parseMarkdownDocument } from "./parse-markdown-document";
 export {
   createCanonicalTableModel,
   isTableDelimiterLine,

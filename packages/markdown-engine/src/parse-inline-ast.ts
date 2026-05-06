@@ -9,6 +9,7 @@ import type {
   InlineLink,
   InlineMarker,
   InlineNode,
+  InlineReferenceDefinition,
   InlineRoot,
   InlineStrong,
   InlineStrikethrough,
@@ -28,6 +29,7 @@ type ContainerEntry = {
   containerKind: ContainerKind;
   node: InlineContainerNode;
   markerCount: number;
+  referenceIdentifier: string | null;
 };
 
 type CodeEntry = {
@@ -39,7 +41,20 @@ type CodeEntry = {
 
 type AstStackEntry = RootEntry | ContainerEntry | CodeEntry;
 
-export function parseInlineAst(source: string, startOffset: number, endOffset: number): InlineRoot {
+export type ParseInlineAstOptions = {
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>;
+};
+
+export function normalizeReferenceIdentifier(value: string): string {
+  return value.trim().replace(/[\t\n\r ]+/gu, " ").toLowerCase();
+}
+
+export function parseInlineAst(
+  source: string,
+  startOffset: number,
+  endOffset: number,
+  options: ParseInlineAstOptions = {}
+): InlineRoot {
   const clampedStartOffset = clampOffset(startOffset, 0, source.length);
   const clampedEndOffset = clampOffset(endOffset, clampedStartOffset, source.length);
   const sourceSlice = source.slice(clampedStartOffset, clampedEndOffset);
@@ -60,6 +75,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
 
   const stack: AstStackEntry[] = [{ kind: "root", node: root }];
   let resourceDepth = 0;
+  let referenceDepth = 0;
 
   for (const [phase, token] of events) {
     const tokenType = token.type as string;
@@ -68,12 +84,16 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
       if (tokenType === "resource") {
         resourceDepth += 1;
       }
+      if (tokenType === "reference") {
+        referenceDepth += 1;
+      }
 
       if (tokenType === "strong") {
         stack.push({
           kind: "container",
           containerKind: "strong",
           markerCount: 0,
+          referenceIdentifier: null,
           node: createContainerNode("strong", token, clampedStartOffset)
         });
         continue;
@@ -84,6 +104,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
           kind: "container",
           containerKind: "emphasis",
           markerCount: 0,
+          referenceIdentifier: null,
           node: createContainerNode("emphasis", token, clampedStartOffset)
         });
         continue;
@@ -94,6 +115,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
           kind: "container",
           containerKind: "strikethrough",
           markerCount: 0,
+          referenceIdentifier: null,
           node: createContainerNode("strikethrough", token, clampedStartOffset)
         });
         continue;
@@ -104,6 +126,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
           kind: "container",
           containerKind: "link",
           markerCount: 0,
+          referenceIdentifier: null,
           node: createLinkNode(token, clampedStartOffset)
         });
         continue;
@@ -114,6 +137,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
           kind: "container",
           containerKind: "image",
           markerCount: 0,
+          referenceIdentifier: null,
           node: createImageNode(token, clampedStartOffset)
         });
         continue;
@@ -182,7 +206,15 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
         continue;
       }
 
-      if (tokenType === "data" && resourceDepth === 0) {
+      if (tokenType === "referenceString") {
+        const mediaEntry = getNearestMediaEntry(stack);
+        if (mediaEntry) {
+          mediaEntry.referenceIdentifier = normalizeReferenceIdentifier(readSlice(sourceSlice, token));
+        }
+        continue;
+      }
+
+      if (tokenType === "data" && resourceDepth === 0 && referenceDepth === 0) {
         const value = readSlice(sourceSlice, token);
         if (value.length === 0) {
           continue;
@@ -204,11 +236,18 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
       resourceDepth = Math.max(0, resourceDepth - 1);
       continue;
     }
+    if (tokenType === "reference") {
+      referenceDepth = Math.max(0, referenceDepth - 1);
+      continue;
+    }
 
     if (tokenType === "strong" || tokenType === "emphasis" || tokenType === "strikethrough" || tokenType === "link" || tokenType === "image") {
       const containerKind = tokenType as ContainerKind;
       const containerEntry = popContainerEntry(stack, containerKind);
       if (containerEntry) {
+        if (containerKind === "link" || containerKind === "image") {
+          resolveMediaReference(containerEntry, options.referenceDefinitions);
+        }
         ensureContainerMarkers(containerEntry.node);
         appendNode(stack, containerEntry.node);
       }
@@ -225,6 +264,7 @@ export function parseInlineAst(source: string, startOffset: number, endOffset: n
     }
   }
 
+  resolveReferenceMediaTextNodes(root, source, options.referenceDefinitions);
   return root;
 }
 
@@ -403,17 +443,198 @@ function getNearestCodeEntry(stack: AstStackEntry[]): CodeEntry | null {
 }
 
 function getNearestMediaNode(stack: AstStackEntry[]): InlineLink | InlineImage | null {
+  return (getNearestMediaEntry(stack)?.node as InlineLink | InlineImage | undefined) ?? null;
+}
+
+function getNearestMediaEntry(stack: AstStackEntry[]): ContainerEntry | null {
   for (let index = stack.length - 1; index >= 0; index -= 1) {
     const entry = stack[index];
     if (
       entry?.kind === "container" &&
       (entry.containerKind === "link" || entry.containerKind === "image")
     ) {
-      return entry.node as InlineLink | InlineImage;
+      return entry;
     }
   }
 
   return null;
+}
+
+function resolveMediaReference(
+  entry: ContainerEntry,
+  referenceDefinitions: ReadonlyMap<string, InlineReferenceDefinition> | undefined
+): void {
+  if (!referenceDefinitions || (entry.containerKind !== "link" && entry.containerKind !== "image")) {
+    return;
+  }
+
+  const node = entry.node as InlineLink | InlineImage;
+  if (node.href !== null) {
+    return;
+  }
+
+  const identifier = entry.referenceIdentifier ?? normalizeReferenceIdentifier(readInlineText(node.children));
+  const definition = referenceDefinitions.get(identifier);
+  if (!definition) {
+    return;
+  }
+
+  node.href = definition.href;
+  node.title = definition.title;
+  node.destinationStartOffset = definition.destinationStartOffset;
+  node.destinationEndOffset = definition.destinationEndOffset;
+  node.titleStartOffset = definition.titleStartOffset;
+  node.titleEndOffset = definition.titleEndOffset;
+}
+
+function readInlineText(nodes: readonly InlineNode[]): string {
+  return nodes.map((node) => readInlineNodeText(node)).join("");
+}
+
+function readInlineNodeText(node: InlineNode): string {
+  switch (node.type) {
+    case "text":
+      return node.value;
+    case "codeSpan":
+      return node.text;
+    case "strong":
+    case "emphasis":
+    case "strikethrough":
+    case "link":
+    case "image":
+      return readInlineText(node.children);
+  }
+}
+
+function resolveReferenceMediaTextNodes(
+  root: InlineRoot | InlineContainerNode,
+  source: string,
+  referenceDefinitions: ReadonlyMap<string, InlineReferenceDefinition> | undefined
+): void {
+  if (!referenceDefinitions || referenceDefinitions.size === 0) {
+    return;
+  }
+
+  root.children = root.children.flatMap((node) => {
+    if (node.type === "codeSpan") {
+      return [node];
+    }
+
+    if (node.type !== "text") {
+      resolveReferenceMediaTextNodes(node, source, referenceDefinitions);
+      return [node];
+    }
+
+    return splitReferenceMediaTextNode(node, source, referenceDefinitions);
+  });
+}
+
+function splitReferenceMediaTextNode(
+  node: InlineText,
+  source: string,
+  referenceDefinitions: ReadonlyMap<string, InlineReferenceDefinition>
+): InlineNode[] {
+  const replacements: InlineNode[] = [];
+  let cursor = 0;
+  const pattern = /(!?)\[([^\]\n]*)\](?:\[([^\]\n]*)\])?/gu;
+
+  for (const match of node.value.matchAll(pattern)) {
+    if (typeof match.index !== "number") {
+      continue;
+    }
+
+    const marker = match[1] ?? "";
+    const label = match[2] ?? "";
+    const explicitReference = match[3];
+    const nextCharacter = node.value[match.index + match[0].length] ?? "";
+
+    if (explicitReference === undefined && (nextCharacter === "(" || nextCharacter === "[")) {
+      continue;
+    }
+
+    const referenceLabel = explicitReference && explicitReference.length > 0 ? explicitReference : label;
+    const definition = referenceDefinitions.get(normalizeReferenceIdentifier(referenceLabel));
+    if (!definition) {
+      continue;
+    }
+
+    const matchStartOffset = node.startOffset + match.index;
+    const matchEndOffset = matchStartOffset + match[0].length;
+
+    if (match.index > cursor) {
+      replacements.push({
+        type: "text",
+        startOffset: node.startOffset + cursor,
+        endOffset: matchStartOffset,
+        value: node.value.slice(cursor, match.index)
+      });
+    }
+
+    replacements.push(
+      createReferenceMediaNode({
+        definition,
+        endOffset: matchEndOffset,
+        isImage: marker === "!",
+        labelEndOffset: matchStartOffset + marker.length + 1 + label.length,
+        labelStartOffset: matchStartOffset + marker.length + 1,
+        source,
+        startOffset: matchStartOffset
+      })
+    );
+    cursor = match.index + match[0].length;
+  }
+
+  if (replacements.length === 0) {
+    return [node];
+  }
+
+  if (cursor < node.value.length) {
+    replacements.push({
+      type: "text",
+      startOffset: node.startOffset + cursor,
+      endOffset: node.endOffset,
+      value: node.value.slice(cursor)
+    });
+  }
+
+  return replacements;
+}
+
+function createReferenceMediaNode(input: {
+  definition: InlineReferenceDefinition;
+  endOffset: number;
+  isImage: boolean;
+  labelEndOffset: number;
+  labelStartOffset: number;
+  source: string;
+  startOffset: number;
+}): InlineLink | InlineImage {
+  const children = parseInlineAst(input.source, input.labelStartOffset, input.labelEndOffset).children;
+  const common = {
+    startOffset: input.startOffset,
+    endOffset: input.endOffset,
+    children:
+      children.length > 0
+        ? children
+        : [
+            {
+              type: "text" as const,
+              startOffset: input.labelStartOffset,
+              endOffset: input.labelEndOffset,
+              value: input.source.slice(input.labelStartOffset, input.labelEndOffset)
+            }
+          ],
+    openMarker: createMarker(input.labelStartOffset - 1, input.labelStartOffset),
+    closeMarker: createMarker(input.labelEndOffset, input.labelEndOffset + 1),
+    href: input.definition.href,
+    title: input.definition.title,
+    destinationStartOffset: input.definition.destinationStartOffset,
+    destinationEndOffset: input.definition.destinationEndOffset,
+    titleStartOffset: input.definition.titleStartOffset,
+    titleEndOffset: input.definition.titleEndOffset
+  };
+
+  return input.isImage ? { ...common, type: "image" } : { ...common, type: "link" };
 }
 
 function ensureContainerMarkers(node: InlineContainerNode): void {

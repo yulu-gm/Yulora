@@ -28,6 +28,7 @@ export interface BaseBlock {
     | "list"
     | "blockquote"
     | "codeFence"
+    | "definition"
     | "thematicBreak"
     | "htmlImage"
     | "table";
@@ -102,6 +103,10 @@ export interface CodeFenceBlock extends BaseBlock {
   info: string | null;
 }
 
+export interface DefinitionBlock extends BaseBlock {
+  type: "definition";
+}
+
 export interface ThematicBreakBlock extends BaseBlock {
   type: "thematicBreak";
   marker: "-" | "+";
@@ -150,6 +155,7 @@ export type MarkdownBlock =
   | ListBlock
   | BlockquoteBlock
   | CodeFenceBlock
+  | DefinitionBlock
   | ThematicBreakBlock
   | HtmlImageBlock
   | TableBlock;

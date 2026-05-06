@@ -1334,4 +1334,40 @@ describe("parseBlockMap", () => {
       endOffset: baseline.blocks[0]!.endOffset
     });
   });
+
+  it("resolves reference-style image definitions in the rich Markdown document", () => {
+    const source = [
+      '![Alt text][id]',
+      '',
+      '[id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"'
+    ].join("\n");
+    const document = parseMarkdownDocument(source);
+    const paragraph = document.blocks[0];
+
+    expect(paragraph?.type).toBe("paragraph");
+    if (paragraph?.type !== "paragraph") {
+      return;
+    }
+
+    expect(document.blocks[1]).toMatchObject({
+      type: "definition",
+      startOffset: source.indexOf("[id]:")
+    });
+    expect(paragraph.inline?.children).toEqual([
+      {
+        type: "image",
+        startOffset: 0,
+        endOffset: "![Alt text][id]".length,
+        openMarker: { startOffset: 1, endOffset: 2 },
+        closeMarker: { startOffset: 10, endOffset: 11 },
+        href: "https://octodex.github.com/images/dojocat.jpg",
+        title: "The Dojocat",
+        destinationStartOffset: source.indexOf("https://octodex"),
+        destinationEndOffset: source.indexOf("  \"The Dojocat\""),
+        titleStartOffset: source.indexOf("The Dojocat"),
+        titleEndOffset: source.indexOf("The Dojocat") + "The Dojocat".length,
+        children: [{ type: "text", startOffset: 2, endOffset: 10, value: "Alt text" }]
+      }
+    ]);
+  });
 });

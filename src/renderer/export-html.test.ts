@@ -132,6 +132,24 @@ describe("createFishmarkExportHtml", () => {
     expect(codeLines[0]?.querySelector(".cm-inactive-code-block-indent-marker")?.textContent).toBe("    ");
   });
 
+  it("exports reference-style Markdown images without leaking the definition line", () => {
+    const html = createFishmarkExportHtml({
+      markdown: [
+        '![Alt text][id]',
+        '',
+        '[id]: https://octodex.github.com/images/dojocat.jpg  "The Dojocat"'
+      ].join("\n"),
+      title: "image.md"
+    });
+    const exported = new DOMParser().parseFromString(html, "text/html");
+    const image = exported.querySelector<HTMLImageElement>(".cm-markdown-image-preview-image");
+
+    expect(image?.getAttribute("src")).toBe("https://octodex.github.com/images/dojocat.jpg");
+    expect(image?.getAttribute("alt")).toBe("Alt text");
+    expect(exported.body.textContent).not.toContain("[id]:");
+    expect(exported.body.textContent).not.toContain("The Dojocat");
+  });
+
   it("escapes title, Markdown text, and inline CSS terminators", () => {
     const html = createFishmarkExportHtml({
       markdown: "# 1 < 2 & 3",

@@ -5,6 +5,7 @@ import type {
   BlockMap,
   BlockquoteBlock,
   CodeFenceBlock,
+  DefinitionBlock,
   HeadingBlock,
   HtmlImageBlock,
   ListBlock,
@@ -69,6 +70,11 @@ export function parseTopLevelBlocks(source: string): MarkdownBlock[] {
           blocks.push(htmlImageBlock);
         }
 
+        continue;
+      }
+
+      if (token.type === "definition") {
+        blocks.push(createDefinitionBlock(token));
         continue;
       }
 
@@ -154,6 +160,10 @@ function createIndentedCodeBlock(token: Token): CodeFenceBlock {
     kind: "indented",
     info: null
   };
+}
+
+function createDefinitionBlock(token: Token): DefinitionBlock {
+  return createBaseBlock("definition", token);
 }
 
 function createThematicBreakBlock(
