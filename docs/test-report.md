@@ -9,6 +9,18 @@
 
 ## 记录
 
+| 2026-05-06 | table-cell-focus-scroll | `npm run test -- src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/commands/table-context.test.ts packages/editor-core/src/commands/table-edits.test.ts packages/editor-core/src/commands/table-commands.test.ts packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖表格键盘移动时新 cell 使用 `preventScroll` 聚焦，只调整 `.cm-scroller`，并避免异步 focus 覆盖用户 caret；7 个文件、415 项通过。 |
+| 2026-05-06 | table-cell-focus-scroll | `npm run test:table-focus-scroll` | 通过 | 真实 Electron probe 覆盖点击进入第 30 行表格 cell 后连续 ArrowDown 到第 38 行，active cell 始终留在 `.cm-scroller` 视口内，未滚动外层页面。 |
+| 2026-05-06 | table-cell-focus-scroll | `$env:FISHMARK_TABLE_FOCUS_SCROLL_PROBE_CONTENT_PATH='E:\B2P4\branch\b2\ue4_client\docs\plans\UNSAC迁移\受击动画重命名工具.md'; npm run test:table-focus-scroll` | 通过 | 覆盖用户指定 Markdown 的第一张表格：点击进入表格后连续 ArrowDown，`.cm-scroller` 保持 active cell 可见，`window` / `document` / `body` 滚动值保持 0。 |
+| 2026-05-06 | table-cell-focus-scroll | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-06 | table-cell-focus-scroll | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |
+| 2026-05-06 | table-cell-focus-scroll | `npm run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-06 | table-cell-focus-scroll | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
+| 2026-05-06 | pipe-table-delimiter-structure | `npm run test -- packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/commands/table-context.test.ts packages/editor-core/src/commands/table-edits.test.ts packages/editor-core/src/commands/table-commands.test.ts src/renderer/code-editor.test.ts src/renderer/export-html.test.ts` | 通过 | 覆盖 delimiter 列数比 header 多时仍按有表头 pipe table 解析、标题紧贴表格时 delimiter 不进入 editable cell、表格命令链与 HTML export 非回归；6 个文件、239 项通过。 |
+| 2026-05-06 | pipe-table-delimiter-structure | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-06 | pipe-table-delimiter-structure | `npm run lint` | 通过 | ESLint 退出码 0；保留既有 `src/renderer/editor/App.tsx:247` Fast Refresh warning。 |
+| 2026-05-06 | pipe-table-delimiter-structure | `npm run build` | 通过 | renderer / electron / cli build 通过；保留既有 Vite chunk-size warning。 |
+| 2026-05-06 | pipe-table-delimiter-structure | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
 | 2026-05-06 | structural-blank-separator-editing | `npm run test -- packages/editor-core/src/commands/markdown-commands.test.ts src/renderer/code-editor.test.ts src/shared/markdown-text-rendering-standard.test.ts` | 通过 | 覆盖 paragraph Enter 单换行、已有下一行前 Enter 不产生双空白源行、structural separator 不可进入、标准 JSON 契约；3 个文件、177 项通过。 |
 | 2026-05-06 | structural-blank-separator-editing | `npm run test -- src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts packages/editor-core/src/decorations/block-decorations.test.ts packages/markdown-engine/src/parse-block-map.test.ts packages/editor-core/src/commands/markdown-commands.test.ts packages/editor-core/src/commands/table-commands.test.ts packages/editor-core/src/commands/table-edits.test.ts packages/editor-core/src/commands/table-context.test.ts` | 通过 | 覆盖 editor renderer、autosave 非回归、block decoration、block parser、paragraph Enter / Backspace、table adjacent navigation 和 table edge exit；8 个文件、420 项通过。 |
 | 2026-05-06 | structural-blank-separator-editing | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |

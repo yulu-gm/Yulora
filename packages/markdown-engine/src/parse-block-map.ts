@@ -17,7 +17,7 @@ import type {
   ThematicBreakBlock
 } from "./block-map";
 import { parseHtmlImageData } from "./html-image";
-import { parseLoosePipeTable, parsePipeTable, splitTableLine } from "./table-model";
+import { isTableDelimiterLine, parseLoosePipeTable, parsePipeTable, splitTableLine } from "./table-model";
 
 export function parseBlockMap(source: string): BlockMap {
   return {
@@ -377,6 +377,27 @@ function createLooseTableDerivedBlocks(
       continue;
     }
 
+    const pipeTableRunEnd = findPipeTableLineRunEnd(lines, cursor);
+
+    if (pipeTableRunEnd !== null) {
+      appendParagraphDerivedBlocksFromLines(blocks, lines.slice(pendingTextStart, cursor));
+      const tableBlock = parsePipeTable({
+        source,
+        startOffset: lines[cursor]!.startOffset,
+        endOffset: lines[pipeTableRunEnd - 1]!.endOffset,
+        startLine: lines[cursor]!.lineNumber,
+        endLine: lines[pipeTableRunEnd - 1]!.lineNumber
+      });
+
+      if (tableBlock) {
+        blocks.push(tableBlock);
+        foundLooseTable = true;
+        pendingTextStart = pipeTableRunEnd;
+        cursor = pipeTableRunEnd;
+        continue;
+      }
+    }
+
     let runEnd = cursor + 1;
 
     while (runEnd < lines.length && getLoosePipeColumnCount(lines[runEnd]!.text) === columnCount) {
@@ -408,6 +429,37 @@ function createLooseTableDerivedBlocks(
   return foundLooseTable ? blocks : null;
 }
 
+function findPipeTableLineRunEnd(lines: readonly LineInfo[], startIndex: number): number | null {
+  const headerLine = lines[startIndex];
+  const delimiterLine = lines[startIndex + 1];
+
+  if (!headerLine || !delimiterLine || !isTableDelimiterLine(delimiterLine.text)) {
+    return null;
+  }
+
+  const headerColumnCount = splitTableLine(headerLine.text).length;
+  const delimiterColumnCount = splitTableLine(delimiterLine.text).length;
+
+  if (headerColumnCount < 2 || delimiterColumnCount < headerColumnCount) {
+    return null;
+  }
+
+  let runEnd = startIndex + 2;
+
+  while (runEnd < lines.length) {
+    const line = lines[runEnd]!;
+    const trimmed = line.text.trim();
+
+    if (trimmed.length === 0 || splitTableLine(line.text).length > delimiterColumnCount) {
+      break;
+    }
+
+    runEnd += 1;
+  }
+
+  return runEnd;
+}
+
 function mergeLoosePipeTables(blocks: MarkdownBlock[], source: string): MarkdownBlock[] {
   const mergedBlocks: MarkdownBlock[] = [];
 
@@ -418,6 +470,14 @@ function mergeLoosePipeTables(blocks: MarkdownBlock[], source: string): Markdown
       if (block) {
         mergedBlocks.push(block);
       }
+      continue;
+    }
+
+    const pipeTableCandidate = findPipeTableCandidate(blocks, index, source);
+
+    if (pipeTableCandidate) {
+      mergedBlocks.push(pipeTableCandidate.block);
+      index = pipeTableCandidate.endIndex;
       continue;
     }
 
@@ -461,6 +521,45 @@ function mergeLoosePipeTables(blocks: MarkdownBlock[], source: string): Markdown
   }
 
   return mergedBlocks;
+}
+
+function findPipeTableCandidate(
+  blocks: readonly MarkdownBlock[],
+  startIndex: number,
+  source: string
+): { block: TableBlock; endIndex: number } | null {
+  const startBlock = blocks[startIndex];
+
+  if (!startBlock || startBlock.type !== "paragraph") {
+    return null;
+  }
+
+  let endIndex = startIndex;
+
+  while (endIndex + 1 < blocks.length) {
+    const nextBlock = blocks[endIndex + 1];
+    const gapSource = source.slice(blocks[endIndex]!.endOffset, nextBlock!.startOffset);
+
+    if (nextBlock?.type !== "paragraph" || !/^[\s\r\n]*$/u.test(gapSource)) {
+      break;
+    }
+
+    endIndex += 1;
+
+    const candidate = parsePipeTable({
+      source,
+      startOffset: startBlock.startOffset,
+      endOffset: blocks[endIndex]!.endOffset,
+      startLine: startBlock.startLine,
+      endLine: blocks[endIndex]!.endLine
+    });
+
+    if (candidate) {
+      return { block: candidate, endIndex };
+    }
+  }
+
+  return null;
 }
 
 function looksLikeLoosePipeParagraph(block: ParagraphBlock, source: string): boolean {

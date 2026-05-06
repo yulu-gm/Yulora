@@ -155,7 +155,7 @@ export function looksLikePipeTable(lines: readonly string[]): boolean {
   const headerSegments = splitTableLine(lines[0] ?? "");
   const delimiterSegments = splitTableLine(lines[1] ?? "");
 
-  if (headerSegments.length < 2 || delimiterSegments.length !== headerSegments.length) {
+  if (headerSegments.length < 2 || delimiterSegments.length < headerSegments.length) {
     return false;
   }
 
@@ -163,7 +163,10 @@ export function looksLikePipeTable(lines: readonly string[]): boolean {
     return false;
   }
 
-  return lines.slice(2).every((line) => line.trim().length > 0);
+  return lines.slice(2).every((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && splitTableLine(line).length <= delimiterSegments.length;
+  });
 }
 
 export function normalizeTableCells(
@@ -224,7 +227,7 @@ export function parsePipeTable(params: {
 
   const headerSegments = splitTableLine(lines[0]!.text, lines[0]!.startOffset);
   const alignmentSegments = splitTableLine(lines[1]!.text, lines[1]!.startOffset);
-  const columnCount = headerSegments.length;
+  const columnCount = Math.max(headerSegments.length, alignmentSegments.length);
   const alignments = normalizeTableCells(
     alignmentSegments.map((segment) => parseTableAlignment(segment.text)),
     columnCount

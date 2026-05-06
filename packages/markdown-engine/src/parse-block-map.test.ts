@@ -221,6 +221,66 @@ describe("parseBlockMap", () => {
     ]);
   });
 
+  it("treats a wider delimiter row as table structure instead of loose cell content", () => {
+    const source = [
+      "| oldRule | newRule |",
+      "| :-------- | :------ | ------ |",
+      "| df_hf | df | ------ |",
+      "| df_hb | db | |"
+    ].join("\n");
+
+    const result = parseMarkdownDocument(source);
+    const tableBlock = result.blocks[0];
+
+    expect(tableBlock?.type).toBe("table");
+    if (tableBlock?.type !== "table") {
+      throw new Error("expected table block");
+    }
+
+    expect(tableBlock.hasHeader).toBe(true);
+    expect(tableBlock.columnCount).toBe(3);
+    expect(tableBlock.header.map((cell) => cell.text)).toEqual(["oldRule", "newRule", ""]);
+    expect(tableBlock.rows.map((row) => row.map((cell) => cell.text))).toEqual([
+      ["df_hf", "df", "------"],
+      ["df_hb", "db", ""]
+    ]);
+  });
+
+  it("keeps a pipe-table delimiter structural when the table follows text without a blank line", () => {
+    const source = [
+      "mapping rules without a blank line",
+      "| oldRule | newRule |",
+      "| :-------- | :------ | ------ |",
+      "| df_hf | df | ------ |",
+      "| df_hb | db | |"
+    ].join("\n");
+
+    const result = parseMarkdownDocument(source);
+    const tableBlock = result.blocks.find((block) => block.type === "table");
+
+    expect(result.blocks[0]).toMatchObject({
+      type: "paragraph",
+      startLine: 1,
+      endLine: 1
+    });
+    expect(tableBlock).toMatchObject({
+      type: "table",
+      startLine: 2,
+      endLine: 5,
+      hasHeader: true,
+      columnCount: 3
+    });
+    expect(tableBlock?.type).toBe("table");
+    if (tableBlock?.type !== "table") {
+      throw new Error("expected table block");
+    }
+    expect(tableBlock.header.map((cell) => cell.text)).toEqual(["oldRule", "newRule", ""]);
+    expect(tableBlock.rows.map((row) => row.map((cell) => cell.text))).toEqual([
+      ["df_hf", "df", "------"],
+      ["df_hb", "db", ""]
+    ]);
+  });
+
   it("formats canonical table markdown with outer pipes and padded columns", () => {
     expect(
       formatTableMarkdown({

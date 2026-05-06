@@ -4294,6 +4294,81 @@ describe("createCodeEditorController", () => {
     host.remove();
   });
 
+  it("does not preserve a pipe-table delimiter row as editable cell content after editing", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = [
+      "| oldRule | newRule |",
+      "| :-------- | :------ | ------ |",
+      "| df_hf | df | ------ |",
+      "| df_hb | db | |"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]')?.value).toBe("df_hf");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]')?.value).toBe("df");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:2"]')?.value).toBe("------");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="2:0"]')?.value).toBe("df_hb");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="0:0"]')?.value).not.toBe(":--------");
+
+    const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]');
+
+    expect(input).toBeInstanceOf(HTMLElement);
+
+    input?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    await flushMicrotasks();
+    input!.value = "df_new";
+    input?.dispatchEvent(new Event("input", { bubbles: true }));
+    await flushMicrotasks();
+
+    expect(controller.getContent()).toBe(
+      [
+        "| oldRule | newRule |        |",
+        "| :------ | :------ | :----- |",
+        "| df_hf   | df_new  | ------ |",
+        "| df_hb   | db      |        |"
+      ].join("\n")
+    );
+    expect(controller.getContent()).not.toContain(":--------");
+
+    controller.destroy();
+    host.remove();
+  });
+
+  it("does not render a pipe-table delimiter as cell content when a title directly precedes the table", () => {
+    const host = document.createElement("div");
+    const source = [
+      "mapping rules without a blank line",
+      "| oldRule | newRule |",
+      "| :-------- | :------ | ------ |",
+      "| df_hf | df | ------ |",
+      "| df_hb | db | |"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    expect(getLineElementByText(host, "mapping rules without a blank line")).not.toBeNull();
+    expect(host.querySelector(".cm-table-widget")).not.toBeNull();
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]')?.value).toBe("df_hf");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:1"]')?.value).toBe("df");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="1:2"]')?.value).toBe("------");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="0:0"]')?.value).toBe("oldRule");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="0:1"]')?.value).toBe("newRule");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="0:2"]')?.value).toBe("");
+    expect(host.querySelector<HTMLInputElement>('[data-table-cell="0:0"]')?.value).not.toBe(":--------");
+
+    controller.destroy();
+  });
+
   it("moves the active block into the table when a cell is clicked from another block", async () => {
     const host = document.createElement("div");
     const source = ["Paragraph", "", "| name | qty |", "| --- | ---: |", "| pen | 2 |"].join("\n");
@@ -4455,6 +4530,88 @@ describe("createCodeEditorController", () => {
     );
 
     controller.destroy();
+  });
+
+  it("keeps the newly focused table cell in view by scrolling only the CodeMirror scroller", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const source = ["| name | qty |", "| --- | ---: |", "| pen | 2 |", "| ink | 3 |"].join("\n");
+    const originalFocus = HTMLElement.prototype.focus;
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    const focusCalls: Array<{ cell: string | undefined; options: FocusOptions | undefined }> = [];
+    const scrollCalls: Array<{ cell: string | undefined; options: ScrollIntoViewOptions | boolean | undefined }> = [];
+
+    HTMLElement.prototype.focus = function focusPatched(this: HTMLElement, options?: FocusOptions) {
+      if (this.classList.contains("cm-table-widget-input")) {
+        focusCalls.push({ cell: this.dataset.tableCell, options });
+      }
+
+      originalFocus.call(this, options);
+    };
+
+    HTMLElement.prototype.scrollIntoView = function scrollIntoViewPatched(
+      this: HTMLElement,
+      options?: ScrollIntoViewOptions | boolean
+    ) {
+      if (this.classList.contains("cm-table-widget-input")) {
+        scrollCalls.push({ cell: this.dataset.tableCell, options });
+      }
+    };
+
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRectPatched(this: HTMLElement) {
+      if (this.classList.contains("cm-scroller")) {
+        return createDomRect(0, 100, 600, 200);
+      }
+
+      if (this.dataset.tableCell === "2:0") {
+        const scroller = host.querySelector<HTMLElement>(".cm-scroller");
+
+        return createDomRect(20, 330 - (scroller?.scrollTop ?? 0), 120, 24);
+      }
+
+      return originalGetBoundingClientRect.call(this);
+    };
+
+    try {
+      const controller = createCodeEditorController({
+        parent: host,
+        initialContent: source,
+        onChange: vi.fn()
+      });
+
+      const input = host.querySelector<HTMLInputElement>('[data-table-cell="1:0"]');
+
+      expect(input).toBeInstanceOf(HTMLElement);
+
+      input?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      await flushMicrotasks();
+      await flushMicrotasks();
+
+      focusCalls.length = 0;
+      scrollCalls.length = 0;
+
+      input?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", bubbles: true, cancelable: true })
+      );
+      await flushMicrotasks();
+      await flushMicrotasks();
+
+      expect(document.activeElement).toBe(host.querySelector('[data-table-cell="2:0"]'));
+      expect(focusCalls.at(-1)).toEqual({
+        cell: "2:0",
+        options: { preventScroll: true }
+      });
+      expect(scrollCalls).toEqual([]);
+      expect(host.querySelector<HTMLElement>(".cm-scroller")?.scrollTop).toBe(54);
+
+      controller.destroy();
+    } finally {
+      HTMLElement.prototype.focus = originalFocus;
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+      host.remove();
+    }
   });
 
   it("inserts an inline hard break inside a table cell on Shift+Enter", async () => {

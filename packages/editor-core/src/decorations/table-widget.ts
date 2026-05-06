@@ -129,7 +129,7 @@ export class TableWidget extends WidgetType {
 
       editor.addEventListener("mousedown", () => {
         if (editor.ownerDocument.activeElement !== editor) {
-          editor.focus();
+          editor.focus({ preventScroll: true });
         }
 
         this.callbacks?.selectCell({
