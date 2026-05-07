@@ -579,7 +579,7 @@
 
 ### TASK-019 导出 HTML
 
-状态：未开始
+状态：DEV_DONE
 依赖：`TASK-008`、`TASK-014`、`TASK-015`
 
 目标：把当前 Markdown 文档导出为可打开的 HTML 文件。
@@ -594,13 +594,18 @@
 
 验收：
 - 当前文档可导出为 HTML
-- 图片路径正确
+- 图片路径按当前 Markdown / HTML 渲染语义输出；local image base64 内嵌不属于当前切片
 
 执行切片：
-- [ ] 定义导出 HTML 的最小渲染策略
-- [ ] 在主进程实现导出目标路径选择和写入
-- [ ] 处理图片与链接路径转换
-- [ ] 补导出结果验证和失败场景测试
+- [x] 定义导出 HTML 的最小渲染策略
+- [x] 在主进程实现导出目标路径选择和写入
+- [x] 处理图片与链接路径转换（保留源 URL / 解析后的引用图片 URL，不做 base64 内嵌）
+- [x] 补导出结果验证和失败场景测试
+
+已知剩余风险：
+- 导出 HTML 是静态渲染器，不是 CodeMirror DOM 快照；后续新增阅读态 decoration 时需要同步 `src/renderer/export-html.ts`
+- 代码块导出仍是基础 code block 展示，未覆盖完整语法 tokenization
+- 本地图片当前输出为 Markdown/HTML 中的路径或 URL，尚未内嵌图片字节
 
 ### TASK-020 导出 PDF
 

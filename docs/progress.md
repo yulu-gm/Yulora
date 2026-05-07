@@ -48,7 +48,7 @@
 从源码可确认的未完成内容：
 - 图片粘贴与拖入还未接入完整链路
 - 崩溃恢复尚未打通
-- 轮廓大纲、搜索替换、HTML/PDF 导出与图片导入仍待完善
+- 搜索替换、PDF 导出与图片拖放导入仍待完善；HTML 导出已落地为静态导出切片，但 local image embedding 与完整语法 tokenization 仍是剩余风险
 
 当前工作区依赖已安装，并已在 2026-04-16 本地环境里实际执行并通过 `npm run lint`、`npm run typecheck`、`npm run test`、`npm run build`。若环境差异较大，可按需重跑四项门禁命令复核。
 
@@ -91,7 +91,7 @@
 | TASK-016 | 图片拖放 | TODO | 拖放图片导入。 |
 | TASK-017 | 大纲侧栏 | DEV_DONE | 已补齐 heading 到 outline item 的提取、右侧悬浮可折叠大纲面板、默认收起入口、独立滚动区与点击后编辑器定位/滚动，并覆盖 renderer 回归测试。 |
 | TASK-018 | 查找替换 | TODO | 文档搜索与替换。 |
-| TASK-019 | HTML 导出 | TODO | 导出当前文档为 HTML。 |
+| TASK-019 | HTML 导出 | DEV_DONE | 已接入 `Export HTML...` 菜单、shared/main/preload IPC、主进程 HTML 保存对话框、renderer 静态 HTML 生成与当前 CSS/theme 内联；导出不改变 Markdown 保存目标或 dirty 状态。已知剩余风险：local image bytes embedding 与完整代码块语法 tokenization 未覆盖。 |
 | TASK-020 | PDF 导出 | TODO | 导出当前文档为 PDF。 |
 | TASK-021 | 崩溃恢复 | TODO | 异常退出后的未保存状态恢复。 |
 | TASK-022 | 中文 IME 修复 | TODO | 组合输入与光标稳定性。 |

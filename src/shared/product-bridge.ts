@@ -1,7 +1,6 @@
 import type {
   HandleDroppedMarkdownFileInput,
-  HandleDroppedMarkdownFileResult,
-  OpenMarkdownFileResult
+  HandleDroppedMarkdownFileResult
 } from "./open-markdown-file";
 import type {
   ActivateWorkspaceTabInput,
@@ -52,8 +51,6 @@ export interface ProductBridge {
   platform: NodeJS.Platform;
   runtimeMode: "editor" | "test-workbench";
   startupOpenPath: string | null;
-  openMarkdownFile: () => Promise<OpenMarkdownFileResult>;
-  openMarkdownFileFromPath: (targetPath: string) => Promise<OpenMarkdownFileResult>;
   handleDroppedMarkdownFile: (
     input: HandleDroppedMarkdownFileInput
   ) => Promise<HandleDroppedMarkdownFileResult>;

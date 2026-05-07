@@ -58,4 +58,5 @@ Task: html-export
 
 ## Backlog/progress sync
 
-- This was a new ad-hoc feature request, not an existing numbered backlog task. No MVP backlog checkbox was changed.
+- 2026-05-06 cleanup 将这项 ad-hoc feature 合并回 `TASK-019`：`MVP_BACKLOG.md`、`docs/progress.md` 与 `reports/task-summaries/TASK-019.md` 现在都标记为 `DEV_DONE`。
+- 保留已知剩余风险：local image bytes embedding 与完整 code fence syntax tokenization 未纳入当前切片。

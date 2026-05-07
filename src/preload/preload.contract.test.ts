@@ -12,9 +12,7 @@ import {
 } from "./preload";
 import { APP_MENU_COMMAND_EVENT, type AppMenuCommand } from "../shared/menu-command";
 import {
-  HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL
+  HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL
 } from "../shared/open-markdown-file";
 import {
   DEFAULT_PREFERENCES,
@@ -331,8 +329,6 @@ describe("preload contract", () => {
     };
     const clearRecentFileInput = { path: "D:/fixtures/missing.md" };
 
-    void api.openMarkdownFile();
-    void api.openMarkdownFileFromPath(openPathInput.targetPath);
     void api.handleDroppedMarkdownFile(droppedMarkdownInput);
     void api.getWorkspaceSnapshot();
     void api.createWorkspaceTab(createWorkspaceTabInput);
@@ -368,8 +364,6 @@ describe("preload contract", () => {
     void api.openThemesDirectory();
     void api.checkForUpdates();
 
-    expect(invoke.mock.calls).toContainEqual([OPEN_MARKDOWN_FILE_CHANNEL]);
-    expect(invoke.mock.calls).toContainEqual([OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, openPathInput]);
     expect(invoke.mock.calls).toContainEqual([HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL, droppedMarkdownInput]);
     expect(invoke.mock.calls).toContainEqual([GET_WORKSPACE_SNAPSHOT_CHANNEL]);
     expect(invoke.mock.calls).toContainEqual([CREATE_WORKSPACE_TAB_CHANNEL, createWorkspaceTabInput]);

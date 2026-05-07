@@ -110,8 +110,6 @@ describe("Test workbench shell", () => {
       platform: "win32",
       runtimeMode: "test-workbench",
       startupOpenPath: null,
-      openMarkdownFile: vi.fn(),
-      openMarkdownFileFromPath: vi.fn(),
       getWorkspaceSnapshot: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
       createWorkspaceTab: vi.fn().mockResolvedValue(EMPTY_WORKSPACE_SNAPSHOT),
       openWorkspaceFile: vi.fn().mockResolvedValue({

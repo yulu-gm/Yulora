@@ -52,8 +52,6 @@ import {
 } from "../shared/test-run-session";
 import {
   HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL,
   type HandleDroppedMarkdownFileInput,
   type HandleDroppedMarkdownFileResult
 } from "../shared/open-markdown-file";
@@ -722,26 +720,6 @@ app.whenReady().then(async () => {
   ipcMain.handle(UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL, async (_event, input: UpdateWorkspaceTabDraftInput) =>
     workspaceApplication.updateDraft(input)
   );
-  ipcMain.handle(OPEN_MARKDOWN_FILE_CHANNEL, async (event) => {
-    const result = await showOpenMarkdownDialog();
-
-    if (result.status === "success") {
-      await recordRecentFilePath(result.document.path);
-      await externalFileWatchService.syncDocumentPath(event.sender, result.document.path);
-    }
-
-    return result;
-  });
-  ipcMain.handle(OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, async (event, input: { targetPath: string }) => {
-    const result = await openMarkdownFileFromPath(input.targetPath);
-
-    if (result.status === "success") {
-      await recordRecentFilePath(result.document.path);
-      await externalFileWatchService.syncDocumentPath(event.sender, result.document.path);
-    }
-
-    return result;
-  });
   ipcMain.handle(
     HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
     async (

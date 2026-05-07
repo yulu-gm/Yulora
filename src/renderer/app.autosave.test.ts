@@ -6,7 +6,6 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { OpenMarkdownFileResult } from "../shared/open-markdown-file";
 import type { AppNotification, AppUpdateState } from "../shared/app-update";
 import type { EditorTestCommandEnvelope } from "../shared/editor-test-command";
 import type { ExternalMarkdownFileChangedEvent } from "../shared/external-file-change";
@@ -507,10 +506,6 @@ describe("App autosave", () => {
   let workspaceWindowCloseRequestListener: WorkspaceWindowCloseRequestListener | null;
   let fetchMock: ReturnType<typeof vi.fn>;
   let canvasGetContextSpy: { mockRestore: () => void };
-  let openMarkdownFile: ReturnType<typeof vi.fn<() => Promise<OpenMarkdownFileResult>>>;
-  let openMarkdownFileFromPath: ReturnType<
-    typeof vi.fn<(targetPath: string) => Promise<OpenMarkdownFileResult>>
-  >;
   let getWorkspaceSnapshot: ReturnType<typeof vi.fn<() => Promise<WorkspaceWindowSnapshot>>>;
   let createWorkspaceTab: ReturnType<
     typeof vi.fn<(input: CreateWorkspaceTabInput) => Promise<WorkspaceWindowSnapshot>>
@@ -892,16 +887,6 @@ describe("App autosave", () => {
       })
     );
 
-    openMarkdownFile = vi.fn<() => Promise<OpenMarkdownFileResult>>().mockResolvedValue({
-      status: "success",
-      document: {
-        path: "C:/notes/today.md",
-        name: "today.md",
-        content: "# Today\n",
-        encoding: "utf-8"
-      }
-    });
-
     workspaceWindowId = "window-1";
     workspaceTabs = [];
     workspaceActiveTabId = null;
@@ -993,11 +978,6 @@ describe("App autosave", () => {
         };
       });
 
-    openMarkdownFileFromPath = vi
-      .fn<(targetPath: string) => Promise<OpenMarkdownFileResult>>()
-      .mockResolvedValue({
-        status: "cancelled"
-      });
     handleDroppedMarkdownFile = vi.fn().mockResolvedValue({
       disposition: "open-in-place"
     });
@@ -1032,8 +1012,6 @@ describe("App autosave", () => {
       platform: "win32",
       runtimeMode: "editor",
       startupOpenPath: null,
-      openMarkdownFile,
-      openMarkdownFileFromPath,
       getWorkspaceSnapshot,
       createWorkspaceTab,
       openWorkspaceFile,

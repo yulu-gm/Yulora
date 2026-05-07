@@ -52,9 +52,7 @@ import {
   type ThemePackageDescriptor
 } from "../shared/theme-package";
 import {
-  HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_CHANNEL,
-  OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL
+  HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL
 } from "../shared/open-markdown-file";
 import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
 
@@ -166,9 +164,6 @@ const productApi: ProductBridge = {
   platform: process.platform,
   runtimeMode: resolveRuntimeModeFromArgv(process.argv ?? []),
   startupOpenPath: resolveStartupOpenPathFromArgv(process.argv ?? []),
-  openMarkdownFile: () => ipcRenderer.invoke(OPEN_MARKDOWN_FILE_CHANNEL),
-  openMarkdownFileFromPath: (targetPath: string) =>
-    ipcRenderer.invoke(OPEN_MARKDOWN_FILE_FROM_PATH_CHANNEL, { targetPath }),
   handleDroppedMarkdownFile: (input: HandleDroppedMarkdownFileInput) =>
     ipcRenderer.invoke(HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL, input),
   getWorkspaceSnapshot: (): Promise<WorkspaceWindowSnapshot> =>

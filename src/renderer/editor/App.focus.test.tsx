@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { isFocusedEditorInteractiveElement } from "./App";
+import { isFocusedEditorInteractiveElement } from "./editor-pointer-utils";
 
 describe("isFocusedEditorInteractiveElement", () => {
   afterEach(() => {

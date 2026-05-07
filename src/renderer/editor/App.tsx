@@ -53,6 +53,13 @@ import { WorkspaceShell } from "./WorkspaceShell";
 import { useEditorApplicationController } from "./useEditorApplicationController";
 import { useSettingsController } from "./useSettingsController";
 import {
+  isEditingContentPointerEvent,
+  isEditorScrollbarPointerEvent,
+  isFocusedEditorInteractiveElement,
+  isWorkspaceNonEditorInteractiveTarget
+} from "./editor-pointer-utils";
+import { useWindowMarkdownFileDrop } from "./useWindowMarkdownFileDrop";
+import {
   resolveActiveThemePackageManifest,
   useThemeController,
   type ResolvedThemeMode
@@ -92,7 +99,6 @@ const APP_NOTIFICATION_DURATION_MS = 3000;
 const APP_NOTIFICATION_EXIT_ANIMATION_MS = 180;
 const THEME_DYNAMIC_FALLBACK_MESSAGE = "主题动态效果已自动关闭，已回退到静态样式。";
 const SHORTCUT_HINT_HOLD_DELAY_MS = 1000;
-const MARKDOWN_FILE_EXTENSIONS = [".md", ".markdown"] as const;
 const PRIMARY_MODIFIER_LEFT_LOCATION = 1;
 const PRIMARY_MODIFIER_RIGHT_LOCATION = 2;
 
@@ -128,131 +134,8 @@ function resolveEditorShortcutGroup(activeBlockState: ActiveBlockState | null): 
     : DEFAULT_TEXT_SHORTCUT_GROUP;
 }
 
-function isMarkdownFilePath(targetPath: string): boolean {
-  const normalizedPath = targetPath.trim().toLowerCase();
-
-  return MARKDOWN_FILE_EXTENSIONS.some((extension) => normalizedPath.endsWith(extension));
-}
-
-function getDroppedMarkdownPaths(
-  fishmark: Window["fishmark"],
-  dataTransfer: DataTransfer | null
-): string[] {
-  const resolvedPaths = new Set<string>();
-
-  for (const file of Array.from(dataTransfer?.files ?? [])) {
-    if (!(file instanceof File)) {
-      continue;
-    }
-
-    const filePath = fishmark.getPathForDroppedFile(file);
-
-    if (typeof filePath !== "string" || !isMarkdownFilePath(filePath)) {
-      continue;
-    }
-
-    resolvedPaths.add(filePath);
-  }
-
-  return [...resolvedPaths];
-}
-
-function hasFileDrag(dataTransfer: DataTransfer | null): boolean {
-  if (!dataTransfer) {
-    return false;
-  }
-
-  if ((dataTransfer.files?.length ?? 0) > 0) {
-    return true;
-  }
-
-  return Array.from(dataTransfer.types ?? []).includes("Files");
-}
-
 type AppNotificationBannerState = "hidden" | "open" | "closing";
 type ShellMode = "reading" | "editing";
-
-const EDITOR_INTERACTIVE_TARGET_SELECTOR = [
-  ".cm-table-widget",
-  ".cm-table-widget-input",
-  "input",
-  "textarea",
-  "[contenteditable='true']"
-].join(", ");
-
-const WORKSPACE_NON_EDITOR_INTERACTIVE_SELECTOR = [
-  ".outline-panel",
-  ".outline-entry",
-  "button",
-  "a",
-  "input",
-  "textarea",
-  "select",
-  "[contenteditable='true']"
-].join(", ");
-
-function isPointerInsideRect(event: MouseEvent, element: HTMLElement): boolean {
-  const rect = element.getBoundingClientRect();
-  return (
-    event.clientX >= rect.left &&
-    event.clientX <= rect.right &&
-    event.clientY >= rect.top &&
-    event.clientY <= rect.bottom
-  );
-}
-
-function isEditingContentPointerEvent(event: MouseEvent, editorContainer: HTMLElement): boolean {
-  const target = event.target;
-
-  if (target instanceof Element && target.closest(EDITOR_INTERACTIVE_TARGET_SELECTOR)) {
-    return true;
-  }
-
-  const contentElement = editorContainer.querySelector<HTMLElement>(".cm-content");
-  return contentElement ? isPointerInsideRect(event, contentElement) : false;
-}
-
-function isEditorScrollbarPointerEvent(event: MouseEvent, editorContainer: HTMLElement): boolean {
-  const target = event.target;
-  const scrollerElement = target instanceof Element
-    ? target.closest<HTMLElement>(".cm-scroller")
-    : null;
-
-  if (!scrollerElement || !editorContainer.contains(scrollerElement)) {
-    return false;
-  }
-
-  const rect = scrollerElement.getBoundingClientRect();
-  const verticalScrollbarWidth = Math.max(0, scrollerElement.offsetWidth - scrollerElement.clientWidth);
-  const horizontalScrollbarHeight = Math.max(0, scrollerElement.offsetHeight - scrollerElement.clientHeight);
-  const hasVerticalScrollbar =
-    scrollerElement.scrollHeight > scrollerElement.clientHeight && verticalScrollbarWidth > 0;
-  const hasHorizontalScrollbar =
-    scrollerElement.scrollWidth > scrollerElement.clientWidth && horizontalScrollbarHeight > 0;
-
-  return (
-    (hasVerticalScrollbar &&
-      event.clientX >= rect.right - verticalScrollbarWidth &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom) ||
-    (hasHorizontalScrollbar &&
-      event.clientY >= rect.bottom - horizontalScrollbarHeight &&
-      event.clientY <= rect.bottom &&
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right)
-  );
-}
-
-export function isFocusedEditorInteractiveElement(editorContainer: HTMLElement | null): boolean {
-  const activeElement = document.activeElement;
-
-  if (!(activeElement instanceof Element) || !editorContainer?.contains(activeElement)) {
-    return false;
-  }
-
-  return Boolean(activeElement.closest(EDITOR_INTERACTIVE_TARGET_SELECTOR));
-}
 
 function supportsControlledTitlebar(platform: NodeJS.Platform): boolean {
   return platform === "darwin";
@@ -752,7 +635,7 @@ function EditorShell({
 
       if (
         !editorContainer?.contains(target) &&
-        target.closest(WORKSPACE_NON_EDITOR_INTERACTIVE_SELECTOR)
+        isWorkspaceNonEditorInteractiveTarget(target)
       ) {
         return;
       }
@@ -923,6 +806,11 @@ function EditorShell({
     blurFocusedEditorElementAfterOpen,
     editorCommands
   ]);
+  useWindowMarkdownFileDrop({
+    fishmark,
+    getHasOpenDocument: () => getWorkspaceActiveDocument() !== null,
+    openMarkdownFromPath: handleOpenMarkdownFromPath
+  });
 
   async function handleActivateWorkspaceTab(tabId: string): Promise<void> {
     await activateWorkspaceTabWorkflow(tabId);
@@ -1001,53 +889,6 @@ function EditorShell({
     },
     [handleDetachWorkspaceTab]
   );
-
-  const handleWindowDragOver = useEffectEvent((event: globalThis.DragEvent): void => {
-    if (!hasFileDrag(event.dataTransfer)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-  });
-
-  const handleWindowDrop = useEffectEvent((event: globalThis.DragEvent): void => {
-    if (!hasFileDrag(event.dataTransfer)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const targetPaths = getDroppedMarkdownPaths(fishmark, event.dataTransfer);
-
-    if (targetPaths.length === 0) {
-      return;
-    }
-
-    void fishmark
-      .handleDroppedMarkdownFile({
-        targetPaths,
-        hasOpenDocument: getWorkspaceActiveDocument() !== null
-      })
-      .then(async (result) => {
-        if (result.disposition === "open-in-place") {
-          for (const targetPath of targetPaths) {
-            await handleOpenMarkdownFromPath(targetPath);
-          }
-        }
-      });
-  });
-
-  useEffect(() => {
-    window.addEventListener("dragover", handleWindowDragOver, true);
-    window.addEventListener("drop", handleWindowDrop, true);
-
-    return () => {
-      window.removeEventListener("dragover", handleWindowDragOver, true);
-      window.removeEventListener("drop", handleWindowDrop, true);
-    };
-  }, []);
 
   async function handleSaveMarkdown(): Promise<void> {
     await editorCommands.saveMarkdown();

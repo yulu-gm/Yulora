@@ -13,14 +13,6 @@ import { jsonLanguage } from "@codemirror/lang-json";
 import { cssLanguage } from "@codemirror/lang-css";
 import { htmlLanguage } from "@codemirror/lang-html";
 import { markdownLanguage } from "@codemirror/lang-markdown";
-import { rustLanguage } from "@codemirror/lang-rust";
-import { cppLanguage } from "@codemirror/lang-cpp";
-import { javaLanguage } from "@codemirror/lang-java";
-import { goLanguage } from "@codemirror/lang-go";
-import { StandardSQL } from "@codemirror/lang-sql";
-import { yamlLanguage } from "@codemirror/lang-yaml";
-import { phpLanguage } from "@codemirror/lang-php";
-import { csharpLanguage } from "@replit/codemirror-lang-csharp";
 
 const LANGUAGE_PARSERS: Record<string, Parser> = {
   js: javascriptLanguage.parser,
@@ -43,41 +35,12 @@ const LANGUAGE_PARSERS: Record<string, Parser> = {
   svg: htmlLanguage.parser,
   vue: htmlLanguage.parser,
   md: markdownLanguage.parser,
-  markdown: markdownLanguage.parser,
-  rs: rustLanguage.parser,
-  rust: rustLanguage.parser,
-  c: cppLanguage.parser,
-  h: cppLanguage.parser,
-  cpp: cppLanguage.parser,
-  "c++": cppLanguage.parser,
-  cc: cppLanguage.parser,
-  cxx: cppLanguage.parser,
-  hpp: cppLanguage.parser,
-  hh: cppLanguage.parser,
-  hxx: cppLanguage.parser,
-  objc: cppLanguage.parser,
-  // HLSL / GLSL / shader code: reuse the C/C++ parser as a close approximation.
-  hlsl: cppLanguage.parser,
-  glsl: cppLanguage.parser,
-  shader: cppLanguage.parser,
-  metal: cppLanguage.parser,
-  java: javaLanguage.parser,
-  kotlin: javaLanguage.parser,
-  kt: javaLanguage.parser,
-  go: goLanguage.parser,
-  golang: goLanguage.parser,
-  sql: StandardSQL.language.parser,
-  mysql: StandardSQL.language.parser,
-  postgresql: StandardSQL.language.parser,
-  postgres: StandardSQL.language.parser,
-  sqlite: StandardSQL.language.parser,
-  yaml: yamlLanguage.parser,
-  yml: yamlLanguage.parser,
-  php: phpLanguage.parser,
-  cs: csharpLanguage.parser,
-  csharp: csharpLanguage.parser,
-  "c#": csharpLanguage.parser
+  markdown: markdownLanguage.parser
 };
+
+// Code fence highlighting is intentionally synchronous. Keep the default
+// registry small so low-frequency language packages do not inflate the app
+// bundle or introduce async parser races in decoration building.
 
 function resolveParser(info: string | null): Parser | null {
   if (!info) return null;
