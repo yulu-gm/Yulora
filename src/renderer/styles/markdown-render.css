@@ -638,7 +638,7 @@
   max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: auto;
+  table-layout: fixed;
   background: var(--fishmark-table-bg);
   border: var(--fishmark-table-border-width) solid var(--fishmark-table-border-color);
   border-radius: var(--fishmark-table-radius);
@@ -675,7 +675,8 @@
   font: inherit;
   outline: none;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
   caret-color: var(--fishmark-table-text);
 }
 

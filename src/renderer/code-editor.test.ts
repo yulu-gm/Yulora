@@ -3993,6 +3993,37 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("renders readable content-weighted columns for progress tables", () => {
+    const host = document.createElement("div");
+    const source = [
+      "| Task | Epic | 状态 | 说明 |",
+      "| --- | --- | --- | --- |",
+      "| BOOTSTRAP-DOCS | 文档基线 | CLOSED | 文档基线已修正并关闭。 |",
+      "| TASK-001 | 项目骨架 | CLOSED | 已通过独立评审；确认 Electron / Vite / React / TypeScript 开发壳可建立。 |",
+      "| TASK-002 | 项目结构 | DEV_DONE | 已建立 `apps/desktop`、`packages/editor-core`、`packages/markdown-engine`、`tests/e2e` 目录边界，同时保持根目录开发壳可运行。 |"
+    ].join("\n");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+
+    const table = host.querySelector<HTMLTableElement>(".cm-table-widget-table");
+    const columns = Array.from(host.querySelectorAll<HTMLTableColElement>(".cm-table-widget-column"));
+
+    expect(table).not.toBeNull();
+    expect(columns).toHaveLength(4);
+    expect(columns.map((column) => column.style.width)).toEqual([
+      "20%",
+      "14.55%",
+      "14.55%",
+      "50.91%"
+    ]);
+
+    controller.destroy();
+  });
+
   it("renders inline preview styling inside table cells while preserving raw markdown text for editing", () => {
     const host = document.createElement("div");
     const source = [

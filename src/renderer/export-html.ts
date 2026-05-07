@@ -1,8 +1,11 @@
 import {
   collectReferenceDefinitions,
+  computeTableColumnLayout,
+  formatTableColumnWidthPercent,
   parseInlineAst,
   parseMarkdownDocument,
   resolveIndentedCodeContentStartOffset,
+  tableBlockToCanonicalModel,
   type BlockquoteBlock,
   type CodeFenceBlock,
   type HeadingBlock,
@@ -476,11 +479,25 @@ function renderTableBlock(block: TableBlock): string {
   return [
     `<div class="cm-table-widget" data-table-columns="${block.columnCount}" data-table-start-offset="${block.startOffset}">`,
     '<table class="cm-table-widget-table">',
+    renderTableColumnGroup(block),
     headerRows,
     `<tbody>${bodyRows}</tbody>`,
     "</table>",
     "</div>"
   ].join("");
+}
+
+function renderTableColumnGroup(block: TableBlock): string {
+  const columns = computeTableColumnLayout(tableBlockToCanonicalModel(block)).map((column) => {
+    const width = formatTableColumnWidthPercent(column.widthPercent);
+
+    return [
+      `<col class="cm-table-widget-column" data-column-index="${column.columnIndex}"`,
+      ` style="width: ${width}">`
+    ].join("");
+  });
+
+  return `<colgroup class="cm-table-widget-column-group">${columns.join("")}</colgroup>`;
 }
 
 function renderTableRow(cells: readonly TableCell[], isHeader: boolean): string {

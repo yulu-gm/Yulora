@@ -2,7 +2,10 @@ import type { Range } from "@codemirror/state";
 import { Decoration, WidgetType } from "@codemirror/view";
 
 import {
+  computeTableColumnLayout,
+  formatTableColumnWidthPercent,
   parseInlineAst,
+  tableBlockToCanonicalModel,
   type InlineNode,
   type TableBlock
 } from "@fishmark/markdown-engine";
@@ -67,6 +70,7 @@ export class TableWidget extends WidgetType {
     const table = document.createElement("table");
     table.className = "cm-table-widget-table";
     root.appendChild(table);
+    table.appendChild(createTableColumnGroup(document, this.block));
 
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -335,6 +339,7 @@ export class TableWidget extends WidgetType {
   private syncDOM(root: HTMLElement): void {
     root.dataset.tableColumns = String(this.block.columnCount);
     root.dataset.tableStartOffset = String(this.block.startOffset);
+    syncTableColumnGroup(root, this.block);
 
     [this.block.header, ...this.block.rows].forEach((cells) => {
       cells.forEach((cell) => {
@@ -356,6 +361,53 @@ export class TableWidget extends WidgetType {
       });
     });
   }
+}
+
+function createTableColumnGroup(document: Document, block: TableBlock): HTMLTableColElement {
+  const colgroup = document.createElement("colgroup");
+
+  colgroup.className = "cm-table-widget-column-group";
+  syncTableColumnElements(colgroup, block);
+  return colgroup;
+}
+
+function syncTableColumnGroup(root: HTMLElement, block: TableBlock): void {
+  const table = root.querySelector<HTMLTableElement>(".cm-table-widget-table");
+
+  if (!table) {
+    return;
+  }
+
+  let colgroup = table.querySelector<HTMLTableColElement>(".cm-table-widget-column-group");
+
+  if (!colgroup) {
+    colgroup = createTableColumnGroup(table.ownerDocument, block);
+    table.insertBefore(colgroup, table.firstChild);
+    return;
+  }
+
+  syncTableColumnElements(colgroup, block);
+}
+
+function syncTableColumnElements(colgroup: HTMLElement, block: TableBlock): void {
+  const layout = computeTableColumnLayout(tableBlockToCanonicalModel(block));
+
+  while (colgroup.children.length > layout.length) {
+    colgroup.lastElementChild?.remove();
+  }
+
+  layout.forEach((column) => {
+    let element = colgroup.children[column.columnIndex] as HTMLTableColElement | undefined;
+
+    if (!element) {
+      element = colgroup.ownerDocument.createElement("col");
+      colgroup.appendChild(element);
+    }
+
+    element.className = "cm-table-widget-column";
+    element.dataset.columnIndex = String(column.columnIndex);
+    element.style.width = formatTableColumnWidthPercent(column.widthPercent);
+  });
 }
 
 function syncTableCellEditor(

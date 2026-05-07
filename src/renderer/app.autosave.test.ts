@@ -6009,7 +6009,8 @@ describe("App autosave", () => {
     expect(markdownRenderStylesheet).toContain("padding: var(--fishmark-table-margin-top) 0 var(--fishmark-table-margin-bottom);");
     expect(markdownRenderStylesheet).toContain("margin: 0;");
     expect(markdownRenderStylesheet).toContain("overflow-x: auto;");
-    expect(markdownRenderStylesheet).toContain("table-layout: auto;");
+    expect(markdownRenderStylesheet).toContain("table-layout: fixed;");
+    expect(markdownRenderStylesheet).toContain("overflow-wrap: break-word;");
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-bg);");
     expect(markdownRenderStylesheet).toContain("border-radius: var(--fishmark-table-radius);");
     expect(markdownRenderStylesheet).toContain("background: var(--fishmark-table-cell-active-bg);");

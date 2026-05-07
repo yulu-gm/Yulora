@@ -236,7 +236,16 @@
       "cellPaddingBlockPx": 10,
       "cellPaddingInlinePx": 12,
       "lineHeight": "typography.lineHeight.tableCell",
-      "borderWidthPx": 1
+      "borderWidthPx": 1,
+      "columnSizing": {
+        "mode": "content-weighted-fixed-layout",
+        "minReadableWeight": 8,
+        "maxContentWeight": 48,
+        "cellPaddingWeight": 8,
+        "weightUnit": "approximate visible character count; CJK and full-width characters count as two",
+        "longWordWrap": "break-word",
+        "rule": "Column widths are generated from table content into a colgroup and rendered with fixed table layout. Long prose columns may be wider, but short metadata columns add padding weight on top of their content weight and must not collapse to browser min-content width."
+      }
     }
   },
   "wrapping": {

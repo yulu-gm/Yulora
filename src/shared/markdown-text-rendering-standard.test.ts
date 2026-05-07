@@ -76,6 +76,17 @@ type MarkdownTextRenderingStandard = {
       rule: string;
     };
   };
+  blocks: {
+    table: {
+      columnSizing: {
+        mode: string;
+        minReadableWeight: number;
+        maxContentWeight: number;
+        cellPaddingWeight: number;
+        longWordWrap: string;
+      };
+    };
+  };
   themeCompliance: {
     themesMustNotOverride: string[];
   };
@@ -110,6 +121,11 @@ describe("markdown text rendering standard", () => {
     );
     expect(standard.blockSpacing.blankLine.rule).toContain("Plain paragraph Enter must insert one line break");
     expect(standard.blockSpacing.blankLine.rule).toContain("caret must move across the separator");
+    expect(standard.blocks.table.columnSizing.mode).toBe("content-weighted-fixed-layout");
+    expect(standard.blocks.table.columnSizing.minReadableWeight).toBe(8);
+    expect(standard.blocks.table.columnSizing.maxContentWeight).toBe(48);
+    expect(standard.blocks.table.columnSizing.cellPaddingWeight).toBe(8);
+    expect(standard.blocks.table.columnSizing.longWordWrap).toBe("break-word");
   });
 
   it("keeps list depth, marker gap, and content offsets as separate constraints", () => {

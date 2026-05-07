@@ -26,6 +26,7 @@
     "test": "vitest run",
     "test:list-geometry": "node scripts/probe-list-geometry.mjs",
     "test:cursor-hit-geometry": "node scripts/probe-cursor-hit-geometry.mjs",
+    "test:table-layout": "node scripts/probe-table-layout.mjs",
     "test:table-focus-scroll": "node scripts/probe-table-focus-scroll.mjs",
     "build:cli": "tsc -p tsconfig.cli.json",
     "generate:icons": "node scripts/generate-icons.mjs",

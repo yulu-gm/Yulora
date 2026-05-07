@@ -81,6 +81,17 @@ type MarkdownTextRenderingStandard = {
       contentStartOffsetEm: number;
     };
   };
+  blocks: {
+    table: {
+      columnSizing: {
+        mode: string;
+        minReadableWeight: number;
+        maxContentWeight: number;
+        cellPaddingWeight: number;
+        longWordWrap: string;
+      };
+    };
+  };
 };
 
 async function getThemeMarkdownStylePaths(): Promise<string[]> {
@@ -316,6 +327,23 @@ describe("editor source layout stylesheet", () => {
       "padding-top: calc(var(--fishmark-table-margin-top) + var(--fishmark-table-after-break-margin-top));"
     );
     expect(tableAfterThematicRule).not.toContain("margin-top:");
+  });
+
+  it("uses readable content-weighted table columns instead of min-content shrink wrapping", async () => {
+    const standard = await readMarkdownTextStandard();
+    const stylesheet = await readFile(resolve(process.cwd(), "src/renderer/styles/markdown-render.css"), "utf8");
+    const tableRule = getCssRule(stylesheet, ".document-editor .cm-table-widget-table");
+    const inputRule = getCssRule(stylesheet, ".document-editor .cm-table-widget-input");
+
+    expect(standard.blocks.table.columnSizing.mode).toBe("content-weighted-fixed-layout");
+    expect(standard.blocks.table.columnSizing.minReadableWeight).toBe(8);
+    expect(standard.blocks.table.columnSizing.maxContentWeight).toBe(48);
+    expect(standard.blocks.table.columnSizing.cellPaddingWeight).toBe(8);
+    expect(standard.blocks.table.columnSizing.longWordWrap).toBe("break-word");
+    expect(tableRule).toContain("table-layout: fixed;");
+    expect(inputRule).toContain("overflow-wrap: break-word;");
+    expect(inputRule).toContain("word-break: normal;");
+    expect(inputRule).not.toContain("overflow-wrap: anywhere;");
   });
 
   it("measures list marker gaps and wrapped line alignment in a DOM geometry fixture", async () => {
