@@ -421,6 +421,42 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("forwards inactive Markdown link Mod-clicks to the external link opener", () => {
+    const host = document.createElement("div");
+    const sourceLine = "[FishMark](https://fishmark.app)";
+    const source = [sourceLine, "", "Paragraph"].join("\n");
+    const openExternalLink = vi.fn();
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn(),
+      openExternalLink
+    } as Parameters<typeof createCodeEditorController>[0] & {
+      openExternalLink: (href: string) => void;
+    });
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    view?.dispatch({ selection: { anchor: source.indexOf("Paragraph") } });
+    const inactiveLink = host.querySelector<HTMLElement>(".cm-inactive-inline-link");
+
+    expect(inactiveLink).toBeInstanceOf(HTMLElement);
+
+    inactiveLink?.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: true
+      })
+    );
+
+    expect(openExternalLink).toHaveBeenCalledWith("https://fishmark.app");
+
+    controller.destroy();
+  });
+
   it("moves the cursor to the Markdown image source when the inactive preview is clicked", async () => {
     const host = document.createElement("div");
     const sourceLine = "![hero](./assets/demo.png)";

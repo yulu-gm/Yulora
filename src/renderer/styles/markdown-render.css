@@ -680,6 +680,18 @@
   caret-color: var(--fishmark-table-text);
 }
 
+.document-editor .cm-inactive-inline-link {
+  color: var(--fishmark-markdown-link, var(--fishmark-text-accent, #2563eb));
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.document-editor .cm-inactive-inline-link:hover {
+  color: var(--fishmark-markdown-link-hover, var(--fishmark-markdown-link, #1d4ed8));
+}
+
 .document-editor .cm-table-widget-row-header .cm-table-widget-input {
   color: var(--fishmark-table-header-text);
   font-weight: var(--fishmark-table-header-font-weight);

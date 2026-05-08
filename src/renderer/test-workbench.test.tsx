@@ -153,6 +153,7 @@ describe("Test workbench shell", () => {
       refreshThemePackages: vi.fn().mockResolvedValue([]),
       openThemesDirectory: vi.fn().mockResolvedValue(undefined),
       checkForUpdates: vi.fn().mockResolvedValue(undefined),
+      openExternalLink: vi.fn().mockResolvedValue(undefined),
       onPreferencesChanged: vi.fn(() => () => {}),
       onRecentFilesChanged: vi.fn(() => () => {}),
       onAppUpdateState: vi.fn(() => () => {}),

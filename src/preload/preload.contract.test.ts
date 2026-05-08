@@ -75,6 +75,7 @@ import {
   REFRESH_THEME_PACKAGES_CHANNEL
 } from "../shared/theme-package";
 import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
+import { OPEN_EXTERNAL_LINK_CHANNEL } from "../shared/external-link";
 import {
   ACTIVATE_WORKSPACE_TAB_CHANNEL,
   CLOSE_WORKSPACE_TAB_CHANNEL,
@@ -345,6 +346,9 @@ describe("preload contract", () => {
     void api.saveMarkdownFile(saveInput);
     void api.saveMarkdownFileAs(saveAsInput);
     void api.exportHtmlFile(exportHtmlInput);
+    void (api as ProductBridge & {
+      openExternalLink: (href: string) => Promise<void>;
+    }).openExternalLink("https://fishmark.app");
     void api.syncWatchedMarkdownFile(syncWatchedFileInput);
     void api.importClipboardImage(importClipboardImageInput);
     void testApi.openEditorTestWindow();
@@ -392,6 +396,10 @@ describe("preload contract", () => {
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_CHANNEL, saveInput]);
     expect(invoke.mock.calls).toContainEqual([SAVE_MARKDOWN_FILE_AS_CHANNEL, saveAsInput]);
     expect(invoke.mock.calls).toContainEqual([EXPORT_HTML_FILE_CHANNEL, exportHtmlInput]);
+    expect(invoke.mock.calls).toContainEqual([
+      OPEN_EXTERNAL_LINK_CHANNEL,
+      { href: "https://fishmark.app" }
+    ]);
     expect(invoke.mock.calls).toContainEqual([SYNC_WATCHED_MARKDOWN_FILE_CHANNEL, syncWatchedFileInput]);
     expect(invoke.mock.calls).toContainEqual([IMPORT_CLIPBOARD_IMAGE_CHANNEL, importClipboardImageInput]);
     expect(invoke.mock.calls).toContainEqual([OPEN_EDITOR_TEST_WINDOW_CHANNEL]);

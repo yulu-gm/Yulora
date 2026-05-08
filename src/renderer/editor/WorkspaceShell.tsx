@@ -172,6 +172,7 @@ export type WorkspaceShellProps = {
   onDraftChange: (content: string) => void;
   onEditorBlur: () => void;
   onImportClipboardImage: (input: { documentPath: string | null }) => Promise<string | null>;
+  onOpenExternalLink: (href: string) => void;
   onInsertTableColumnLeft: () => void;
   onInsertTableColumnRight: () => void;
   onInsertTableRowAbove: () => void;
@@ -333,6 +334,7 @@ export function WorkspaceShell({
   onKeepMemoryVersion,
   onNavigateToOutlineItem,
   onOpenOutlinePanel,
+  onOpenExternalLink,
   onOpenRecentFile,
   onClearRecentFile,
   onReloadExternalFile,
@@ -682,6 +684,7 @@ export function WorkspaceShell({
                       documentPath={activeDocument.path}
                       loadRevision={editorLoadRevision}
                       importClipboardImage={onImportClipboardImage}
+                      openExternalLink={onOpenExternalLink}
                       onActiveBlockChange={onActiveBlockChange}
                       onChange={onDraftChange}
                       onBlur={onEditorBlur}

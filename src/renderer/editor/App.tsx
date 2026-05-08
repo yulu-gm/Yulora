@@ -917,6 +917,17 @@ function EditorShell({
     return null;
   }
 
+  async function handleOpenExternalLink(href: string): Promise<void> {
+    try {
+      await fishmark.openExternalLink(href);
+    } catch (error) {
+      showNotification({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Unable to open link."
+      });
+    }
+  }
+
   const editorTestBridge = useMemo(
     () => ({
       getState: getWorkspaceState,
@@ -1521,6 +1532,9 @@ function EditorShell({
         onDraftChange={handleEditorContentChange}
         onEditorBlur={handleEditorBlurFromShell}
         onImportClipboardImage={handleImportClipboardImage}
+        onOpenExternalLink={(href) => {
+          void handleOpenExternalLink(href);
+        }}
         onInsertTableColumnLeft={insertTableColumnLeft}
         onInsertTableColumnRight={insertTableColumnRight}
         onInsertTableRowAbove={insertTableRowAbove}

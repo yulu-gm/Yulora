@@ -20,6 +20,12 @@ import {
 } from "@codemirror/view";
 
 import type {
+  InlineASTNode,
+  InlineLink,
+  InlineRoot,
+  ListBlock,
+  ListItemBlock,
+  MarkdownBlock,
   MarkdownDocument
 } from "@fishmark/markdown-engine";
 
@@ -61,6 +67,10 @@ import {
   type TableWidgetCallbacks
 } from "../decorations";
 import {
+  INACTIVE_INLINE_LINK_HREF_ATTRIBUTE,
+  INACTIVE_INLINE_LINK_SELECTOR
+} from "../decorations/inline-decorations";
+import {
   normalizeHiddenSelectionAnchor,
   normalizeStructuralBlankSelectionAnchor
 } from "../line-visibility";
@@ -74,6 +84,7 @@ export type CreateFishMarkMarkdownExtensionsOptions = {
   onContentChange: (doc: string) => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
   onBlur?: () => void;
+  onOpenLink?: (href: string) => void;
   resolveImagePreviewUrl?: (href: string | null) => string | null;
 };
 
@@ -120,6 +131,7 @@ export function createFishMarkMarkdownExtensions(
 
   const setBlockDecorationsEffect = StateEffect.define<DecorationSet>();
   const groupedShortcutKeymaps = createGroupedShortcutKeymaps(() => runtime.activeBlockState);
+  const canOpenExternalLink = typeof options.onOpenLink === "function";
 
   const createLiveActiveBlockState = (state: EditorState): ActiveBlockState =>
     deriveInactiveBlockDecorationsState({
@@ -558,6 +570,36 @@ export function createFishMarkMarkdownExtensions(
     });
   };
 
+  const openHref = (href: string | null | undefined): boolean => {
+    if (!canOpenExternalLink || !href) {
+      return false;
+    }
+
+    options.onOpenLink?.(href);
+    return true;
+  };
+
+  const openLinkAtSelection = (view: EditorView): boolean => {
+    const link = findLinkAtOffset(
+      markdownDocumentCache.read(view.state.doc.toString()),
+      view.state.selection.main.head
+    );
+
+    return openHref(link?.href);
+  };
+
+  const resolveInactiveLinkTarget = (event: MouseEvent): HTMLElement | null => {
+    const targetElement = event.target instanceof Element ? event.target : null;
+
+    if (!targetElement || event.button !== 0 || (!event.ctrlKey && !event.metaKey)) {
+      return null;
+    }
+
+    const linkElement = targetElement.closest<HTMLElement>(INACTIVE_INLINE_LINK_SELECTOR);
+
+    return linkElement instanceof HTMLElement ? linkElement : null;
+  };
+
   const lifecyclePlugin = ViewPlugin.fromClass(class {
     view: EditorView;
 
@@ -617,6 +659,18 @@ export function createFishMarkMarkdownExtensions(
     };
 
     handleMouseDown = (event: MouseEvent) => {
+      const inactiveLinkTarget = resolveInactiveLinkTarget(event);
+
+      if (inactiveLinkTarget) {
+        const href = inactiveLinkTarget.getAttribute(INACTIVE_INLINE_LINK_HREF_ATTRIBUTE);
+
+        if (openHref(href)) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+      }
+
       const interactionAnchor = resolveBlockPointerSelectionAnchor(this.view, runtime.activeBlockState, event);
 
       if (interactionAnchor !== null) {
@@ -774,6 +828,10 @@ export function createFishMarkMarkdownExtensions(
     history(),
     keymap.of([
       {
+        key: "Mod-Enter",
+        run: (view) => openLinkAtSelection(view)
+      },
+      {
         key: "ArrowUp",
         run: (view) => {
           const handled = runMarkdownArrowUp(view, runtime.activeBlockState);
@@ -865,6 +923,106 @@ export function createFishMarkMarkdownExtensions(
       recomputeDerivedState(update.view, update.state);
     })
   ];
+}
+
+function findLinkAtOffset(markdownDocument: MarkdownDocument, offset: number): InlineLink | null {
+  for (const block of markdownDocument.blocks) {
+    const link = findLinkInBlock(block, offset);
+
+    if (link) {
+      return link;
+    }
+  }
+
+  return null;
+}
+
+function findLinkInBlock(block: MarkdownBlock, offset: number): InlineLink | null {
+  switch (block.type) {
+    case "heading":
+    case "paragraph":
+      return findLinkInInline(block.inline, offset);
+    case "list":
+      return findLinkInList(block, offset);
+    case "blockquote":
+      for (const line of block.lines ?? []) {
+        const link = findLinkInInline(line.inline, offset);
+
+        if (link) {
+          return link;
+        }
+      }
+
+      return null;
+    default:
+      return null;
+  }
+}
+
+function findLinkInList(block: ListBlock, offset: number): InlineLink | null {
+  for (const item of block.items) {
+    const link = findLinkInListItem(item, offset);
+
+    if (link) {
+      return link;
+    }
+  }
+
+  return null;
+}
+
+function findLinkInListItem(item: ListItemBlock, offset: number): InlineLink | null {
+  const inlineLink = findLinkInInline(item.inline, offset);
+
+  if (inlineLink) {
+    return inlineLink;
+  }
+
+  for (const child of item.children) {
+    const childLink = findLinkInList(child, offset);
+
+    if (childLink) {
+      return childLink;
+    }
+  }
+
+  return null;
+}
+
+function findLinkInInline(inline: InlineRoot | undefined, offset: number): InlineLink | null {
+  if (!inline) {
+    return null;
+  }
+
+  return findLinkInInlineNode(inline, offset);
+}
+
+function findLinkInInlineNode(node: InlineASTNode, offset: number): InlineLink | null {
+  if (offset < node.startOffset || offset > node.endOffset) {
+    return null;
+  }
+
+  switch (node.type) {
+    case "link":
+      return node.href ? node : null;
+    case "root":
+    case "strong":
+    case "emphasis":
+    case "strikethrough":
+    case "image":
+      for (const child of node.children) {
+        const link = findLinkInInlineNode(child, offset);
+
+        if (link) {
+          return link;
+        }
+      }
+
+      return null;
+    case "text":
+    case "codeSpan":
+      return null;
+  }
 }
 
 export function refreshMarkdownDecorations(view: EditorView): void {

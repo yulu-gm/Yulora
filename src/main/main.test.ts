@@ -50,6 +50,15 @@ describe("main process window wiring", () => {
     expect(mainSource).toContain('externalFileWatchService.syncDocumentPath(');
   });
 
+  it("registers a safe system-browser opener for external Markdown links", () => {
+    const mainSource = readMainSource();
+
+    expect(mainSource).toContain("OPEN_EXTERNAL_LINK_CHANNEL");
+    expect(mainSource).toContain("isSafeExternalLinkProtocol");
+    expect(mainSource).toContain("shell.openExternal");
+    expect(mainSource).not.toContain("shell.openPath(input.href)");
+  });
+
   it("wires the tabbed workspace service and its IPC handlers", () => {
     const mainSource = readMainSource();
 

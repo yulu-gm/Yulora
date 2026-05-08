@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-05-08 | TASK-014 | `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor.test.ts src/preload/preload.test.ts src/preload/preload.contract.test.ts src/main/main.test.ts` | 先失败后通过 | 新增链接非激活态 label 装饰、Mod-click / Mod-Enter 打开交互、preload IPC 转发和 main 安全打开 wiring 回归；RED 阶段 7 项失败，修复后 6 个文件、244 项通过。 |
+| 2026-05-08 | TASK-014 | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-08 | TASK-014 | `npm.cmd run lint` | 通过 | ESLint 退出码 0。 |
+| 2026-05-08 | TASK-014 | `npm.cmd run test` | 通过 | Vitest 全量通过：97 个测试文件、989 项测试。 |
+| 2026-05-08 | TASK-014 | `npm.cmd run build` | 通过 | clean、renderer、electron、cli build 全部通过；保留既有 Vite chunk size warning。 |
+| 2026-05-08 | TASK-014 | `git diff --check` | 通过 | 无 whitespace error；仅输出 Windows 工作区 LF/CRLF 归一化提示。 |
 | 2026-05-06 | table-cell-focus-scroll | `npm run test -- src/renderer/code-editor.test.ts src/renderer/app.autosave.test.ts packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/commands/table-context.test.ts packages/editor-core/src/commands/table-edits.test.ts packages/editor-core/src/commands/table-commands.test.ts packages/markdown-engine/src/parse-block-map.test.ts` | 通过 | 覆盖表格键盘移动时新 cell 使用 `preventScroll` 聚焦，只调整 `.cm-scroller`，并避免异步 focus 覆盖用户 caret；7 个文件、415 项通过。 |
 | 2026-05-06 | table-cell-focus-scroll | `npm run test:table-focus-scroll` | 通过 | 真实 Electron probe 覆盖点击进入第 30 行表格 cell 后连续 ArrowDown 到第 38 行，active cell 始终留在 `.cm-scroller` 视口内，未滚动外层页面。 |
 | 2026-05-06 | table-cell-focus-scroll | `$env:FISHMARK_TABLE_FOCUS_SCROLL_PROBE_CONTENT_PATH='E:\B2P4\branch\b2\ue4_client\docs\plans\UNSAC迁移\受击动画重命名工具.md'; npm run test:table-focus-scroll` | 通过 | 覆盖用户指定 Markdown 的第一张表格：点击进入表格后连续 ArrowDown，`.cm-scroller` 保持 active cell 可见，`window` / `document` / `body` 滚动值保持 0。 |

@@ -46,6 +46,7 @@ import type {
 } from "./recent-files";
 import type { OpenWorkspacePathRequest } from "./workspace";
 import type { ThemePackageDescriptor } from "./theme-package";
+import type { OpenExternalLinkInput } from "./external-link";
 
 export interface ProductBridge {
   platform: NodeJS.Platform;
@@ -93,4 +94,5 @@ export interface ProductBridge {
   refreshThemePackages: () => Promise<ThemePackageDescriptor[]>;
   openThemesDirectory: () => Promise<void>;
   checkForUpdates: () => Promise<void>;
+  openExternalLink: (href: OpenExternalLinkInput["href"]) => Promise<void>;
 }

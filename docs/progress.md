@@ -86,7 +86,7 @@
 | TASK-012 | 列表与任务列表渲染 | DEV_DONE | 已补齐列表项 block metadata、非激活态列表/任务列表渲染、Enter 续项与空项退出规则；2026-04-20 起有序列表编辑重构为统一语义层：`markdown-engine` 显式保留 `startOrdinal` / `delimiter` 与嵌套 `children`，`editor-core` 通过 `list-edits` 处理插入、删除、缩进、反缩进、上下移动与 transaction 级归一化，不再依赖分散的按键补丁逻辑；2026-04-21 又把 ordered-list normalization 从“全文替换”收敛成增量 `sequential` 事务，只修正必要 marker diff，彻底修复阅读模式下回删有序列表时页面跳顶的问题；同日还统一了嵌套空列表项的 Enter 语义：ordered / unordered / task list 在子级空项回车时会先回退一层创建父级空项，只有顶级空项才会退出到空行；2026-04-30 将无序/任务列表的 `Tab` / `Shift+Tab` 也收敛到递归 item context，支持二级继续缩进到三级并避免按键泄漏到 UI 焦点导航；同日将层级操作的提交范围收敛为最小 diff，避免整段 root list 替换导致页面滚动跳动。 |
 | TASK-013 | 引用块渲染 | DEV_DONE | 已为 top-level 引用块补上非激活态淡色背景与缩进显示，隐藏 `>` 前缀，并在激活时恢复完整 Markdown 源码态；新增 blockquote 交互与 composition flush 回归测试。 |
 | TASK-044 | 嵌套引用块 | DEV_DONE | 已把 blockquote 前缀解析收敛到 `markdown-engine` 的 parser-owned helper，支持 `> >`、`>>`、`>    >` 与 tab stop 边界；非激活态隐藏完整引用前缀并输出 capped depth class / nested rails；Enter、Backspace、`Shift+Cmd/Ctrl+9` toggle 与 HTML export 均复用同一前缀语义，已有引用行 toggle 只移除一层。 |
-| TASK-014 | 链接显示与编辑 | TODO | 链接文本渲染与浏览器打开。 |
+| TASK-014 | 链接显示与编辑 | DEV_DONE | 已基于 inline link AST 实现非激活态可读链接文本、Mod-click / Mod-Enter 打开交互，以及 main/preload 白名单协议系统浏览器桥接。 |
 | TASK-015 | 图片粘贴 | DEV_DONE | 已接入剪贴板图片导入、本地 `assets/` 落盘、相对路径 Markdown 插入，以及 Markdown 图片与 HTML `<img>` 在激活态源码 + 预览 / 非激活态图片预览下的统一渲染。 |
 | TASK-016 | 图片拖放 | TODO | 拖放图片导入。 |
 | TASK-017 | 大纲侧栏 | DEV_DONE | 已补齐 heading 到 outline item 的提取、右侧悬浮可折叠大纲面板、默认收起入口、独立滚动区与点击后编辑器定位/滚动，并覆盖 renderer 回归测试。 |
@@ -113,3 +113,10 @@
 | TASK-038 | 跨平台打包 | DEV_IN_PROGRESS | 已接入基于 `electron-builder` 的 Windows 本地 `package:win` / `release:win` 与 macOS 本地 `package:mac` / `release:mac` / `release:mac:beta` 入口，并在打包前按需从 `assets/branding/*.svg` 生成 `light` / `dark` 两套 PNG 与 Windows `icon.ico`；Windows release 继续产出 NSIS installer 与 `latest.yml`，正式 macOS release 现已具备 arm64 `.dmg` / `.zip` / `latest-mac.yml` 构建与 GitHub Release 上传脚本，且会在发布前强制校验 Developer ID Application 签名材料与 Apple notarization 凭据；beta macOS release 可在无 Apple 凭据时发布 ad-hoc signed、未公证的 arm64 `.dmg` 到 `v<version>-mac-beta` prerelease，不接入自动更新也不标记 latest。 |
 | TASK-041 | 默认 Markdown 切换型快捷键 | DEV_DONE | 已在 `packages/editor-core/src/commands/` 落地三层语义切换器（`semantic-context` / `semantic-edits` / `toggle-*-commands`），并在 markdown extension keymap 中接入 `Cmd/Ctrl+B`、`Cmd/Ctrl+I`、`Cmd/Ctrl+1..4`、`Shift+Cmd/Ctrl+7`、`Shift+Cmd/Ctrl+9`、`Alt+Shift+Cmd/Ctrl+C`；命令级、扩展级与 renderer 回归测试均覆盖到位，对应 IME composition guard、autosave、active block 与 inactive block decorations 未回归。 |
 | TASK-043 | 标签页工作区 | ACCEPTED | 已完成 `main` 持有的 workspace snapshot / tab IPC、renderer 标签栏与活动编辑器主链、多标签新建 / 打开 / 切换 / 关闭、`Open...` / 拖入 / 外部打开默认进标签流、标签排序 / 拖出成新窗口，以及 `tabId` 维度的保存 / 另存为 / autosave / 外部文件 watcher / 关闭确认；本轮验收命令已全部通过。 |
+| TASK-045 | 脚注语法 | TODO | 参考 `markdown-it-footnote` 的 Pandoc 风格脚注，但实现必须收敛到 `markdown-engine` 的 parser-owned AST，并同步 editor-core 与 HTML export。 |
+| TASK-046 | 数学公式语法 | TODO | 参考 `markdown-it-katex` / `markdown-it-math` 的 inline 与 block math 语法，需先明确 renderer 依赖、失败回退和导出策略。 |
+| TASK-047 | 提示容器与 admonition 语法 | TODO | 参考 `markdown-it-container` / admonition 类插件，支持白名单提示块，并保持 active 源码态与 export 语义一致。 |
+| TASK-048 | 定义列表与缩写语法 | TODO | 参考 `markdown-it-deflist` / `markdown-it-abbr`，支持术语列表、缩写 definition map 与 HTML 语义输出。 |
+| TASK-049 | 行内扩展标记 | TODO | 参考 `markdown-it-sub`、`markdown-it-sup`、`markdown-it-ins`、`markdown-it-mark`、`markdown-it-emoji`，扩展现有 inline AST / decoration 管线。 |
+| TASK-050 | 导出 HTML 标题锚点与目录 | TODO | 参考 `markdown-it-anchor` / TOC 类插件，在 HTML export 中生成稳定 heading id 与可选目录，不改变编辑器正文显示。 |
+| TASK-051 | Mermaid / diagram code fence 渲染 | TODO | 参考 Mermaid 类插件，但需先定义安全沙箱、静态导出和失败回退，禁止引入不受控脚本执行通道。 |

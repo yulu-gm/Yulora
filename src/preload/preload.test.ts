@@ -23,6 +23,7 @@ import {
   REORDER_WORKSPACE_TAB_CHANNEL,
   UPDATE_WORKSPACE_TAB_DRAFT_CHANNEL
 } from "../shared/workspace";
+import { OPEN_EXTERNAL_LINK_CHANNEL } from "../shared/external-link";
 
 const exposeInMainWorld = vi.fn();
 const invoke = vi.fn();
@@ -160,6 +161,22 @@ describe("preload bridge", () => {
     expect(invoke.mock.calls).toContainEqual([REFRESH_THEME_PACKAGES_CHANNEL]);
     expect(invoke.mock.calls).not.toContainEqual(["fishmark:list-themes"]);
     expect(invoke.mock.calls).not.toContainEqual(["fishmark:refresh-themes"]);
+  });
+
+  it("exposes a narrow external link opener over IPC", async () => {
+    const { api } = await loadApi();
+    const externalApi = api as Window["fishmark"] & {
+      openExternalLink: (href: string) => Promise<void>;
+    };
+
+    expect(externalApi.openExternalLink).toEqual(expect.any(Function));
+
+    void externalApi.openExternalLink("https://fishmark.app");
+
+    expect(invoke.mock.calls).toContainEqual([
+      OPEN_EXTERNAL_LINK_CHANNEL,
+      { href: "https://fishmark.app" }
+    ]);
   });
 
   it("exposes workspace bridge methods for Task-043 tab commands", async () => {

@@ -525,6 +525,22 @@
 - composition 期间不会提前抖动，`compositionend` 后只做一次 decorations flush
 - link/image 即使本轮不做专门视觉替换，也不会破坏 label/alt children 的行内 decorations
 
+### TC-014-LINK 链接显示与编辑
+
+步骤：
+1. 输入一个普通资源链接，例如 `[FishMark](https://fishmark.app)`，再输入一段普通段落。
+2. 把光标移动到普通段落，让链接所在 block 进入非激活态。
+3. 观察链接行的可见内容和样式。
+4. 按住 `Ctrl`（macOS 为 `Command`）点击链接文本，或把光标放在链接源码范围内按 `Ctrl+Enter`（macOS 为 `Command+Enter`）。
+5. 再点击链接所在行的非链接区域或用键盘把光标移回该 block。
+6. 如需自动化回归，运行 `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor.test.ts src/preload/preload.test.ts src/preload/preload.contract.test.ts src/main/main.test.ts`。
+
+预期：
+- 非激活态只突出显示链接 label，`[]()` 与 destination 语法不作为正文视觉重点出现。
+- `Ctrl/Command+点击` 与 `Ctrl/Command+Enter` 会通过受限 bridge 请求系统浏览器打开链接。
+- 光标回到链接所在 block 后，完整 Markdown 源码恢复并可继续编辑。
+- renderer 不直接获得 Node shell 能力；main 进程只允许 `http:` / `https:` / `mailto:` 外部链接协议。
+
 ### TC-040 大纲侧栏
 
 步骤：

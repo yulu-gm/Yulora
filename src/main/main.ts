@@ -7,6 +7,7 @@ import {
   ipcMain,
   Menu,
   protocol,
+  shell,
   type MenuItemConstructorOptions
 } from "electron";
 import { createApplicationMenuTemplate } from "./application-menu";
@@ -99,6 +100,10 @@ import {
   OPEN_THEMES_DIRECTORY_CHANNEL,
   REFRESH_THEME_PACKAGES_CHANNEL
 } from "../shared/theme-package";
+import {
+  OPEN_EXTERNAL_LINK_CHANNEL,
+  type OpenExternalLinkInput
+} from "../shared/external-link";
 import {
   ACTIVATE_WORKSPACE_TAB_CHANNEL,
   CLOSE_WORKSPACE_TAB_CHANNEL,
@@ -239,6 +244,32 @@ function broadcastToWindows(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send(channel, payload);
   }
+}
+
+function isSafeExternalLinkProtocol(protocol: string): boolean {
+  return protocol === "http:" || protocol === "https:" || protocol === "mailto:";
+}
+
+function resolveSafeExternalLinkHref(input: OpenExternalLinkInput | undefined): string {
+  const rawHref = typeof input?.href === "string" ? input.href.trim() : "";
+
+  if (!rawHref) {
+    throw new Error("External link is empty.");
+  }
+
+  let url: URL;
+
+  try {
+    url = new URL(rawHref);
+  } catch {
+    throw new Error(`Unsupported external link: ${rawHref}`);
+  }
+
+  if (!isSafeExternalLinkProtocol(url.protocol)) {
+    throw new Error(`Unsupported external link protocol: ${url.protocol}`);
+  }
+
+  return url.toString();
 }
 
 app.whenReady().then(async () => {
@@ -800,6 +831,9 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(OPEN_THEMES_DIRECTORY_CHANNEL, async () =>
     openThemesDirectory(app.getPath("userData"))
+  );
+  ipcMain.handle(OPEN_EXTERNAL_LINK_CHANNEL, async (_event, input: OpenExternalLinkInput | undefined) =>
+    shell.openExternal(resolveSafeExternalLinkHref(input))
   );
 
   if (!app.isPackaged && runtimeMode === "test-workbench") {

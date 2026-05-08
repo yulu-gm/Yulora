@@ -28,6 +28,7 @@ type HarnessOptions = {
   source: string;
   onContentChange?: (doc: string) => void;
   onActiveBlockChange?: (blockType: string | null, anchor: number) => void;
+  onOpenLink?: (href: string) => void;
   onBlur?: () => void;
 };
 
@@ -44,7 +45,10 @@ const createHarness = (options: HarnessOptions) => {
         onActiveBlockChange: (state) => {
           options.onActiveBlockChange?.(state.activeBlock?.type ?? null, state.selection.anchor);
         },
+        onOpenLink: options.onOpenLink,
         onBlur: options.onBlur
+      } as Parameters<typeof createFishMarkMarkdownExtensions>[0] & {
+        onOpenLink?: (href: string) => void;
       })
     }),
     parent: host
@@ -172,6 +176,59 @@ describe("createFishMarkMarkdownExtensions", () => {
     await flushMicrotasks();
 
     expect(getHeadingMarker()).toBeNull();
+
+    destroy();
+  });
+
+  it("opens an inactive link on Mod-click without moving the editor selection", () => {
+    const source = ["[FishMark](https://fishmark.app)", "", "Paragraph"].join("\n");
+    const onOpenLink = vi.fn();
+    const { host, view, destroy } = createHarness({
+      source,
+      onOpenLink
+    });
+    const paragraphOffset = source.indexOf("Paragraph");
+
+    view.dispatch({ selection: { anchor: paragraphOffset, head: paragraphOffset } });
+    const inactiveLink = host.querySelector<HTMLElement>(".cm-inactive-inline-link");
+
+    expect(inactiveLink).toBeInstanceOf(HTMLElement);
+
+    inactiveLink?.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: true
+      })
+    );
+
+    expect(onOpenLink).toHaveBeenCalledWith("https://fishmark.app");
+    expect(view.state.selection.main.anchor).toBe(paragraphOffset);
+
+    destroy();
+  });
+
+  it("opens the link under the cursor on Mod-Enter", () => {
+    const source = "[FishMark](https://fishmark.app)";
+    const onOpenLink = vi.fn();
+    const { view, destroy } = createHarness({
+      source,
+      onOpenLink
+    });
+
+    view.dispatch({ selection: { anchor: source.indexOf("Mark") } });
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        code: "Enter",
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(onOpenLink).toHaveBeenCalledWith("https://fishmark.app");
 
     destroy();
   });

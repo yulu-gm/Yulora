@@ -27,6 +27,7 @@ export type CreateCodeEditorControllerOptions = {
   onBlur?: () => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
   importClipboardImage?: (input: { documentPath: string | null }) => Promise<string | null>;
+  openExternalLink?: (href: string) => void;
 };
 
 export type CodeEditorController = {
@@ -81,6 +82,7 @@ export function createCodeEditorController(
           options.onActiveBlockChange?.(nextState);
         },
         resolveImagePreviewUrl: (href) => resolveImagePreviewUrl(currentDocumentPath, href),
+        onOpenLink: (href) => options.openExternalLink?.(href),
         onBlur: options.onBlur
       })
     });

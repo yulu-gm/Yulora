@@ -1050,6 +1050,7 @@ describe("App autosave", () => {
       refreshThemePackages,
       openThemesDirectory,
       checkForUpdates: vi.fn().mockResolvedValue(undefined),
+      openExternalLink: vi.fn().mockResolvedValue(undefined),
       confirmWorkspaceWindowClose,
       onPreferencesChanged(listener: PreferencesChangedListener) {
         preferencesChangedListener = listener;

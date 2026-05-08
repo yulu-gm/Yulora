@@ -331,7 +331,7 @@ describe("createBlockDecorations", () => {
     expect(ranges.some((range) => range.className === "cm-inactive-inline-emphasis")).toBe(false);
   });
 
-  it("recurses through link and image label or alt children without replacing their text", () => {
+  it("renders inactive links as readable labels while hiding destination syntax", () => {
     const linkSource = "[**label**](https://example.com)";
     const linkRanges = createInactiveInlineDecorations(linkSource);
     const imageSource = "![alt *x*](./demo.png)";
@@ -339,10 +339,20 @@ describe("createBlockDecorations", () => {
 
     expectExactRangeClasses(linkRanges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
     expectCoveredRangeClasses(linkRanges, 0, 1, ["cm-inactive-inline-marker"]);
-    expectCoveredRangeClasses(linkRanges, 1, 3, ["cm-inactive-inline-marker"]);
-    expectCoveredRangeClasses(linkRanges, 3, 8, ["cm-inactive-inline-strong"]);
-    expectCoveredRangeClasses(linkRanges, 8, 10, ["cm-inactive-inline-marker"]);
-    expectCoveredRangeClasses(linkRanges, 10, 11, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(linkRanges, 1, 3, [
+      "cm-inactive-inline-link",
+      "cm-inactive-inline-marker"
+    ]);
+    expectCoveredRangeClasses(linkRanges, 3, 8, [
+      "cm-inactive-inline-link",
+      "cm-inactive-inline-strong"
+    ]);
+    expectCoveredRangeClasses(linkRanges, 8, 10, [
+      "cm-inactive-inline-link",
+      "cm-inactive-inline-marker"
+    ]);
+    expectCoveredRangeClasses(linkRanges, 10, linkSource.length, ["cm-inactive-inline-marker"]);
+    expectCoveredRangeClasses(linkRanges, 12, 31, ["cm-inactive-inline-marker"]);
 
     expectExactRangeClasses(imageRanges, 0, 0, ["cm-inactive-paragraph cm-inactive-paragraph-leading"]);
     expectCoveredRangeClasses(imageRanges, 1, 2, ["cm-inactive-inline-marker"]);

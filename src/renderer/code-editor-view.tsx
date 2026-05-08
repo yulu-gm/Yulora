@@ -45,11 +45,21 @@ type CodeEditorViewProps = {
   onBlur?: () => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
   importClipboardImage?: (input: { documentPath: string | null }) => Promise<string | null>;
+  openExternalLink?: (href: string) => void;
 };
 
 export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
   function CodeEditorView(
-    { initialContent, documentPath, loadRevision, onChange, onBlur, onActiveBlockChange, importClipboardImage },
+    {
+      initialContent,
+      documentPath,
+      loadRevision,
+      onChange,
+      onBlur,
+      onActiveBlockChange,
+      importClipboardImage,
+      openExternalLink
+    },
     ref
   ) {
     const hostRef = useRef<HTMLDivElement | null>(null);
@@ -64,6 +74,7 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
     const handleImportClipboardImage = useEffectEvent((input: { documentPath: string | null }) =>
       importClipboardImage?.(input) ?? Promise.resolve(null)
     );
+    const handleOpenExternalLink = useEffectEvent((href: string) => openExternalLink?.(href));
 
     useEffect(() => {
       if (!hostRef.current) {
@@ -77,7 +88,8 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
         onChange: (content) => handleChange(content),
         onBlur: () => handleBlur(),
         onActiveBlockChange: (state) => handleActiveBlockChange(state),
-        importClipboardImage: (input) => handleImportClipboardImage(input)
+        importClipboardImage: (input) => handleImportClipboardImage(input),
+        openExternalLink: (href) => handleOpenExternalLink(href)
       });
 
       controllerRef.current = controller;

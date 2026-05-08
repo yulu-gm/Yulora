@@ -55,6 +55,10 @@ import {
   HANDLE_DROPPED_MARKDOWN_FILE_CHANNEL
 } from "../shared/open-markdown-file";
 import { LIST_FONT_FAMILIES_CHANNEL } from "../shared/font-families";
+import {
+  OPEN_EXTERNAL_LINK_CHANNEL,
+  type OpenExternalLinkInput
+} from "../shared/external-link";
 
 export type {
   EditorTestCommandEnvelope,
@@ -261,6 +265,8 @@ const productApi: ProductBridge = {
     ipcRenderer.invoke(REFRESH_THEME_PACKAGES_CHANNEL),
   openThemesDirectory: (): Promise<void> => ipcRenderer.invoke(OPEN_THEMES_DIRECTORY_CHANNEL),
   checkForUpdates: (): Promise<void> => ipcRenderer.invoke(CHECK_FOR_APP_UPDATES_CHANNEL),
+  openExternalLink: (href: OpenExternalLinkInput["href"]): Promise<void> =>
+    ipcRenderer.invoke(OPEN_EXTERNAL_LINK_CHANNEL, { href }),
   onPreferencesChanged: (listener: (preferences: Preferences) => void) => {
     const handlePreferencesChanged = (_event: unknown, preferences: Preferences) => {
       listener(preferences);

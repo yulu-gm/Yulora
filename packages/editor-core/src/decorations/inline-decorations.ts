@@ -6,6 +6,9 @@ import { createInactiveImagePreviewDecoration } from "./image-widgets";
 
 const CJK_TEXT_CLASS = "cm-fishmark-cjk-font";
 const INACTIVE_INLINE_MARKER_CLASS = "cm-inactive-inline-marker";
+const INACTIVE_INLINE_LINK_CLASS = "cm-inactive-inline-link";
+export const INACTIVE_INLINE_LINK_SELECTOR = `.${INACTIVE_INLINE_LINK_CLASS}`;
+export const INACTIVE_INLINE_LINK_HREF_ATTRIBUTE = "data-fishmark-link-href";
 const INACTIVE_INLINE_CONTENT_CLASSES = {
   strong: "cm-inactive-inline-strong",
   emphasis: "cm-inactive-inline-emphasis",
@@ -96,10 +99,21 @@ function appendInlineDecorations(
       return;
     case "link":
       appendMarkerDecoration(ranges, node.openMarker.startOffset, node.openMarker.endOffset);
+      appendContentDecoration(
+        ranges,
+        node.openMarker.endOffset,
+        node.closeMarker.startOffset,
+        INACTIVE_INLINE_LINK_CLASS,
+        {
+          [INACTIVE_INLINE_LINK_HREF_ATTRIBUTE]: node.href ?? "",
+          role: "link",
+          title: node.title ?? node.href ?? ""
+        }
+      );
       for (const child of node.children) {
         appendInlineDecorations(child, ranges, options);
       }
-      appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.closeMarker.endOffset);
+      appendMarkerDecoration(ranges, node.closeMarker.startOffset, node.endOffset);
       return;
     case "image":
       ranges.push(createInactiveImagePreviewDecoration(node, options.resolveImagePreviewUrl));
@@ -198,7 +212,8 @@ function appendContentDecoration(
   ranges: InlineDecorationRange[],
   startOffset: number,
   endOffset: number,
-  className: string
+  className: string,
+  attributes: Record<string, string> = {}
 ) {
   if (endOffset <= startOffset) {
     return;
@@ -207,6 +222,7 @@ function appendContentDecoration(
   ranges.push(
     Decoration.mark({
       attributes: {
+        ...attributes,
         class: className
       }
     }).range(startOffset, endOffset)
