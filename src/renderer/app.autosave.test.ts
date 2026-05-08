@@ -1529,6 +1529,10 @@ describe("App autosave", () => {
       ["C:/notes/alpha.md"],
       ["C:/notes/beta.md"]
     ]);
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalledWith({
+      tabId: "tab-2",
+      content: "# Current\n"
+    });
     expect(workspaceTabs).toHaveLength(3);
     expect(workspaceTabs[1]?.textContent).toContain("alpha.md");
     expect(workspaceTabs[2]?.textContent).toContain("beta.md");

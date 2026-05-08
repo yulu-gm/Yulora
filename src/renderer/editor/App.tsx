@@ -806,10 +806,22 @@ function EditorShell({
     blurFocusedEditorElementAfterOpen,
     editorCommands
   ]);
+  const handleOpenMarkdownFromPaths = useCallback(async (targetPaths: string[]): Promise<void> => {
+    const opened = await editorCommands.openMarkdownFromPaths(targetPaths);
+
+    if (opened) {
+      setShellMode("reading");
+      blurFocusedEditorElementAfterOpen();
+    }
+  }, [
+    blurFocusedEditorElementAfterOpen,
+    editorCommands
+  ]);
+
   useWindowMarkdownFileDrop({
     fishmark,
     getHasOpenDocument: () => getWorkspaceActiveDocument() !== null,
-    openMarkdownFromPath: handleOpenMarkdownFromPath
+    openMarkdownFromPaths: handleOpenMarkdownFromPaths
   });
 
   async function handleActivateWorkspaceTab(tabId: string): Promise<void> {
