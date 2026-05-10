@@ -4984,6 +4984,25 @@ describe("App autosave", () => {
     expect(collapsedReadingStatusBarRule).toContain("display: none;");
   });
 
+  it("guards app-owned workspace row geometry against legacy theme overrides", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const editingWorkspaceGuardRule = getCssRule(
+      appUiStylesheet,
+      '.app-workspace[data-fishmark-layout="workspace"]'
+    );
+    const readingWorkspaceGuardRule = getCssRule(
+      appUiStylesheet,
+      '.app-workspace[data-fishmark-layout="workspace"][data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"]'
+    );
+
+    expect(editingWorkspaceGuardRule).toContain(
+      "grid-template-rows: auto auto minmax(0, 1fr) !important;"
+    );
+    expect(readingWorkspaceGuardRule).toContain(
+      "grid-template-rows: minmax(0, 1fr) !important;"
+    );
+  });
+
   it("defines compact icon rail tool styles and tooltip positioning", () => {
     const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
     const workspaceShellSource = readFileSync(

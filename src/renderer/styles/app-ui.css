@@ -369,6 +369,16 @@
   padding-bottom: var(--fishmark-space-4);
 }
 
+/* App-owned layout geometry. Theme packages are loaded after app CSS, so
+   protect the workspace row contract from legacy community theme overrides. */
+.app-workspace[data-fishmark-layout="workspace"] {
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+}
+
+.app-workspace[data-fishmark-layout="workspace"][data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"] {
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
 .app-notification-banner {
   position: fixed;
   top: calc(var(--fishmark-titlebar-height) + 14px);
