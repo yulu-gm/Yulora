@@ -9,6 +9,12 @@
 
 ## 记录
 
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run test -- src/main/generate-icons.test.ts` | 先失败后通过 | 新增 icon 生成回归：RED 阶段确认缺少 `16/24/48` 输出且 light 图标鱼身中心不是黑色；修复后 3 项通过。 |
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run test -- src/main/generate-icons.test.ts src/main/package-scripts.test.ts src/main/after-pack-win-icon.test.ts` | 通过 | 覆盖 icon 生成、打包脚本契约与 Windows executable icon patch；3 个文件、34 项通过。 |
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run lint` | 通过 | ESLint 退出码 0。 |
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run build` | 通过 | clean、renderer、electron、cli build 全部通过；保留既有 Vite chunk size warning。 |
+| 2026-05-10 | TASK-038 icon-refresh | `npm.cmd run package:win` | 通过 | Windows NSIS package 成功生成；日志确认 `release/win-unpacked/FishMark.exe` 已执行 icon patch，资源目录内 light `icon.ico` 包含 `16/24/32/48/64/128/256`。 |
 | 2026-05-08 | TASK-014 | `npm.cmd run test -- packages/editor-core/src/decorations/block-decorations.test.ts packages/editor-core/src/extensions/markdown.test.ts src/renderer/code-editor.test.ts src/preload/preload.test.ts src/preload/preload.contract.test.ts src/main/main.test.ts` | 先失败后通过 | 新增链接非激活态 label 装饰、Mod-click / Mod-Enter 打开交互、preload IPC 转发和 main 安全打开 wiring 回归；RED 阶段 7 项失败，修复后 6 个文件、244 项通过。 |
 | 2026-05-08 | TASK-014 | `npm.cmd run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
 | 2026-05-08 | TASK-014 | `npm.cmd run lint` | 通过 | ESLint 退出码 0。 |

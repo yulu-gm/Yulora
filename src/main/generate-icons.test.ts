@@ -1,10 +1,25 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 const createdDirectories: string[] = [];
+const require = createRequire(import.meta.url);
+const { PNG } = require("pngjs") as {
+  PNG: {
+    sync: {
+      read: (buffer: Buffer) => {
+        width: number;
+        height: number;
+        data: Buffer;
+      };
+    };
+  };
+};
+const PNG_SIZES = [16, 24, 32, 48, 64, 128, 256, 512];
+const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 
 afterEach(() => {
   for (const directory of createdDirectories.splice(0)) {
@@ -30,12 +45,39 @@ describe("generate-icons script", () => {
     expect(result.status).toBe(0);
 
     for (const variant of ["light", "dark"]) {
-      for (const size of [32, 64, 128, 256, 512]) {
+      for (const size of PNG_SIZES) {
         expect(existsSync(path.join(outputDirectory, variant, `icon-${size}.png`))).toBe(true);
       }
 
-      expect(existsSync(path.join(outputDirectory, variant, "icon.ico"))).toBe(true);
+      const icoPath = path.join(outputDirectory, variant, "icon.ico");
+      expect(existsSync(icoPath)).toBe(true);
+      expect(readIcoSizes(icoPath)).toEqual(ICO_SIZES);
     }
+  }, 30000);
+
+  it("renders the light icon fish body as an opaque black fill", () => {
+    const outputDirectory = mkdtempSync(path.join(tmpdir(), "fishmark-icons-fill-"));
+    createdDirectories.push(outputDirectory);
+
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/generate-icons.mjs", "--out-dir", outputDirectory],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 30000
+      }
+    );
+
+    expect(result.status).toBe(0);
+
+    const image = PNG.sync.read(readFileSync(path.join(outputDirectory, "light", "icon-512.png")));
+    const centerOffset = (Math.floor(image.height / 2) * image.width + Math.floor(image.width / 2)) * 4;
+
+    expect(image.data[centerOffset]).toBeLessThanOrEqual(8);
+    expect(image.data[centerOffset + 1]).toBeLessThanOrEqual(8);
+    expect(image.data[centerOffset + 2]).toBeLessThanOrEqual(8);
+    expect(image.data[centerOffset + 3]).toBe(255);
   }, 30000);
 
   it("does not leave icon generation blocked in ICO conversion", () => {
@@ -58,3 +100,20 @@ describe("generate-icons script", () => {
     expect(result.stdout).toContain("Generated icon assets");
   }, 10000);
 });
+
+function readIcoSizes(icoPath: string): number[] {
+  const ico = readFileSync(icoPath);
+  const count = ico.readUInt16LE(4);
+  const sizes: number[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const entryOffset = 6 + index * 16;
+    const width = ico.readUInt8(entryOffset) || 256;
+    const height = ico.readUInt8(entryOffset + 1) || 256;
+
+    expect(height).toBe(width);
+    sizes.push(width);
+  }
+
+  return sizes;
+}

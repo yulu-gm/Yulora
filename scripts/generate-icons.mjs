@@ -5,9 +5,9 @@ import process from "node:process";
 import { Resvg } from "@resvg/resvg-js";
 import { PNG } from "pngjs";
 
-const PNG_SIZES = [32, 64, 128, 256, 512];
+const PNG_SIZES = [16, 24, 32, 48, 64, 128, 256, 512];
 const SOURCE_PNG_SIZE = Math.max(...PNG_SIZES);
-const ICO_SIZES = new Set([32, 64, 128, 256]);
+const ICO_SIZES = new Set([16, 24, 32, 48, 64, 128, 256]);
 const VARIANTS = [
   {
     name: "light",

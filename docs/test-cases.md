@@ -709,6 +709,18 @@
 - 应用能在 Windows 上启动
 - 应用可以保存文件
 
+### TC-070A Windows 应用图标
+
+步骤：
+1. 运行 `npm.cmd run package:win` 生成 Windows 安装包。
+2. 安装或覆盖安装 `release/FishMark-Setup-<version>.exe`。
+3. 在桌面快捷方式或开始菜单中切换不同图标大小观察 FishMark 图标。
+
+预期：
+- 图标中间鱼身为黑色实体，鱼眼保留为反白小孔。
+- 桌面常用图标大小下不应明显发糊。
+- 打包产物内的 `resources/icons/light/icon.ico` 至少包含 `16/24/32/48/64/128/256` 尺寸。
+
 ### TC-071 macOS 启动
 
 预期：
