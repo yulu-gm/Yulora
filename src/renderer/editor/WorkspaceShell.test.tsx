@@ -48,11 +48,19 @@ afterEach(async () => {
   container = null;
 });
 
+function setTextInputValue(input: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+
+  valueSetter?.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 it("renders workspace tabs and delegates commands without owning persistence logic", async () => {
   const onTabActivate = vi.fn();
   const onDraftChange = vi.fn();
   const onNavigateToOutlineItem = vi.fn();
   container = document.createElement("div");
+  document.body.appendChild(container);
   root = createRoot(container);
 
   await act(async () => {
@@ -209,6 +217,239 @@ it("renders workspace tabs and delegates commands without owning persistence log
   expect(container.querySelector('[data-fishmark-region="workspace-header"]')).toBeNull();
   expect(container.querySelector('[data-fishmark-region="workspace-tab"]')?.getAttribute("title"))
     .toBe("C:/note.md");
+});
+
+it("opens find and replace controls and delegates search actions to the editor", async () => {
+  const updateFindReplaceQuery = vi.fn(() => ({
+    matchCount: 2,
+    currentMatchIndex: 1
+  }));
+  const findNextMatch = vi.fn(() => ({
+    matchCount: 2,
+    currentMatchIndex: 2
+  }));
+  const replaceCurrentMatch = vi.fn(() => ({
+    matchCount: 1,
+    currentMatchIndex: 1
+  }));
+  const replaceAllMatches = vi.fn(() => ({
+    matchCount: 0,
+    currentMatchIndex: null
+  }));
+  const clearFindReplaceQuery = vi.fn(() => ({
+    matchCount: 0,
+    currentMatchIndex: null
+  }));
+
+  container = document.createElement("div");
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      createElement(WorkspaceShell, {
+        workspaceSnapshot: {
+          windowId: "window-1",
+          activeTabId: "tab-1",
+          tabs: [
+            {
+              tabId: "tab-1",
+              path: "C:/note.md",
+              name: "note.md",
+              isDirty: false,
+              saveState: "idle"
+            }
+          ],
+          activeDocument: {
+            tabId: "tab-1",
+            path: "C:/note.md",
+            name: "note.md",
+            content: "alpha beta\nBeta alpha\n",
+            encoding: "utf-8",
+            isDirty: false,
+            saveState: "idle"
+          }
+        },
+        activeShortcutGroup: DEFAULT_TEXT_SHORTCUT_GROUP,
+        activeTableToolId: null,
+        appVersionLabel: "FishMark v0.0.0-test",
+        appUpdateStatusLabel: null,
+        controlledTitlebarEnabled: false,
+        currentDocumentMetrics: { meaningfulCharacterCount: 21 },
+        effectiveSaveState: "idle",
+        externalFileState: { status: "idle" },
+        externalFileConflictMessage: "",
+        fishmarkPlatform: "win32",
+        fontFamilies: [],
+        headerTitle: "note.md",
+        isDocumentOpen: true,
+        isOutlineOpen: false,
+        isOutlinePanelVisible: false,
+        isReadingMode: false,
+        isRefreshingThemePackages: false,
+        isSettingsDrawerVisible: false,
+        isSettingsOpen: false,
+        isShortcutHintVisible: false,
+        notification: null,
+        notificationState: "hidden",
+        outlineItems: [],
+        recentFiles: { version: 1, entries: [] },
+        preferences: DEFAULT_PREFERENCES,
+        saveStatusLabel: "All changes saved",
+        shellMode: "editing",
+        titlebarHeight: 0,
+        activeHeadingId: null,
+        editorLoadRevision: 1,
+        editorRef: {
+          current: {
+            getContent: vi.fn(),
+            getSelection: vi.fn(),
+            setContent: vi.fn(),
+            setDocumentPath: vi.fn(),
+            focus: vi.fn(),
+            navigateToOffset: vi.fn(),
+            insertText: vi.fn(),
+            setSelection: vi.fn(),
+            selectTableCell: vi.fn(),
+            editTableCell: vi.fn(),
+            insertTableRowAbove: vi.fn(),
+            insertTableRowBelow: vi.fn(),
+            insertTableColumnLeft: vi.fn(),
+            insertTableColumnRight: vi.fn(),
+            deleteTableRow: vi.fn(),
+            deleteTableColumn: vi.fn(),
+            deleteTable: vi.fn(),
+            pressEnter: vi.fn(),
+            pressBackspace: vi.fn(),
+            pressTab: vi.fn(),
+            pressArrowUp: vi.fn(),
+            pressArrowDown: vi.fn(),
+            updateFindReplaceQuery,
+            findNextMatch,
+            findPreviousMatch: vi.fn(),
+            replaceCurrentMatch,
+            replaceAllMatches,
+            clearFindReplaceQuery
+          }
+        },
+        editorContainerRef: { current: null },
+        settingsEntryRef: { current: null },
+        activeWorkbenchSurface: null,
+        activeTitlebarSurface: null,
+        preferencesThemeEffectsMode: "auto",
+        resolvedThemeMode: "light",
+        themeRuntimeEnv: {
+          wordCount: 21,
+          readingMode: 0,
+          themeMode: "light",
+          viewport: { width: 1024, height: 768 }
+        },
+        themePackages: [],
+        titlebarLayout: {
+          height: 0,
+          slots: {
+            leading: [],
+            center: [],
+            trailing: []
+          },
+          dragRegions: [],
+          compactWhenNarrow: false
+        },
+        onActiveBlockChange: vi.fn(),
+        onAppWorkspaceMouseDownCapture: vi.fn(),
+        onCaptureSettingsOpenOrigin: vi.fn(),
+        onCloseOutlinePanel: vi.fn(),
+        onCloseSettingsDrawer: vi.fn(),
+        onCloseWorkspaceTab: vi.fn(),
+        onEditorBlur: vi.fn(),
+        onImportClipboardImage: vi.fn(),
+        onOpenExternalLink: vi.fn(),
+        onInsertTableColumnLeft: vi.fn(),
+        onInsertTableColumnRight: vi.fn(),
+        onInsertTableRowAbove: vi.fn(),
+        onInsertTableRowBelow: vi.fn(),
+        onDeleteTable: vi.fn(),
+        onDeleteTableColumn: vi.fn(),
+        onDeleteTableRow: vi.fn(),
+        onOpenOutlinePanel: vi.fn(),
+        onReloadExternalFile: vi.fn(),
+        onKeepMemoryVersion: vi.fn(),
+        onDismissExternalFileConflict: vi.fn(),
+        onSaveAs: vi.fn(),
+        onSettingsOpen: vi.fn(),
+        onTableToolHoverChange: vi.fn(),
+        onTabActivate: vi.fn(),
+        onTabDragEnd: vi.fn(),
+        onTabDragOver: vi.fn(),
+        onTabDragStart: vi.fn(),
+        onTabDrop: vi.fn(),
+        onTitlebarSurfaceRuntimeModeChange: vi.fn(),
+        onUpdatePreferences: vi.fn(),
+        onRefreshThemePackages: vi.fn(),
+        onOpenRecentFile: vi.fn(),
+        onClearRecentFile: vi.fn(),
+        onWorkbenchSurfaceRuntimeModeChange: vi.fn(),
+        onNavigateToOutlineItem: vi.fn(),
+        onDraftChange: vi.fn()
+      })
+    );
+  });
+
+  const activeContainer = container;
+
+  if (!activeContainer) {
+    throw new Error("test container was not created");
+  }
+
+  await act(async () => {
+    activeContainer.querySelector<HTMLButtonElement>('[data-fishmark-command="find-replace"]')?.click();
+  });
+  clearFindReplaceQuery.mockClear();
+
+  const panel = activeContainer.querySelector('[data-fishmark-region="find-replace-panel"]');
+  const findInput = activeContainer.querySelector<HTMLInputElement>('[aria-label="Find text"]');
+  const replaceInput = activeContainer.querySelector<HTMLInputElement>('[aria-label="Replace with"]');
+
+  expect(panel).not.toBeNull();
+  expect(findInput).not.toBeNull();
+  expect(replaceInput).not.toBeNull();
+
+  await act(async () => {
+    setTextInputValue(findInput!, "beta");
+  });
+
+  expect(updateFindReplaceQuery).toHaveBeenLastCalledWith({
+    search: "beta",
+    replace: ""
+  });
+  expect(panel?.textContent).toContain("1 / 2");
+
+  await act(async () => {
+    activeContainer.querySelector<HTMLButtonElement>('[aria-label="Next match"]')?.click();
+  });
+
+  expect(findNextMatch).toHaveBeenCalledTimes(1);
+  expect(activeContainer.querySelector('[data-fishmark-region="find-replace-panel"]')?.textContent)
+    .toContain("2 / 2");
+
+  await act(async () => {
+    setTextInputValue(replaceInput!, "gamma");
+    activeContainer.querySelector<HTMLButtonElement>('[aria-label="Replace current match"]')?.click();
+  });
+
+  expect(replaceCurrentMatch).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    activeContainer.querySelector<HTMLButtonElement>('[aria-label="Replace all matches"]')?.click();
+  });
+
+  expect(replaceAllMatches).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    activeContainer.querySelector<HTMLButtonElement>('[aria-label="Close find and replace"]')?.click();
+  });
+
+  expect(clearFindReplaceQuery).toHaveBeenCalledTimes(1);
+  expect(activeContainer.querySelector('[data-fishmark-region="find-replace-panel"]')).toBeNull();
 });
 
 it("renders recent files without the old empty headline and delegates open and clear actions", async () => {

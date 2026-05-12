@@ -313,6 +313,43 @@
   z-index: 3;
 }
 
+.rail-tool-button {
+  inline-size: 42px;
+  block-size: 42px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--fishmark-panel-border, rgba(15, 23, 42, 0.12)) 56%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 90%, transparent);
+  color: var(--fishmark-text-secondary, #31353d);
+  cursor: pointer;
+}
+
+.rail-tool-button:hover {
+  background: var(--fishmark-control-bg-hover, rgba(255, 255, 255, 0.94));
+  color: var(--fishmark-text-primary, #171a1f);
+}
+
+.rail-tool-button:focus-visible {
+  outline: 2px solid var(--fishmark-focus-ring);
+  outline-offset: 2px;
+}
+
+.rail-tool-button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.rail-tool-button-icon {
+  inline-size: 17px;
+  block-size: 17px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ── Settings entry icon button ─────────────────────────────── */
 /*   Visual appearance (bg, border, color, shadow) is in          */
 /*   primitives.css. Only size lives here.                        */
@@ -836,6 +873,125 @@
   position: relative;
   container-type: inline-size;
   container-name: editor-canvas;
+}
+
+.find-replace-panel {
+  position: absolute;
+  top: 18px;
+  right: clamp(18px, 4vw, 58px);
+  width: min(520px, calc(100% - 36px));
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--fishmark-panel-border, rgba(15, 23, 42, 0.12));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fishmark-panel-bg, rgba(255, 255, 255, 0.92)) 94%, transparent);
+  color: var(--fishmark-text-secondary, #31353d);
+  box-shadow: var(--fishmark-panel-shadow, var(--fishmark-shadow-3));
+  backdrop-filter: blur(24px) saturate(1.1);
+  -webkit-backdrop-filter: blur(24px) saturate(1.1);
+  z-index: 4;
+}
+
+.find-replace-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.find-replace-row + .find-replace-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.find-replace-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--fishmark-text-muted, #687180);
+  font-size: 0.76rem;
+  font-weight: 620;
+}
+
+.find-replace-input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--fishmark-control-border, rgba(15, 23, 42, 0.12));
+  border-radius: 8px;
+  background: var(--fishmark-control-bg, rgba(255, 255, 255, 0.9));
+  color: var(--fishmark-text-primary, #171a1f);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.find-replace-input:focus {
+  outline: 2px solid var(--fishmark-focus-ring);
+  outline-offset: 1px;
+}
+
+.find-replace-status {
+  min-width: 58px;
+  margin: 0;
+  color: var(--fishmark-text-muted, #687180);
+  font-size: 0.78rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.find-replace-icon-button,
+.find-replace-text-button {
+  height: 30px;
+  border: 1px solid var(--fishmark-control-border, rgba(15, 23, 42, 0.12));
+  border-radius: 8px;
+  background: var(--fishmark-control-bg, rgba(255, 255, 255, 0.9));
+  color: var(--fishmark-control-fg, #31353d);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.find-replace-icon-button {
+  width: 32px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.find-replace-icon-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.find-replace-text-button {
+  min-width: 64px;
+  padding: 0 10px;
+}
+
+.find-replace-icon-button:hover,
+.find-replace-text-button:hover {
+  background: var(--fishmark-control-bg-hover, rgba(255, 255, 255, 0.94));
+  color: var(--fishmark-text-primary, #171a1f);
+}
+
+.find-replace-icon-button:focus-visible,
+.find-replace-text-button:focus-visible {
+  outline: 2px solid var(--fishmark-focus-ring);
+  outline-offset: 1px;
+}
+
+.find-replace-icon-button:disabled,
+.find-replace-text-button:disabled {
+  opacity: 0.42;
+  cursor: default;
 }
 
 .shortcut-hint-overlay {

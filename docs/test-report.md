@@ -9,6 +9,13 @@
 
 ## 记录
 
+| 2026-05-11 | TASK-018 | `npm run test -- src/renderer/code-editor.test.ts` | 先失败后通过 | RED 阶段确认 `CodeEditorController` 缺少查找替换能力；修复后 1 个文件、175 项通过，覆盖全文查找、大小写不敏感匹配、替换当前、替换全部与 undo history。 |
+| 2026-05-11 | TASK-018 | `npm run test -- src/renderer/editor/WorkspaceShell.test.tsx` | 先失败后通过 | RED 阶段确认缺少查找替换面板；修复后 1 个文件、3 项通过，覆盖 rail 入口、面板输入状态、匹配计数、Next、Replace、All 与关闭清理。 |
+| 2026-05-11 | TASK-018 | `npm run typecheck` | 通过 | renderer / electron / vitest / cli 四套 TypeScript 检查通过。 |
+| 2026-05-11 | TASK-018 | `npm run lint` | 通过 | ESLint 退出码 0。 |
+| 2026-05-11 | TASK-018 | `npm test` | 通过 | Vitest 全量通过：98 个测试文件、1012 项测试。 |
+| 2026-05-11 | TASK-018 | `npm run build` | 通过 | clean、renderer、electron、cli build 全部通过；保留既有 Vite chunk size warning。 |
+| 2026-05-11 | TASK-018 | `git diff --check` | 通过 | 无 whitespace error。 |
 | 2026-05-10 | markdown-editing-experience | `npm.cmd run test:editing-experience` | 先失败后通过 | 新增 Electron/Chromium probe 真实模拟中文输入、Backspace 与鼠标拖选；RED 阶段复现引用块内容起点 Backspace 不能移除 marker、列表后纯空格行输入会继承列表缩进、列表项末尾双 Enter 退出后正文会变成上一项 lazy continuation、退出列表后的空行需要两次 Backspace 才回到列表项、表格单元格聚焦后点击下方空白画布输入会写入单元格、表格外文本被解析成新 row、以及表格下一行输入单个 `-` 会让表格退回源码态；修复后覆盖段落、标题、列表、引用块、围栏代码块、分割线源码行、表格最后一行点击与表格外输入。 |
 | 2026-05-10 | markdown-editing-experience | `npm.cmd run test:cursor-hit-geometry` | 通过 | focused 空引用块保留 raw `> ` 源码前缀，无 active hidden marker，光标可见且可命中。 |
 | 2026-05-10 | markdown-editing-experience | `npm.cmd run test -- src/renderer/code-editor.test.ts packages/editor-core/src/commands/list-edits.test.ts packages/editor-core/src/commands/markdown-commands.test.ts packages/editor-core/src/extensions/markdown.test.ts packages/editor-core/src/decorations/block-decorations.test.ts` | 通过 | 覆盖列表双 Enter 退出、退出后一次 Backspace 回到列表项、尾部空有序项、尾部空任务项、嵌套列表二次退出、列表后纯空格行输入，以及 editor-core 列表编辑、命令与 decoration 回归；5 个文件、268 项通过。 |

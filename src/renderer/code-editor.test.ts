@@ -186,6 +186,54 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("finds and replaces matches while preserving undo history", () => {
+    const host = document.createElement("div");
+    const changes: string[] = [];
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "alpha beta\nBeta alpha\n",
+      onChange: (content) => changes.push(content)
+    });
+    const view = getEditorView(host);
+
+    const firstSnapshot = controller.updateFindReplaceQuery({
+      search: "beta",
+      replace: "gamma"
+    });
+
+    expect(firstSnapshot).toEqual({
+      matchCount: 2,
+      currentMatchIndex: 1
+    });
+    expect(controller.getSelection()).toEqual({
+      anchor: "alpha ".length,
+      head: "alpha beta".length
+    });
+
+    expect(controller.findNextMatch()).toEqual({
+      matchCount: 2,
+      currentMatchIndex: 2
+    });
+
+    expect(controller.replaceCurrentMatch()).toEqual({
+      matchCount: 1,
+      currentMatchIndex: 1
+    });
+    expect(controller.getContent()).toBe("alpha beta\ngamma alpha\n");
+
+    expect(controller.replaceAllMatches()).toEqual({
+      matchCount: 0,
+      currentMatchIndex: null
+    });
+    expect(controller.getContent()).toBe("alpha gamma\ngamma alpha\n");
+
+    dispatchEditorKeydown(view, "z", { ctrlKey: true });
+    expect(controller.getContent()).toBe("alpha beta\ngamma alpha\n");
+    expect(changes.at(-1)).toBe("alpha beta\ngamma alpha\n");
+
+    controller.destroy();
+  });
+
   it("calls onBlur when the editor loses focus", () => {
     const host = document.createElement("div");
     const onBlur = vi.fn();

@@ -1,4 +1,17 @@
 import { EditorState } from "@codemirror/state";
+import {
+  closeSearchPanel,
+  findNext,
+  findPrevious,
+  getSearchQuery,
+  openSearchPanel,
+  replaceAll,
+  replaceNext,
+  search,
+  searchPanelOpen,
+  SearchQuery,
+  setSearchQuery
+} from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 
 import {
@@ -33,6 +46,12 @@ export type CreateCodeEditorControllerOptions = {
 export type CodeEditorController = {
   getContent: () => string;
   getSelection: () => { anchor: number; head: number };
+  updateFindReplaceQuery: (query: FindReplaceQueryInput) => FindReplaceSnapshot;
+  findNextMatch: () => FindReplaceSnapshot;
+  findPreviousMatch: () => FindReplaceSnapshot;
+  replaceCurrentMatch: () => FindReplaceSnapshot;
+  replaceAllMatches: () => FindReplaceSnapshot;
+  clearFindReplaceQuery: () => FindReplaceSnapshot;
   replaceDocument: (nextContent: string) => void;
   setDocumentPath: (nextDocumentPath: string | null) => void;
   focus: () => void;
@@ -56,6 +75,16 @@ export type CodeEditorController = {
   destroy: () => void;
 };
 
+export type FindReplaceQueryInput = {
+  search: string;
+  replace: string;
+};
+
+export type FindReplaceSnapshot = {
+  matchCount: number;
+  currentMatchIndex: number | null;
+};
+
 export function createCodeEditorController(
   options: CreateCodeEditorControllerOptions
 ): CodeEditorController {
@@ -74,17 +103,28 @@ export function createCodeEditorController(
   const createState = (content: string) =>
     EditorState.create({
       doc: content,
-      extensions: createFishMarkMarkdownExtensions({
-        parseMarkdownDocument,
-        onContentChange: options.onChange,
-        onActiveBlockChange: (nextState) => {
-          activeBlockState = nextState;
-          options.onActiveBlockChange?.(nextState);
-        },
-        resolveImagePreviewUrl: (href) => resolveImagePreviewUrl(currentDocumentPath, href),
-        onOpenLink: (href) => options.openExternalLink?.(href),
-        onBlur: options.onBlur
-      })
+      extensions: [
+        createFishMarkMarkdownExtensions({
+          parseMarkdownDocument,
+          onContentChange: options.onChange,
+          onActiveBlockChange: (nextState) => {
+            activeBlockState = nextState;
+            options.onActiveBlockChange?.(nextState);
+          },
+          resolveImagePreviewUrl: (href) => resolveImagePreviewUrl(currentDocumentPath, href),
+          onOpenLink: (href) => options.openExternalLink?.(href),
+          onBlur: options.onBlur
+        }),
+        search({
+          createPanel: () => {
+            const dom = document.createElement("div");
+
+            dom.hidden = true;
+            dom.setAttribute("aria-hidden", "true");
+            return { dom, top: true };
+          }
+        })
+      ]
     });
 
   const initialState = createState(options.initialContent);
@@ -135,6 +175,86 @@ export function createCodeEditorController(
 
   view.dom.addEventListener("paste", handlePaste);
 
+  const readFindReplaceSnapshot = (): FindReplaceSnapshot => {
+    const query = getSearchQuery(view.state);
+
+    if (!query.valid || query.search.length === 0) {
+      return {
+        matchCount: 0,
+        currentMatchIndex: null
+      };
+    }
+
+    let matchCount = 0;
+    let currentMatchIndex: number | null = null;
+    const selection = view.state.selection.main;
+
+    const cursor = query.getCursor(view.state);
+    let nextMatch = cursor.next();
+
+    while (!nextMatch.done) {
+      const match = nextMatch.value;
+      matchCount += 1;
+
+      if (match.from === selection.from && match.to === selection.to) {
+        currentMatchIndex = matchCount;
+      }
+
+      nextMatch = cursor.next();
+    }
+
+    return {
+      matchCount,
+      currentMatchIndex
+    };
+  };
+
+  const ensureSearchPanelOpen = () => {
+    if (!searchPanelOpen(view.state)) {
+      openSearchPanel(view);
+    }
+  };
+
+  const updateSearchQuery = (input: FindReplaceQueryInput): FindReplaceSnapshot => {
+    const trimmedSearch = input.search;
+    const query = new SearchQuery({
+      search: trimmedSearch,
+      replace: input.replace,
+      literal: true
+    });
+
+    if (trimmedSearch.length === 0) {
+      view.dispatch({
+        effects: setSearchQuery.of(query)
+      });
+      closeSearchPanel(view);
+      return readFindReplaceSnapshot();
+    }
+
+    ensureSearchPanelOpen();
+    view.dispatch({
+      effects: setSearchQuery.of(query)
+    });
+
+    let snapshot = readFindReplaceSnapshot();
+
+    if (snapshot.matchCount > 0 && snapshot.currentMatchIndex === null) {
+      findNext(view);
+      snapshot = readFindReplaceSnapshot();
+    }
+
+    return snapshot;
+  };
+
+  const selectNextMatchWhenNeeded = (snapshot: FindReplaceSnapshot): FindReplaceSnapshot => {
+    if (snapshot.matchCount === 0 || snapshot.currentMatchIndex !== null) {
+      return snapshot;
+    }
+
+    findNext(view);
+    return readFindReplaceSnapshot();
+  };
+
   const dispatchEditorKeydown = (
     key: string,
     options: Pick<KeyboardEventInit, "shiftKey"> = {}
@@ -155,6 +275,36 @@ export function createCodeEditorController(
       anchor: view.state.selection.main.anchor,
       head: view.state.selection.main.head
     }),
+    updateFindReplaceQuery: updateSearchQuery,
+    findNextMatch() {
+      findNext(view);
+      return readFindReplaceSnapshot();
+    },
+    findPreviousMatch() {
+      findPrevious(view);
+      return readFindReplaceSnapshot();
+    },
+    replaceCurrentMatch() {
+      replaceNext(view);
+      return selectNextMatchWhenNeeded(readFindReplaceSnapshot());
+    },
+    replaceAllMatches() {
+      replaceAll(view);
+      return readFindReplaceSnapshot();
+    },
+    clearFindReplaceQuery() {
+      const query = new SearchQuery({
+        search: "",
+        replace: "",
+        literal: true
+      });
+
+      view.dispatch({
+        effects: setSearchQuery.of(query)
+      });
+      closeSearchPanel(view);
+      return readFindReplaceSnapshot();
+    },
     replaceDocument(nextContent: string) {
       const nextState = createState(nextContent);
       view.setState(nextState);

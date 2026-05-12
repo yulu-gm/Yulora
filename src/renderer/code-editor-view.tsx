@@ -8,13 +8,21 @@ import {
 
 import {
   createCodeEditorController,
-  type CodeEditorController
+  type CodeEditorController,
+  type FindReplaceQueryInput,
+  type FindReplaceSnapshot
 } from "./code-editor";
 import type { ActiveBlockState } from "@fishmark/editor-core";
 
 export type CodeEditorHandle = {
   getContent: () => string;
   getSelection: () => { anchor: number; head: number };
+  updateFindReplaceQuery: (query: FindReplaceQueryInput) => FindReplaceSnapshot;
+  findNextMatch: () => FindReplaceSnapshot;
+  findPreviousMatch: () => FindReplaceSnapshot;
+  replaceCurrentMatch: () => FindReplaceSnapshot;
+  replaceAllMatches: () => FindReplaceSnapshot;
+  clearFindReplaceQuery: () => FindReplaceSnapshot;
   setContent: (content: string) => void;
   setDocumentPath: (documentPath: string | null) => void;
   focus: () => void;
@@ -123,6 +131,36 @@ export const CodeEditorView = forwardRef<CodeEditorHandle, CodeEditorViewProps>(
           controllerRef.current?.getSelection() ?? {
             anchor: 0,
             head: 0
+          },
+        updateFindReplaceQuery: (query: FindReplaceQueryInput) =>
+          controllerRef.current?.updateFindReplaceQuery(query) ?? {
+            matchCount: 0,
+            currentMatchIndex: null
+          },
+        findNextMatch: () =>
+          controllerRef.current?.findNextMatch() ?? {
+            matchCount: 0,
+            currentMatchIndex: null
+          },
+        findPreviousMatch: () =>
+          controllerRef.current?.findPreviousMatch() ?? {
+            matchCount: 0,
+            currentMatchIndex: null
+          },
+        replaceCurrentMatch: () =>
+          controllerRef.current?.replaceCurrentMatch() ?? {
+            matchCount: 0,
+            currentMatchIndex: null
+          },
+        replaceAllMatches: () =>
+          controllerRef.current?.replaceAllMatches() ?? {
+            matchCount: 0,
+            currentMatchIndex: null
+          },
+        clearFindReplaceQuery: () =>
+          controllerRef.current?.clearFindReplaceQuery() ?? {
+            matchCount: 0,
+            currentMatchIndex: null
           },
         setContent: (content: string) => {
           controllerRef.current?.replaceDocument(content);

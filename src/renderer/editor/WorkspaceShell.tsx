@@ -1,8 +1,11 @@
 import {
   Suspense,
   lazy,
+  useState,
+  type ChangeEvent,
   type CSSProperties,
   type DragEvent,
+  type KeyboardEvent,
   type MouseEvent,
   type ReactElement,
   type RefObject,
@@ -38,6 +41,10 @@ type ShellMode = "reading" | "editing";
 type AppNotificationBannerState = "hidden" | "open" | "closing";
 type TableToolTone = "default" | "danger";
 type TableToolIconComponent = (props: SVGProps<SVGSVGElement>) => ReactElement;
+type FindReplaceSnapshot = {
+  matchCount: number;
+  currentMatchIndex: number | null;
+};
 type TableToolAction = {
   id: string;
   label: string;
@@ -101,6 +108,15 @@ function DeleteTableIcon(props: SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
       <path d="M5 5h14M5 5v14M19 5v14M9.5 5v14M14.5 5v14M5 9.5h14M5 14.5h14" />
       <path d="M7 7l10 10M17 7L7 17" />
+    </svg>
+  );
+}
+
+function SearchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" {...props}>
+      <path d="M10.7 5.2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z" />
+      <path d="M15 15l4 4" />
     </svg>
   );
 }
@@ -354,6 +370,14 @@ export function WorkspaceShell({
   const activeDocument = workspaceSnapshot?.activeDocument ?? null;
   const workspaceTabs = workspaceSnapshot?.tabs ?? [];
   const activeTabId = workspaceSnapshot?.activeTabId ?? null;
+  const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
+  const [findReplaceTabId, setFindReplaceTabId] = useState<string | null>(null);
+  const [findText, setFindText] = useState("");
+  const [replaceText, setReplaceText] = useState("");
+  const [findReplaceSnapshot, setFindReplaceSnapshot] = useState<FindReplaceSnapshot>({
+    matchCount: 0,
+    currentMatchIndex: null
+  });
   const tableToolActions = createTableToolActions({
     onDeleteTable,
     onDeleteTableColumn,
@@ -363,6 +387,116 @@ export function WorkspaceShell({
     onInsertTableRowAbove,
     onInsertTableRowBelow
   });
+  const isFindReplaceEnabled = isDocumentOpen && activeDocument !== null;
+  const isFindReplaceStateCurrent = findReplaceTabId === activeTabId;
+  const isFindReplacePanelOpen = isFindReplaceOpen && isFindReplaceStateCurrent;
+  const activeFindText = isFindReplaceStateCurrent ? findText : "";
+  const activeReplaceText = isFindReplaceStateCurrent ? replaceText : "";
+  const activeFindReplaceSnapshot = isFindReplaceStateCurrent
+    ? findReplaceSnapshot
+    : {
+        matchCount: 0,
+        currentMatchIndex: null
+      };
+
+  const openFindReplacePanel = () => {
+    if (!isFindReplaceEnabled) {
+      return;
+    }
+
+    const nextFindText = isFindReplaceStateCurrent ? findText : "";
+    const nextReplaceText = isFindReplaceStateCurrent ? replaceText : "";
+
+    setFindReplaceTabId(activeTabId);
+    setFindText(nextFindText);
+    setReplaceText(nextReplaceText);
+    setIsFindReplaceOpen(true);
+    setFindReplaceSnapshot(
+      editorRef.current?.updateFindReplaceQuery({
+        search: nextFindText,
+        replace: nextReplaceText
+      }) ?? {
+        matchCount: 0,
+        currentMatchIndex: null
+      }
+    );
+  };
+
+  const closeFindReplacePanel = () => {
+    setIsFindReplaceOpen(false);
+    setFindReplaceTabId(null);
+    setFindText("");
+    setReplaceText("");
+    setFindReplaceSnapshot(
+      editorRef.current?.clearFindReplaceQuery() ?? {
+        matchCount: 0,
+        currentMatchIndex: null
+      }
+    );
+    editorRef.current?.focus();
+  };
+
+  const handleFindTextChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFindText = event.currentTarget.value;
+
+    setFindText(nextFindText);
+    setFindReplaceSnapshot(
+      editorRef.current?.updateFindReplaceQuery({
+        search: nextFindText,
+        replace: activeReplaceText
+      }) ?? {
+        matchCount: 0,
+        currentMatchIndex: null
+      }
+    );
+  };
+
+  const handleReplaceTextChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextReplaceText = event.currentTarget.value;
+
+    setReplaceText(nextReplaceText);
+    setFindReplaceSnapshot(
+      editorRef.current?.updateFindReplaceQuery({
+        search: activeFindText,
+        replace: nextReplaceText
+      }) ?? {
+        matchCount: 0,
+        currentMatchIndex: null
+      }
+    );
+  };
+
+  const handleFindReplaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeFindReplacePanel();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setFindReplaceSnapshot(
+        event.shiftKey
+          ? editorRef.current?.findPreviousMatch() ?? activeFindReplaceSnapshot
+          : editorRef.current?.findNextMatch() ?? activeFindReplaceSnapshot
+      );
+    }
+  };
+
+  const handleWorkspaceKeyDownCapture = (event: KeyboardEvent<HTMLElement>) => {
+    if (!isFindReplaceEnabled || event.key.toLowerCase() !== "f" || (!event.metaKey && !event.ctrlKey)) {
+      return;
+    }
+
+    event.preventDefault();
+    openFindReplacePanel();
+  };
+
+  const matchStatusLabel = activeFindText.length === 0
+    ? "No query"
+    : activeFindReplaceSnapshot.matchCount === 0
+      ? "No matches"
+      : `${activeFindReplaceSnapshot.currentMatchIndex ?? 0} / ${activeFindReplaceSnapshot.matchCount}`;
 
   return (
     <main
@@ -420,6 +554,17 @@ export function WorkspaceShell({
               data-state={activeShortcutGroup.id === "default-text" ? "open" : "closing"}
               aria-hidden={activeShortcutGroup.id !== "default-text"}
             >
+              <button
+                type="button"
+                className="rail-tool-button"
+                data-fishmark-command="find-replace"
+                aria-label="Find and replace"
+                title="Find and replace"
+                disabled={!isFindReplaceEnabled}
+                onClick={openFindReplacePanel}
+              >
+                <SearchIcon className="rail-tool-button-icon" />
+              </button>
               <div
                 className="app-rail-spacer"
                 aria-hidden="true"
@@ -506,6 +651,7 @@ export function WorkspaceShell({
           data-fishmark-shell-mode={shellMode}
           data-fishmark-has-document={isDocumentOpen ? "true" : "false"}
           onMouseDownCapture={onAppWorkspaceMouseDownCapture}
+          onKeyDownCapture={handleWorkspaceKeyDownCapture}
         >
           {notification && notificationState !== "hidden" ? (
             <div
@@ -678,6 +824,112 @@ export function WorkspaceShell({
                     className="document-canvas"
                     ref={editorContainerRef}
                   >
+                    {isFindReplacePanelOpen ? (
+                      <section
+                        className="find-replace-panel"
+                        data-fishmark-region="find-replace-panel"
+                        aria-label="Find and replace"
+                        onKeyDown={handleFindReplaceKeyDown}
+                      >
+                        <div className="find-replace-row">
+                          <label className="find-replace-field">
+                            <span>Find</span>
+                            <input
+                              type="search"
+                              className="find-replace-input"
+                              aria-label="Find text"
+                              value={activeFindText}
+                              onChange={handleFindTextChange}
+                            />
+                          </label>
+                          <p
+                            className="find-replace-status"
+                            data-fishmark-region="find-replace-status"
+                            aria-live="polite"
+                          >
+                            {matchStatusLabel}
+                          </p>
+                          <button
+                            type="button"
+                            className="find-replace-icon-button"
+                            aria-label="Previous match"
+                            disabled={activeFindReplaceSnapshot.matchCount === 0}
+                            onClick={() =>
+                              setFindReplaceSnapshot(
+                                editorRef.current?.findPreviousMatch() ?? activeFindReplaceSnapshot
+                              )
+                            }
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              <path d="M6 14l6-6 6 6" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="find-replace-icon-button"
+                            aria-label="Next match"
+                            disabled={activeFindReplaceSnapshot.matchCount === 0}
+                            onClick={() =>
+                              setFindReplaceSnapshot(
+                                editorRef.current?.findNextMatch() ?? activeFindReplaceSnapshot
+                              )
+                            }
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              <path d="M6 10l6 6 6-6" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="find-replace-icon-button"
+                            aria-label="Close find and replace"
+                            onClick={closeFindReplacePanel}
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                              <path d="M7 7l10 10M17 7L7 17" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="find-replace-row">
+                          <label className="find-replace-field">
+                            <span>Replace</span>
+                            <input
+                              type="text"
+                              className="find-replace-input"
+                              aria-label="Replace with"
+                              value={activeReplaceText}
+                              onChange={handleReplaceTextChange}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="find-replace-text-button"
+                            aria-label="Replace current match"
+                            disabled={activeFindReplaceSnapshot.matchCount === 0}
+                            onClick={() =>
+                              setFindReplaceSnapshot(
+                                editorRef.current?.replaceCurrentMatch() ?? activeFindReplaceSnapshot
+                              )
+                            }
+                          >
+                            Replace
+                          </button>
+                          <button
+                            type="button"
+                            className="find-replace-text-button"
+                            aria-label="Replace all matches"
+                            disabled={activeFindReplaceSnapshot.matchCount === 0}
+                            onClick={() =>
+                              setFindReplaceSnapshot(
+                                editorRef.current?.replaceAllMatches() ?? activeFindReplaceSnapshot
+                              )
+                            }
+                          >
+                            All
+                          </button>
+                        </div>
+                      </section>
+                    ) : null}
                     <CodeEditorView
                       ref={editorRef}
                       initialContent={activeDocument.content}

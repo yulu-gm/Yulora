@@ -566,6 +566,26 @@
 - 光标回到链接所在 block 后，完整 Markdown 源码恢复并可继续编辑。
 - renderer 不直接获得 Node shell 能力；main 进程只允许 `http:` / `https:` / `mailto:` 外部链接协议。
 
+### TC-018-SEARCH 查找替换
+
+步骤：
+1. 打开一个包含重复词的 Markdown 文档，例如 `alpha beta` 和 `Beta alpha`。
+2. 点击左侧 rail 的查找入口，或在编辑区按 `Ctrl+F`（macOS 为 `Command+F`）。
+3. 在 `Find` 中输入 `beta`，观察匹配计数和正文高亮。
+4. 使用上一项 / 下一项按钮在匹配之间切换。
+5. 在 `Replace` 中输入 `gamma`，点击 `Replace` 替换当前匹配。
+6. 再点击 `All` 替换剩余全部匹配。
+7. 按 `Ctrl+Z`（macOS 为 `Command+Z`）撤销上一步替换。
+8. 如需自动化回归，运行 `npm run test -- src/renderer/code-editor.test.ts src/renderer/editor/WorkspaceShell.test.tsx`。
+
+预期：
+- 查找范围覆盖当前全文，大小写不敏感，匹配项在 CodeMirror 正文中高亮。
+- 面板显示当前匹配序号和总匹配数；无查询或无匹配时给出稳定状态。
+- 上一项 / 下一项只移动当前匹配，不改写 Markdown 文本。
+- `Replace` 只替换当前匹配，`All` 替换剩余全部匹配。
+- 替换操作进入 CodeMirror history，撤销 / 重做保持自然，不触发整篇 Markdown 重排。
+- 查找替换面板只通过 renderer 的 CodeMirror 控制器工作，不新增 main/preload 文件或 Node 能力暴露。
+
 ### TC-040 大纲侧栏
 
 步骤：
