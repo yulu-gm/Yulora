@@ -28,6 +28,159 @@ function isPointerWithinLeftPadding(context: PointerInteractionContext): boolean
   );
 }
 
+function createPointCaretRange(
+  document: Document,
+  clientX: number,
+  clientY: number
+): { node: Node; offset: number } | null {
+  const caretPositionFromPoint = (
+    document as Document & {
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+    }
+  ).caretPositionFromPoint;
+
+  if (typeof caretPositionFromPoint === "function") {
+    const position = caretPositionFromPoint.call(document, clientX, clientY);
+
+    if (position) {
+      return {
+        node: position.offsetNode,
+        offset: position.offset
+      };
+    }
+  }
+
+  const caretRangeFromPoint = (
+    document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    }
+  ).caretRangeFromPoint;
+
+  if (typeof caretRangeFromPoint !== "function") {
+    return null;
+  }
+
+  const range = caretRangeFromPoint.call(document, clientX, clientY);
+
+  return range
+    ? {
+        node: range.startContainer,
+        offset: range.startOffset
+      }
+    : null;
+}
+
+function readAnchorAtDomPosition(
+  context: PointerInteractionContext,
+  node: Node,
+  offset: number
+): number | null {
+  if (!context.lineElement.contains(node)) {
+    return null;
+  }
+
+  try {
+    return context.view.posAtDOM(node, offset);
+  } catch {
+    return null;
+  }
+}
+
+function isAnchorInsideContextLine(context: PointerInteractionContext, anchor: number): boolean {
+  return anchor >= context.lineStart && anchor <= context.lineEnd;
+}
+
+function normalizePointerLineAnchor(context: PointerInteractionContext, anchor: number): number {
+  return Math.max(context.lineStart, Math.min(anchor, context.lineEnd));
+}
+
+function resolveDomCaretPointerAnchor(context: PointerInteractionContext): number | null {
+  const caret = createPointCaretRange(
+    context.lineElement.ownerDocument,
+    context.event.clientX,
+    context.event.clientY
+  );
+
+  if (!caret) {
+    return null;
+  }
+
+  const anchor = readAnchorAtDomPosition(context, caret.node, caret.offset);
+
+  return anchor !== null && isAnchorInsideContextLine(context, anchor)
+    ? normalizePointerLineAnchor(context, anchor)
+    : null;
+}
+
+function isVerticallyNear(rect: DOMRect, clientY: number): boolean {
+  return clientY >= rect.top - 2 && clientY <= rect.bottom + 2;
+}
+
+function resolveTextRectPointerAnchor(context: PointerInteractionContext): number | null {
+  const ownerDocument = context.lineElement.ownerDocument;
+  const walker = ownerDocument.createTreeWalker(context.lineElement, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  let nearestAnchorBeforePoint: number | null = null;
+
+  while (node) {
+    const textNode = node as Text;
+    const text = textNode.nodeValue ?? "";
+
+    for (let offset = 0; offset < text.length; offset += 1) {
+      const range = ownerDocument.createRange();
+      range.setStart(textNode, offset);
+      range.setEnd(textNode, offset + 1);
+
+      const rects = Array.from(range.getClientRects()).filter(
+        (rect) => rect.width > 0 && rect.height > 0 && isVerticallyNear(rect, context.event.clientY)
+      );
+
+      range.detach();
+
+      if (rects.length === 0) {
+        continue;
+      }
+
+      const anchorBefore = readAnchorAtDomPosition(context, textNode, offset);
+      const anchorAfter = readAnchorAtDomPosition(context, textNode, offset + 1);
+
+      if (
+        anchorBefore === null ||
+        anchorAfter === null ||
+        !isAnchorInsideContextLine(context, anchorBefore) ||
+        !isAnchorInsideContextLine(context, anchorAfter)
+      ) {
+        continue;
+      }
+
+      for (const rect of rects) {
+        if (context.event.clientX < rect.left) {
+          return normalizePointerLineAnchor(context, anchorBefore);
+        }
+
+        if (context.event.clientX <= rect.right) {
+          const midpoint = rect.left + rect.width / 2;
+          return normalizePointerLineAnchor(context, context.event.clientX < midpoint ? anchorBefore : anchorAfter);
+        }
+
+        nearestAnchorBeforePoint = normalizePointerLineAnchor(context, anchorAfter);
+      }
+    }
+
+    node = walker.nextNode();
+  }
+
+  if (nearestAnchorBeforePoint !== null) {
+    return nearestAnchorBeforePoint;
+  }
+
+  return null;
+}
+
+function resolveVisibleTextPointerAnchor(context: PointerInteractionContext): number | null {
+  return resolveDomCaretPointerAnchor(context) ?? resolveTextRectPointerAnchor(context);
+}
+
 function findLastListItem(block: ListBlock): ListItemBlock | null {
   const lastItem = block.items.at(-1) ?? null;
 
@@ -476,12 +629,21 @@ function resolveListPointer(context: PointerInteractionContext): number | null {
     return null;
   }
 
-  if (!context.lineElement.classList.contains("cm-inactive-list")) {
+  const isInactiveListLine = context.lineElement.classList.contains("cm-inactive-list");
+  const isInactiveContinuationLine = context.lineElement.classList.contains("cm-inactive-list-continuation");
+  const isActiveListLine = context.lineElement.classList.contains("cm-active-list");
+  const isActiveContinuationLine = context.lineElement.classList.contains("cm-active-list-continuation");
+
+  if (!isInactiveListLine && !isInactiveContinuationLine && !isActiveListLine && !isActiveContinuationLine) {
     return null;
   }
 
   const block = context.lineBlock as ListBlock;
   const item = findListItemAtLineStart(block, context.lineStart);
+
+  if (isInactiveContinuationLine || isActiveContinuationLine) {
+    return resolveVisibleTextPointerAnchor(context);
+  }
 
   if (!item) {
     return null;
@@ -495,7 +657,7 @@ function resolveListPointer(context: PointerInteractionContext): number | null {
     return item.startOffset;
   }
 
-  return null;
+  return resolveVisibleTextPointerAnchor(context);
 }
 
 function resolveBlockquotePointer(context: PointerInteractionContext): number | null {

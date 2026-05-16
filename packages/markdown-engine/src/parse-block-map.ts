@@ -125,15 +125,22 @@ function createParagraphBlock(token: Token): ParagraphBlock {
   return createBlockFromRange("paragraph", token.start.offset, token.end.offset, token.start.line, token.end.line);
 }
 
-function createListBlocks(token: Token, ordered: boolean, source: string): ListBlock[] {
+function createListBlocks(token: Token, ordered: boolean, source: string): Array<ListBlock | ParagraphBlock> {
   const base = createBaseBlock("list", token);
+  const sourceSlice = source.slice(base.startOffset, base.endOffset);
   const listScopes = parseListScopes(
-    source.slice(base.startOffset, base.endOffset),
+    sourceSlice,
     base.startOffset,
     base.startLine
   );
 
   if (listScopes === null || listScopes.length === 0 || listScopes.some((scope) => scope.ordered !== ordered)) {
+    const fallbackItems = parseFlatListItems(sourceSlice, base.startOffset, base.startLine);
+
+    if (fallbackItems.length === 0) {
+      return [createBlockFromRange("paragraph", base.startOffset, base.endOffset, base.startLine, base.endLine)];
+    }
+
     return [createFallbackListBlock(base, ordered, source)];
   }
 
@@ -267,10 +274,10 @@ function createSetextHeadingDerivedBlocks(
   token: Token,
   source: string
 ): Array<HeadingBlock | ParagraphBlock | ThematicBreakBlock | ListBlock | TableBlock> {
-  const trailingListMarkerSplit = createTrailingSingleDashListMarkerBlocks(token, source);
+  const trailingDashMarkerSplit = createTrailingDashMarkerBlocks(token, source);
 
-  if (trailingListMarkerSplit) {
-    return trailingListMarkerSplit;
+  if (trailingDashMarkerSplit) {
+    return trailingDashMarkerSplit;
   }
 
   return createDerivedTextBlocks(
@@ -281,7 +288,7 @@ function createSetextHeadingDerivedBlocks(
   );
 }
 
-function createTrailingSingleDashListMarkerBlocks(
+function createTrailingDashMarkerBlocks(
   token: Token,
   source: string
 ): Array<ParagraphBlock | ThematicBreakBlock | TableBlock | ListBlock> | null {
@@ -303,7 +310,7 @@ function createTrailingSingleDashListMarkerBlocks(
     !contentStart ||
     !contentEnd ||
     lines.slice(0, -1).some((line) => getExplicitThematicBreakMarker(line.text) !== null) ||
-    !/^[ \t]{0,3}-[ \t]*$/u.test(underlineLine.text)
+    !/^[ \t]{0,3}-(?:[ \t]+)?$/u.test(underlineLine.text)
   ) {
     return null;
   }
@@ -321,6 +328,19 @@ function createTrailingSingleDashListMarkerBlocks(
       contentEnd.lineNumber
     )
   ];
+
+  if (/^[ \t]{0,3}-$/u.test(underlineLine.text)) {
+    return [
+      ...contentBlocks,
+      createBlockFromRange(
+        "paragraph",
+        underlineLine.startOffset,
+        underlineLine.endOffset,
+        underlineLine.lineNumber,
+        underlineLine.lineNumber
+      )
+    ];
+  }
 
   return [
     ...contentBlocks,
@@ -803,7 +823,7 @@ type DraftListScope =
       items: DraftListItem[];
     };
 
-const LIST_ITEM_PATTERN = /^(\s*)([*+-]|\d+[.)])(?:[ \t]+|$)/;
+const LIST_ITEM_PATTERN = /^(\s*)(?:([*+-])([ \t]+)|(\d+[.)])([ \t]+))/;
 const TASK_MARKER_PATTERN = /^\[( |x|X)\](?=[ \t]|$)/;
 
 function parseListScopes(sourceSlice: string, baseOffset: number, baseLine: number): DraftListScope[] | null {
@@ -829,7 +849,7 @@ function parseListScopes(sourceSlice: string, baseOffset: number, baseLine: numb
     }
 
     const indent = match[1]?.length ?? 0;
-    const marker = match[2] ?? "-";
+    const marker = match[2] ?? match[4] ?? "-";
     const metadata = parseListMarker(marker);
 
     while (openItems.length > 0 && openItems.at(-1)!.indent >= indent) {
@@ -838,8 +858,9 @@ function parseListScopes(sourceSlice: string, baseOffset: number, baseLine: numb
 
     const markerStart = line.startOffset + indent;
     const markerEnd = markerStart + marker.length;
+    const padding = match[3] ?? match[5] ?? "";
     const remainder = line.text.slice(match[0].length);
-    const task = parseTaskMarker(remainder, markerEnd + (match[0].length - indent - marker.length));
+    const task = parseTaskMarker(remainder, markerEnd + padding.length);
     const item: DraftListItem = {
       startOffset: line.startOffset,
       startLine: line.lineNumber,
@@ -930,11 +951,12 @@ function parseFlatListItems(sourceSlice: string, baseOffset: number, baseLine: n
     }
 
     const indent = match[1]?.length ?? 0;
-    const marker = match[2] ?? "-";
+    const marker = match[2] ?? match[4] ?? "-";
     const markerStart = line.startOffset + indent;
     const markerEnd = markerStart + marker.length;
+    const padding = match[3] ?? match[5] ?? "";
     const remainder = line.text.slice(match[0].length);
-    const task = parseTaskMarker(remainder, markerEnd + (match[0].length - indent - marker.length));
+    const task = parseTaskMarker(remainder, markerEnd + padding.length);
 
     items.push({
       startOffset: line.startOffset,

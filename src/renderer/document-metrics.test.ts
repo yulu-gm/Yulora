@@ -18,4 +18,12 @@ describe("getDocumentMetrics", () => {
   it("does not count leading/trailing whitespace and empty lines as meaningful characters", () => {
     expect(getDocumentMetrics("\n\n  你好 世界  \n\n").meaningfulCharacterCount).toBe(4);
   });
+
+  it("does not count unordered list Markdown markers as meaningful characters", () => {
+    expect(getDocumentMetrics("- content1").meaningfulCharacterCount).toBe(8);
+  });
+
+  it("does not count task list, heading, or inline Markdown syntax markers as meaningful characters", () => {
+    expect(getDocumentMetrics("- [x] done\n# **标题**").meaningfulCharacterCount).toBe(6);
+  });
 });

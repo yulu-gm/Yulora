@@ -18,18 +18,35 @@ type SerializableRect = {
 type EmptyDocumentLayoutProbeResult = {
   deltas: {
     canvasTopFromWorkspace: number;
+    editingTextEndFromWorkspaceMinusReading: number;
+    editingTextStartFromWorkspaceMinusReading: number;
     lineTopFromWorkspace: number;
   };
   failures: string[];
   pass: boolean;
   rects: {
+    editing: ShellModeMeasurement["rects"];
+    reading: ShellModeMeasurement["rects"];
+  };
+};
+
+type ShellMode = "editing" | "reading";
+
+type ShellModeMeasurement = {
+  margins: {
+    textEndFromWorkspace: number;
+    textStartFromWorkspace: number;
+  };
+  rects: {
     canvas: SerializableRect;
+    content: SerializableRect;
     line: SerializableRect;
     workspace: SerializableRect;
   };
 };
 
 const MAX_CANVAS_TOP_FROM_WORKSPACE = 150;
+const MAX_MODE_TEXT_MARGIN_DELTA = 2;
 const MAX_LINE_TOP_FROM_WORKSPACE = 240;
 const MIN_CANVAS_HEIGHT = 420;
 
@@ -73,18 +90,21 @@ function installLegacyWorkspaceThemeOverride(): void {
   document.head.append(style);
 }
 
-function createProbeShell(root: HTMLElement): HTMLElement {
+function createProbeShell(root: HTMLElement, shellMode: ShellMode): HTMLElement {
+  const isReadingMode = shellMode === "reading";
+  const visibility = isReadingMode ? "collapsed" : "visible";
+
   root.innerHTML = `
-    <main class="app-shell" data-fishmark-shell-mode="editing" style="--fishmark-titlebar-height: 0px;">
-      <div class="app-layout" data-fishmark-shell-mode="editing" data-fishmark-has-document="true">
-        <aside class="app-rail" data-fishmark-layout="rail" data-visibility="visible"></aside>
+    <main class="app-shell" data-fishmark-shell-mode="${shellMode}" style="--fishmark-titlebar-height: 0px;">
+      <div class="app-layout" data-fishmark-shell-mode="${shellMode}" data-fishmark-has-document="true">
+        <aside class="app-rail" data-fishmark-layout="rail" data-visibility="${visibility}"></aside>
         <div
           class="app-workspace"
           data-fishmark-layout="workspace"
-          data-fishmark-shell-mode="editing"
+          data-fishmark-shell-mode="${shellMode}"
           data-fishmark-has-document="true"
         >
-          <nav class="workspace-tab-strip" data-fishmark-region="workspace-tab-strip" data-visibility="visible">
+          <nav class="workspace-tab-strip" data-fishmark-region="workspace-tab-strip" data-visibility="${visibility}">
             <div class="workspace-tab-strip-scroll">
               <div class="workspace-tab-shell is-active" data-active="true">
                 <button type="button" class="workspace-tab" data-active="true">
@@ -96,7 +116,7 @@ function createProbeShell(root: HTMLElement): HTMLElement {
           <section
             class="workspace-canvas is-editor-open"
             data-fishmark-region="workspace-canvas"
-            data-fishmark-shell-mode="editing"
+            data-fishmark-shell-mode="${shellMode}"
             data-fishmark-has-document="true"
           >
             <div
@@ -110,7 +130,7 @@ function createProbeShell(root: HTMLElement): HTMLElement {
               </div>
             </section>
           </section>
-          <footer class="app-status-bar" data-fishmark-region="app-status-bar" data-visibility="visible">
+          <footer class="app-status-bar" data-fishmark-region="app-status-bar" data-visibility="${visibility}">
             <div data-fishmark-region="status-strip">
               <p class="save-status is-clean">All changes saved</p>
               <p class="document-word-count">字数 0</p>
@@ -129,20 +149,8 @@ function createProbeShell(root: HTMLElement): HTMLElement {
   return editorHost;
 }
 
-export async function runEmptyDocumentLayoutProbe(): Promise<EmptyDocumentLayoutProbeResult> {
-  document.body.style.margin = "0";
-  document.body.style.width = "100vw";
-  document.body.style.height = "100vh";
-  document.body.style.overflow = "hidden";
-
-  installLegacyWorkspaceThemeOverride();
-
-  const root = document.getElementById("probe-root");
-  if (!root) {
-    throw new Error("Missing probe root.");
-  }
-
-  const editorHost = createProbeShell(root);
+async function measureShellMode(root: HTMLElement, shellMode: ShellMode): Promise<ShellModeMeasurement> {
+  const editorHost = createProbeShell(root, shellMode);
   const controller = createCodeEditorController({
     parent: editorHost,
     initialContent: "",
@@ -150,8 +158,9 @@ export async function runEmptyDocumentLayoutProbe(): Promise<EmptyDocumentLayout
   });
 
   const editorRoot = editorHost.querySelector<HTMLElement>(".cm-editor");
+  const content = editorHost.querySelector<HTMLElement>(".cm-content");
   const line = editorHost.querySelector<HTMLElement>(".cm-line");
-  if (!editorRoot || !line) {
+  if (!editorRoot || !content || !line) {
     throw new Error("Missing CodeMirror empty document nodes.");
   }
 
@@ -167,10 +176,50 @@ export async function runEmptyDocumentLayoutProbe(): Promise<EmptyDocumentLayout
 
   const workspaceRect = workspace.getBoundingClientRect();
   const canvasRect = canvas.getBoundingClientRect();
+  const contentRect = content.getBoundingClientRect();
   const lineRect = line.getBoundingClientRect();
+  const contentStyle = window.getComputedStyle(content);
+  const contentPaddingStart = Number.parseFloat(contentStyle.paddingLeft);
+  const contentPaddingEnd = Number.parseFloat(contentStyle.paddingRight);
+
+  controller.destroy();
+
+  return {
+    margins: {
+      textEndFromWorkspace: workspaceRect.right - (contentRect.right - contentPaddingEnd),
+      textStartFromWorkspace: contentRect.left + contentPaddingStart - workspaceRect.left
+    },
+    rects: {
+      canvas: toSerializableRect(canvasRect),
+      content: toSerializableRect(contentRect),
+      line: toSerializableRect(lineRect),
+      workspace: toSerializableRect(workspaceRect)
+    }
+  };
+}
+
+export async function runEmptyDocumentLayoutProbe(): Promise<EmptyDocumentLayoutProbeResult> {
+  document.body.style.margin = "0";
+  document.body.style.width = "100vw";
+  document.body.style.height = "100vh";
+  document.body.style.overflow = "hidden";
+
+  installLegacyWorkspaceThemeOverride();
+
+  const root = document.getElementById("probe-root");
+  if (!root) {
+    throw new Error("Missing probe root.");
+  }
+
+  const editing = await measureShellMode(root, "editing");
+  const reading = await measureShellMode(root, "reading");
   const deltas = {
-    canvasTopFromWorkspace: canvasRect.top - workspaceRect.top,
-    lineTopFromWorkspace: lineRect.top - workspaceRect.top
+    canvasTopFromWorkspace: editing.rects.canvas.top - editing.rects.workspace.top,
+    editingTextEndFromWorkspaceMinusReading:
+      editing.margins.textEndFromWorkspace - reading.margins.textEndFromWorkspace,
+    editingTextStartFromWorkspaceMinusReading:
+      editing.margins.textStartFromWorkspace - reading.margins.textStartFromWorkspace,
+    lineTopFromWorkspace: editing.rects.line.top - editing.rects.workspace.top
   };
   const failures: string[] = [];
 
@@ -186,20 +235,33 @@ export async function runEmptyDocumentLayoutProbe(): Promise<EmptyDocumentLayout
     );
   }
 
-  if (canvasRect.height < MIN_CANVAS_HEIGHT) {
-    failures.push(`workspace canvas is too short: ${canvasRect.height.toFixed(2)}px`);
+  if (Math.abs(deltas.editingTextStartFromWorkspaceMinusReading) > MAX_MODE_TEXT_MARGIN_DELTA) {
+    failures.push(
+      `editing text start margin differs from reading by ${deltas.editingTextStartFromWorkspaceMinusReading.toFixed(
+        2
+      )}px`
+    );
   }
 
-  controller.destroy();
+  if (Math.abs(deltas.editingTextEndFromWorkspaceMinusReading) > MAX_MODE_TEXT_MARGIN_DELTA) {
+    failures.push(
+      `editing text end margin differs from reading by ${deltas.editingTextEndFromWorkspaceMinusReading.toFixed(
+        2
+      )}px`
+    );
+  }
+
+  if (editing.rects.canvas.height < MIN_CANVAS_HEIGHT) {
+    failures.push(`workspace canvas is too short: ${editing.rects.canvas.height.toFixed(2)}px`);
+  }
 
   return {
     deltas,
     failures,
     pass: failures.length === 0,
     rects: {
-      canvas: toSerializableRect(canvasRect),
-      line: toSerializableRect(lineRect),
-      workspace: toSerializableRect(workspaceRect)
+      editing: editing.rects,
+      reading: reading.rects
     }
   };
 }

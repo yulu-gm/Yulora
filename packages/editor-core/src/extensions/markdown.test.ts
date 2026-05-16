@@ -7,6 +7,11 @@ import { describe, expect, it, vi } from "vitest";
 import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createFishMarkMarkdownExtensions } from "./markdown";
+import { clearCodeHighlightCache } from "../decorations/code-highlight-cache";
+import {
+  clearCodeHighlightLanguageLoaderState,
+  waitForPendingCodeHighlightLanguageLoads
+} from "../decorations/code-highlight-language-loader";
 import {
   TABLE_EDITING_SHORTCUT_GROUP,
   TEXT_EDITING_SHORTCUTS
@@ -28,8 +33,11 @@ type HarnessOptions = {
   source: string;
   onContentChange?: (doc: string) => void;
   onActiveBlockChange?: (blockType: string | null, anchor: number) => void;
+  onBlockDecorationsBuilt?: () => void;
   onOpenLink?: (href: string) => void;
   onBlur?: () => void;
+  parseMarkdownDocument?: typeof parseMarkdownDocument;
+  parseOrderedListNormalizationBlockMap?: typeof parseMarkdownDocument;
 };
 
 const createHarness = (options: HarnessOptions) => {
@@ -40,14 +48,17 @@ const createHarness = (options: HarnessOptions) => {
     state: EditorState.create({
       doc: options.source,
       extensions: createFishMarkMarkdownExtensions({
-        parseMarkdownDocument,
+        parseMarkdownDocument: options.parseMarkdownDocument ?? parseMarkdownDocument,
+        parseOrderedListNormalizationBlockMap: options.parseOrderedListNormalizationBlockMap,
         onContentChange: options.onContentChange ?? vi.fn(),
         onActiveBlockChange: (state) => {
           options.onActiveBlockChange?.(state.activeBlock?.type ?? null, state.selection.anchor);
         },
+        onBlockDecorationsBuilt: options.onBlockDecorationsBuilt,
         onOpenLink: options.onOpenLink,
         onBlur: options.onBlur
       } as Parameters<typeof createFishMarkMarkdownExtensions>[0] & {
+        onBlockDecorationsBuilt?: () => void;
         onOpenLink?: (href: string) => void;
       })
     }),
@@ -110,6 +121,142 @@ describe("createFishMarkMarkdownExtensions", () => {
     destroy();
   });
 
+  it("uses at most one Markdown document parse for a single document change", () => {
+    const source = "# Title\n\nParagraph";
+    const parseSpy = vi.fn(parseMarkdownDocument);
+    const { view, destroy } = createHarness({
+      source,
+      parseMarkdownDocument: parseSpy
+    });
+
+    parseSpy.mockClear();
+
+    view.dispatch({
+      changes: {
+        from: view.state.doc.length,
+        insert: " updated"
+      }
+    });
+
+    expect(parseSpy).toHaveBeenCalledTimes(1);
+
+    destroy();
+  });
+
+  it("does not parse the Markdown document again for selection-only updates", () => {
+    const source = "# Title\n\nParagraph";
+    const parseSpy = vi.fn(parseMarkdownDocument);
+    const { view, destroy } = createHarness({
+      source,
+      parseMarkdownDocument: parseSpy
+    });
+
+    parseSpy.mockClear();
+
+    view.dispatch({
+      selection: {
+        anchor: source.indexOf("Paragraph")
+      }
+    });
+
+    expect(parseSpy).not.toHaveBeenCalled();
+
+    destroy();
+  });
+
+  it("does not parse ordered-list normalization block maps for non-list document changes", () => {
+    const source = "Paragraph";
+    const parseOrderedListNormalizationBlockMap = vi.fn(parseMarkdownDocument);
+    const { view, destroy } = createHarness({
+      source,
+      parseOrderedListNormalizationBlockMap
+    });
+
+    view.dispatch({
+      changes: {
+        from: source.length,
+        insert: " updated"
+      }
+    });
+
+    expect(parseOrderedListNormalizationBlockMap).not.toHaveBeenCalled();
+
+    destroy();
+  });
+
+  it("updates active block presentation without rebuilding all decorations on selection-only block changes", async () => {
+    const source = "# Title\n\nParagraph";
+    const onBlockDecorationsBuilt = vi.fn();
+    const { host, view, destroy } = createHarness({
+      source,
+      onBlockDecorationsBuilt
+    });
+    view.dom.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    expect(host.querySelector(".cm-inactive-heading-marker")).toBeNull();
+
+    onBlockDecorationsBuilt.mockClear();
+
+    view.dispatch({
+      selection: {
+        anchor: source.indexOf("Paragraph")
+      }
+    });
+
+    expect(host.querySelector(".cm-inactive-heading-marker")).toBeInstanceOf(HTMLElement);
+    expect(host.querySelector(".cm-active-paragraph")).toBeInstanceOf(HTMLElement);
+    expect(onBlockDecorationsBuilt).not.toHaveBeenCalled();
+
+    destroy();
+  });
+
+  it("updates active list line presentation without rebuilding all decorations on selection-only line changes", async () => {
+    const source = ["- first", "  continued", "- second"].join("\n");
+    const onBlockDecorationsBuilt = vi.fn();
+    const { host, view, destroy } = createHarness({
+      source,
+      onBlockDecorationsBuilt
+    });
+    view.dom.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    await flushMicrotasks();
+
+    onBlockDecorationsBuilt.mockClear();
+
+    view.dispatch({
+      selection: {
+        anchor: source.indexOf("continued")
+      }
+    });
+
+    const activeContinuation = Array.from(host.querySelectorAll<HTMLElement>(".cm-active-list-source-prefix"))
+      .some((element) => element.textContent === "  ");
+
+    expect(activeContinuation).toBe(true);
+    expect(onBlockDecorationsBuilt).not.toHaveBeenCalled();
+
+    destroy();
+  });
+
+  it("refreshes decorations after a lazy code fence parser chunk loads", async () => {
+    clearCodeHighlightCache();
+    clearCodeHighlightLanguageLoaderState();
+    const source = ["```js", "const answer = 42;", "```"].join("\n");
+    const onBlockDecorationsBuilt = vi.fn();
+    const { destroy } = createHarness({
+      source,
+      onBlockDecorationsBuilt
+    });
+    const initialBuildCount = onBlockDecorationsBuilt.mock.calls.length;
+
+    await waitForPendingCodeHighlightLanguageLoads();
+    await flushMicrotasks();
+
+    expect(onBlockDecorationsBuilt.mock.calls.length).toBeGreaterThan(initialBuildCount);
+
+    destroy();
+  });
+
   it("defers derived-state recompute until compositionend", () => {
     const activeBlocks: Array<{ blockType: string | null; anchor: number }> = [];
     const source = "Paragraph";
@@ -141,6 +288,297 @@ describe("createFishMarkMarkdownExtensions", () => {
       { blockType: "paragraph", anchor: 0 },
       { blockType: "paragraph", anchor: source.length + 1 }
     ]);
+
+    destroy();
+  });
+
+  it("keeps direct Chinese insert after a bare dash as paragraph text", () => {
+    const source = "-";
+    const { view, destroy } = createHarness({ source });
+
+    view.dispatch({
+      selection: {
+        anchor: source.length,
+        head: source.length
+      }
+    });
+
+    view.dispatch({
+      changes: {
+        from: source.length,
+        insert: "中"
+      },
+      selection: {
+        anchor: source.length + 1,
+        head: source.length + 1
+      }
+    });
+
+    expect(view.state.doc.toString()).toBe("-中");
+    expect(view.state.selection.main.anchor).toBe("-中".length);
+    expect(view.state.selection.main.head).toBe("-中".length);
+
+    destroy();
+  });
+
+  it("keeps direct Chinese insert after a bare ordered marker as paragraph text", () => {
+    const source = "1.";
+    const { view, destroy } = createHarness({ source });
+
+    view.dispatch({
+      selection: {
+        anchor: source.length,
+        head: source.length
+      }
+    });
+
+    view.dispatch({
+      changes: {
+        from: source.length,
+        insert: "中"
+      },
+      selection: {
+        anchor: source.length + 1,
+        head: source.length + 1
+      }
+    });
+
+    expect(view.state.doc.toString()).toBe("1.中");
+    expect(view.state.selection.main.anchor).toBe("1.中".length);
+    expect(view.state.selection.main.head).toBe("1.中".length);
+
+    destroy();
+  });
+
+  it("deletes a committed unordered marker in one Backspace at the content start", () => {
+    const source = "- content";
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("content");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe("content");
+    expect(view.state.selection.main.anchor).toBe(0);
+    expect(view.state.selection.main.head).toBe(0);
+
+    destroy();
+  });
+
+  it("deletes a committed ordered marker in one Backspace at the content start", () => {
+    const source = "1. content";
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("content");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe("content");
+    expect(view.state.selection.main.anchor).toBe(0);
+    expect(view.state.selection.main.head).toBe(0);
+
+    destroy();
+  });
+
+  it("deletes a committed task marker in one Backspace at the content start", () => {
+    const source = "- [ ] content";
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("content");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe("content");
+    expect(view.state.selection.main.anchor).toBe(0);
+    expect(view.state.selection.main.head).toBe(0);
+
+    destroy();
+  });
+
+  it("deletes a committed empty task marker in one Backspace", () => {
+    const source = "- [ ] ";
+    const { view, destroy } = createHarness({ source });
+
+    view.dispatch({
+      selection: {
+        anchor: source.length,
+        head: source.length
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe("");
+    expect(view.state.selection.main.anchor).toBe(0);
+    expect(view.state.selection.main.head).toBe(0);
+
+    destroy();
+  });
+
+  it("deletes a committed empty checked task marker in one Backspace", () => {
+    const source = "- [x] ";
+    const { view, destroy } = createHarness({ source });
+
+    view.dispatch({
+      selection: {
+        anchor: source.length,
+        head: source.length
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe("");
+    expect(view.state.selection.main.anchor).toBe(0);
+    expect(view.state.selection.main.head).toBe(0);
+
+    destroy();
+  });
+
+  it("deletes a middle unordered marker without exposing raw marker source", () => {
+    const source = ["- first", "- second"].join("\n");
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("second");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe(["- first", "second"].join("\n"));
+    expect(view.state.doc.toString()).not.toContain("-second");
+    expect(view.state.selection.main.anchor).toBe(["- first", ""].join("\n").length);
+    expect(view.state.selection.main.head).toBe(["- first", ""].join("\n").length);
+
+    destroy();
+  });
+
+  it("deletes a middle ordered marker without exposing raw marker source", () => {
+    const source = ["1. first", "2. second", "3. third"].join("\n");
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("second");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe(["1. first", "second", "3. third"].join("\n"));
+    expect(view.state.doc.toString()).not.toContain("2.second");
+    expect(view.state.selection.main.anchor).toBe(["1. first", ""].join("\n").length);
+    expect(view.state.selection.main.head).toBe(["1. first", ""].join("\n").length);
+
+    destroy();
+  });
+
+  it("deletes a middle task marker without exposing raw marker source", () => {
+    const source = ["- [ ] first", "- [x] second", "- [ ] third"].join("\n");
+    const { view, destroy } = createHarness({ source });
+    const contentStart = source.indexOf("second");
+
+    view.dispatch({
+      selection: {
+        anchor: contentStart,
+        head: contentStart
+      }
+    });
+
+    const handled = view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+        cancelable: true
+      })
+    );
+
+    expect(handled).toBe(false);
+    expect(view.state.doc.toString()).toBe(["- [ ] first", "second", "- [ ] third"].join("\n"));
+    expect(view.state.doc.toString()).not.toContain("- [x]second");
+    expect(view.state.selection.main.anchor).toBe(["- [ ] first", ""].join("\n").length);
+    expect(view.state.selection.main.head).toBe(["- [ ] first", ""].join("\n").length);
 
     destroy();
   });

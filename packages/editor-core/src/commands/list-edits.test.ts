@@ -1,5 +1,5 @@
 import { EditorState, type Text } from "@codemirror/state";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
@@ -7,7 +7,8 @@ import { createActiveBlockStateFromMarkdownDocument } from "../active-block";
 import type { SemanticContext } from "./semantic-context";
 import { readSemanticContext } from "./semantic-context";
 import {
-  computeBackspaceOrderedListMarker,
+  computeBackspaceEmptyListMarker,
+  computeBackspaceListMarker,
   computeNormalizedOrderedListDocument,
   computeDeleteOrderedListRange,
   computeIndentListItem,
@@ -265,6 +266,69 @@ describe("list-edits", () => {
     expect(result?.selection).toEqual({ anchor: 3, head: 3 });
   });
 
+  it("does not parse the document for ordered-list normalization when a single change is outside list text", () => {
+    const doc = ["Paragraph updated", "", "1. one", "3. two"].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [{
+        from: "Paragraph".length,
+        to: "Paragraph updated".length
+      }]
+    });
+
+    expect(result).toBeNull();
+    expect(parseBlockMap).not.toHaveBeenCalled();
+  });
+
+  it("does not parse ordered-list normalization when appending ordinary text after a blank line", () => {
+    const doc = ["1. one", "2. two", "", "Performance probe insertion."].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [{
+        from: ["1. one", "2. two", ""].join("\n").length,
+        to: doc.length
+      }]
+    });
+
+    expect(result).toBeNull();
+    expect(parseBlockMap).not.toHaveBeenCalled();
+  });
+
+  it("normalizes only the changed ordered-list root for a single list edit", () => {
+    const doc = ["1. stale", "3. stale", "", "5. current", "9. next"].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [{
+        from: doc.indexOf("current"),
+        to: doc.indexOf("current") + "current".length
+      }]
+    });
+
+    expect(result?.source).toBe(["1. stale", "3. stale", "", "5. current", "6. next"].join("\n"));
+    expect(parseBlockMap).toHaveBeenCalledTimes(1);
+    expect(parseBlockMap.mock.calls[0]?.[0]).toBe(["5. current", "9. next"].join("\n"));
+  });
+
+  it("falls back to document normalization for multi-range edits", () => {
+    const doc = ["1. stale", "3. stale", "", "5. current", "9. next"].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [
+        { from: doc.indexOf("stale"), to: doc.indexOf("stale") + "stale".length },
+        { from: doc.indexOf("current"), to: doc.indexOf("current") + "current".length }
+      ]
+    });
+
+    expect(result?.source).toBe(["1. stale", "2. stale", "", "5. current", "6. next"].join("\n"));
+    expect(parseBlockMap).toHaveBeenCalledWith(doc);
+  });
+
   it("normalizes blank-line-separated ordered runs independently", () => {
     const doc = ["1. one", "9. two", "", "3. three", "9. four"].join("\n");
 
@@ -287,6 +351,38 @@ describe("list-edits", () => {
     expect(computeNormalizedOrderedListDocument(doc)).toMatchObject({
       source: ["1. one", "2. two", "3. four", "4", "1. six", "2. seven"].join("\n")
     });
+  });
+
+  it("keeps lazy-continuation root list semantics for single-range ordered-list edits", () => {
+    const doc = ["1. one", "2. two", "3. four", "4", "5. six", "6. seven"].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [{
+        from: doc.indexOf("six"),
+        to: doc.indexOf("six") + "six".length
+      }]
+    });
+
+    expect(result?.source).toBe(["1. one", "2. two", "3. four", "4", "1. six", "2. seven"].join("\n"));
+    expect(parseBlockMap).toHaveBeenCalledTimes(1);
+    expect(parseBlockMap.mock.calls[0]?.[0]).toBe(doc);
+  });
+
+  it("keeps lazy-continuation root list semantics when editing the plain-text tail line", () => {
+    const doc = ["1. one", "2. two", "3. four", "4", "5. six", "6. seven"].join("\n");
+    const parseBlockMap = vi.fn(parseMarkdownDocument);
+    const result = computeNormalizedOrderedListDocument(doc, {
+      parseBlockMap,
+      changedRanges: [{
+        from: doc.indexOf("4"),
+        to: doc.indexOf("4") + 1
+      }]
+    });
+
+    expect(result?.source).toBe(["1. one", "2. two", "3. four", "4", "1. six", "2. seven"].join("\n"));
+    expect(parseBlockMap).toHaveBeenCalledTimes(1);
+    expect(parseBlockMap.mock.calls[0]?.[0]).toBe(doc);
   });
 
   it("keeps offsets inside unchanged ordered-list content when normalizing document markers", () => {
@@ -349,29 +445,71 @@ describe("list-edits", () => {
     expect(mapTextOffsetThroughChanges(cursor, result?.changes ?? [])).toBe(cursor);
   });
 
-  it("keeps selection on the current line when backspacing the marker of an empty ordered item", () => {
-    const doc = ["1. one", "2. two", "3. four", "4.", "5. six", "6. seven"].join("\n");
-    const context = buildContext(doc, ["1. one", "2. two", "3. four", "4."].join("\n").length);
-    const result = computeBackspaceOrderedListMarker(context);
-
-    expect(applyEdit(doc, result)).toBe(["1. one", "2. two", "3. four", "4", "1. six", "2. seven"].join("\n"));
-    expect(result?.selection).toEqual({
-      anchor: ["1. one", "2. two", "3. four", "4"].join("\n").length,
-      head: ["1. one", "2. two", "3. four", "4"].join("\n").length
-    });
-  });
-
-  it("breaks ordered list rendering at the current item content start on Backspace", () => {
-    const doc = ["1. 内容", "2. 内容2", "3. 内容3"].join("\n");
-    const cursor = doc.indexOf("内容2");
-    const context = buildContext(doc, cursor);
-    const result = computeBackspaceOrderedListMarker(context);
-    const expected = ["1. 内容", "", "2.内容2", "3. 内容3"].join("\n");
+  it("removes an empty ordered list marker while preserving the blank line", () => {
+    const doc = ["1. one", "2. two", "3. four", "4. ", "5. six", "6. seven"].join("\n");
+    const context = buildContext(doc, ["1. one", "2. two", "3. four", "4. "].join("\n").length);
+    const result = computeBackspaceEmptyListMarker(context);
+    const expected = ["1. one", "2. two", "3. four", "", "5. six", "6. seven"].join("\n");
 
     expect(applyEdit(doc, result)).toBe(expected);
     expect(result?.selection).toEqual({
-      anchor: expected.indexOf("2.") + "2.".length,
-      head: expected.indexOf("2.") + "2.".length
+      anchor: ["1. one", "2. two", "3. four", ""].join("\n").length,
+      head: ["1. one", "2. two", "3. four", ""].join("\n").length
+    });
+  });
+
+  it("removes an empty unordered list marker while preserving its indentation", () => {
+    const doc = ["- parent", "  - "].join("\n");
+    const context = buildContext(doc, doc.length);
+    const result = computeBackspaceEmptyListMarker(context);
+    const expected = ["- parent", "  "].join("\n");
+
+    expect(applyEdit(doc, result)).toBe(expected);
+    expect(result?.selection).toEqual({
+      anchor: expected.length,
+      head: expected.length
+    });
+  });
+
+  it("removes an unordered list marker at the current item content start on Backspace", () => {
+    const doc = ["- 内容", "- 内容2", "- 内容3"].join("\n");
+    const cursor = doc.indexOf("内容2");
+    const context = buildContext(doc, cursor);
+    const result = computeBackspaceListMarker(context);
+    const expected = ["- 内容", "内容2", "- 内容3"].join("\n");
+
+    expect(applyEdit(doc, result)).toBe(expected);
+    expect(result?.selection).toEqual({
+      anchor: expected.indexOf("内容2"),
+      head: expected.indexOf("内容2")
+    });
+  });
+
+  it("removes an ordered list marker at the current item content start on Backspace", () => {
+    const doc = ["1. 内容", "2. 内容2", "3. 内容3"].join("\n");
+    const cursor = doc.indexOf("内容2");
+    const context = buildContext(doc, cursor);
+    const result = computeBackspaceListMarker(context);
+    const expected = ["1. 内容", "内容2", "3. 内容3"].join("\n");
+
+    expect(applyEdit(doc, result)).toBe(expected);
+    expect(result?.selection).toEqual({
+      anchor: expected.indexOf("内容2"),
+      head: expected.indexOf("内容2")
+    });
+  });
+
+  it("removes a task list marker at the current item content start on Backspace", () => {
+    const doc = ["- [ ] 内容", "- [x] 内容2", "- [ ] 内容3"].join("\n");
+    const cursor = doc.indexOf("内容2");
+    const context = buildContext(doc, cursor);
+    const result = computeBackspaceListMarker(context);
+    const expected = ["- [ ] 内容", "内容2", "- [ ] 内容3"].join("\n");
+
+    expect(applyEdit(doc, result)).toBe(expected);
+    expect(result?.selection).toEqual({
+      anchor: expected.indexOf("内容2"),
+      head: expected.indexOf("内容2")
     });
   });
 });

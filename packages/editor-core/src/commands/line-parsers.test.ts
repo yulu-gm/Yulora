@@ -10,6 +10,30 @@ import {
 } from "./line-parsers";
 
 describe("line-parsers", () => {
+  it("does not parse bare list markers until marker padding is typed", () => {
+    expect(parseListLine("-")).toBeNull();
+    expect(parseListLine("1.")).toBeNull();
+    expect(parseListLine("1)")).toBeNull();
+    expect(parseListLine("- ")).toEqual({
+      indent: "",
+      marker: "-",
+      task: null,
+      content: ""
+    });
+    expect(parseListLine("1. ")).toEqual({
+      indent: "",
+      marker: "1.",
+      task: null,
+      content: ""
+    });
+    expect(parseListLine("1) ")).toEqual({
+      indent: "",
+      marker: "1)",
+      task: null,
+      content: ""
+    });
+  });
+
   it("parses task list lines and preserves checkbox state", () => {
     expect(parseListLine("  2. [x] done")).toEqual({
       indent: "  ",

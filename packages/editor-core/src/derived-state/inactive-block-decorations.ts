@@ -1,23 +1,19 @@
-import type { MarkdownDocument } from "@fishmark/markdown-engine";
-
 import { createBlockDecorations } from "../decorations";
 import type { TableWidgetCallbacks } from "../decorations";
-import {
-  createActiveBlockStateFromMarkdownDocument,
-  type ActiveBlockSelection,
-  type ActiveBlockState
-} from "../active-block";
-import {
-  deriveTableCursorState,
-  type TableCursorState
-} from "../table-cursor-state";
+import type { ActiveBlockSelection, ActiveBlockState } from "../active-block";
+import type { TableCursorState } from "../table-cursor-state";
 import type { BlockMapCache } from "./block-map-cache";
+import {
+  createEditorDerivedState,
+  type EditorDerivedState
+} from "./editor-derived-state";
 import type { MarkdownDocumentCache } from "./markdown-document-cache";
 
 export type DeriveInactiveBlockDecorationsStateOptions = {
   source: string;
   selection: ActiveBlockSelection;
   hasEditorFocus: boolean;
+  editorDerivedState?: EditorDerivedState;
   markdownDocumentCache?: MarkdownDocumentCache;
   blockMapCache?: BlockMapCache;
   resolveImagePreviewUrl?: (href: string | null) => string | null;
@@ -34,41 +30,32 @@ export type InactiveBlockDecorationsDerivedState = {
 export function deriveInactiveBlockDecorationsState(
   options: DeriveInactiveBlockDecorationsStateOptions
 ): InactiveBlockDecorationsDerivedState {
-  if (!options.markdownDocumentCache && !options.blockMapCache) {
+  if (!options.editorDerivedState && !options.markdownDocumentCache && !options.blockMapCache) {
     throw new Error(
-      "deriveInactiveBlockDecorationsState requires markdownDocumentCache or blockMapCache"
+      "deriveInactiveBlockDecorationsState requires editorDerivedState, markdownDocumentCache, or blockMapCache"
     );
   }
 
-  const markdownDocument: MarkdownDocument = options.markdownDocumentCache
-    ? options.markdownDocumentCache.read(options.source)
-    : options.blockMapCache!.read(options.source);
-
-  const activeBlockState = createActiveBlockStateFromMarkdownDocument(
-    markdownDocument,
-    options.selection
-  );
-  const tableCursor = deriveTableCursorState(
-    options.source,
-    options.selection,
-    markdownDocument,
-    options.previousTableCursor ?? null
-  );
-  const nextActiveBlockState: ActiveBlockState = {
-    ...activeBlockState,
-    tableCursor
-  };
+  const editorDerivedState = options.editorDerivedState ?? createEditorDerivedState({
+    source: options.source,
+    selection: options.selection,
+    parseMarkdownDocument: options.markdownDocumentCache
+      ? options.markdownDocumentCache.read
+      : options.blockMapCache!.read,
+    previousTableCursor: options.previousTableCursor ?? null
+  });
 
   const { decorationSet, signature: blockSignature } = createBlockDecorations({
-    activeBlockState: nextActiveBlockState,
+    activeBlockState: editorDerivedState.activeBlockState,
     hasEditorFocus: options.hasEditorFocus,
     source: options.source,
+    referenceDefinitions: editorDerivedState.referenceDefinitions,
     resolveImagePreviewUrl: options.resolveImagePreviewUrl,
     tableWidgetCallbacks: options.tableWidgetCallbacks
   });
 
   return {
-    activeBlockState: nextActiveBlockState,
+    activeBlockState: editorDerivedState.activeBlockState,
     decorationSet,
     signature: blockSignature
   };

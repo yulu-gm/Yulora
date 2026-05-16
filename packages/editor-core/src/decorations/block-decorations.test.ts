@@ -319,6 +319,18 @@ describe("createBlockDecorations", () => {
     ]);
   });
 
+  it("keeps the focused indentation-only line visible after an empty nested list marker is removed", () => {
+    const source = ["- parent", "  - child", "    - grandchild", "    "].join("\n");
+    const indentationOnlyLineStart = source.lastIndexOf("\n") + 1;
+    const ranges = createDecorationsForSelection(
+      source,
+      { anchor: source.length, head: source.length },
+      true
+    );
+
+    expectExactRangeClasses(ranges, indentationOnlyLineStart, indentationOnlyLineStart, []);
+  });
+
   it("stacks strong and emphasis classes for triple-marker inline content", () => {
     const source = "***both***";
     const ranges = createInactiveInlineDecorations(source);
@@ -800,11 +812,13 @@ describe("createBlockDecorations", () => {
     expectExactRangeClasses(ranges, childLineStart, childLineStart + 2, [
       "cm-active-list-source-prefix"
     ]);
-    expectExactRangeClasses(ranges, childLineStart + 2, childLineStart + 3, [
-      "cm-active-list-marker"
-    ]);
+    expect(collectWidgets(source, result.decorationSet)).toContainEqual({
+      from: childLineStart + 2,
+      name: "ActiveListMarkerWidget",
+      to: childLineStart + 3
+    });
     expectExactRangeClasses(ranges, childLineStart + 3, childLineStart + 4, [
-      "cm-active-list-source-prefix"
+      "cm-active-list-padding-anchor"
     ]);
   });
 
@@ -829,6 +843,31 @@ describe("createBlockDecorations", () => {
     );
     expectExactRangeClasses(ranges, continuationStart, continuationStart + 2, [
       "cm-active-list-source-prefix"
+    ]);
+  });
+
+  it("keeps an active empty list marker as a generated marker with editable padding", () => {
+    const source = "- ";
+    const blockMap = parseMarkdownDocument(source);
+    const activeState = createActiveBlockStateFromBlockMap(blockMap, {
+      anchor: source.length,
+      head: source.length
+    });
+
+    const result = createBlockDecorations({
+      activeBlockState: activeState,
+      hasEditorFocus: true,
+      source
+    });
+    const ranges = collectDecorations(source, result.decorationSet);
+
+    expect(collectWidgets(source, result.decorationSet)).toContainEqual({
+      from: 0,
+      name: "ActiveListMarkerWidget",
+      to: 1
+    });
+    expectExactRangeClasses(ranges, 1, source.length, [
+      "cm-active-list-padding-anchor"
     ]);
   });
 

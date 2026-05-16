@@ -29,7 +29,7 @@ export type ParsedBlockquoteLine = {
   contentStartOffset: number;
 };
 
-const LIST_LINE_PATTERN = /^(\s*)([*+-]|\d+[.)])(?:[ \t]+|$)(.*)$/;
+const LIST_LINE_PATTERN = /^(\s*)(?:([*+-])([ \t]+)(.*)|(\d+[.)])([ \t]+)(.*))$/;
 const TASK_CONTENT_PATTERN = /^\[( |x|X)\](?:[ \t]+|$)(.*)$/;
 const CODE_FENCE_LINE_PATTERN = /^(\s{0,3})(`{3,}|~{3,})([^\n]*)$/;
 
@@ -40,8 +40,8 @@ export function parseListLine(text: string): ParsedListLine | null {
   }
 
   const indent = match[1] ?? "";
-  const marker = match[2] ?? "-";
-  const remainder = match[3] ?? "";
+  const marker = match[2] ?? match[5] ?? "-";
+  const remainder = match[4] ?? match[7] ?? "";
   const taskMatch = TASK_CONTENT_PATTERN.exec(remainder);
 
   if (!taskMatch) {

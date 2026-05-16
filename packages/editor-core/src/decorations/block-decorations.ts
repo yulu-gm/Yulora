@@ -36,6 +36,8 @@ export type CreateBlockDecorationsOptions = {
   activeBlockState: ActiveBlockState;
   hasEditorFocus: boolean;
   source: string;
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>;
+  collectReferenceDefinitionsWhenMissing?: boolean;
   resolveImagePreviewUrl?: (href: string | null) => string | null;
   tableWidgetCallbacks?: TableWidgetCallbacks | null;
 };
@@ -45,12 +47,145 @@ export type BlockDecorationsResult = {
   signature: string;
 };
 
+export type SelectionScopedBlockDecorationsResult = BlockDecorationsResult & {
+  didUpdateDecorations: boolean;
+};
+
+export type CreateSelectionScopedBlockDecorationsOptions = CreateBlockDecorationsOptions & {
+  baseDecorationSet: DecorationSet;
+  previousActiveBlockState: ActiveBlockState;
+};
+
+type DecoratableBlock = ActiveBlockState["blockMap"]["blocks"][number];
+
+type BlockDecorationContext = {
+  activeBlockState: ActiveBlockState;
+  activeBlockId: string | null;
+  activeTableCursor: ActiveBlockState["tableCursor"];
+  activeBlockquoteInContentEdit: boolean;
+  activeCodeFenceInContentEdit: boolean;
+  activeListLineStart: number | null;
+  activeSelectionLineStart: number | null;
+  hasEditorFocus: boolean;
+  source: string;
+  referenceDefinitions?: ReadonlyMap<string, InlineReferenceDefinition>;
+  resolveImagePreviewUrl?: (href: string | null) => string | null;
+  tableWidgetCallbacks?: TableWidgetCallbacks | null;
+};
+
 export function createBlockDecorations(
   options: CreateBlockDecorationsOptions
 ): BlockDecorationsResult {
-  const { activeBlockState, hasEditorFocus, source, resolveImagePreviewUrl, tableWidgetCallbacks } = options;
+  const context = createBlockDecorationContext(options);
+  const ranges: Range<Decoration>[] = [];
+  const signatures: string[] = [
+    createActiveDecorationSignature(context)
+  ];
+
+  appendInactiveBlankLineDecorations(
+    context.source,
+    context.activeBlockState.blockMap.blocks,
+    context.activeSelectionLineStart,
+    ranges
+  );
+
+  for (const block of context.activeBlockState.blockMap.blocks) {
+    appendDecorationsForBlock(block, context, ranges, signatures);
+  }
+
+  return {
+    decorationSet: Decoration.set(ranges, true),
+    signature: signatures.join("|")
+  };
+}
+
+export function createSelectionScopedBlockDecorations(
+  options: CreateSelectionScopedBlockDecorationsOptions
+): SelectionScopedBlockDecorationsResult {
+  if (!options.hasEditorFocus) {
+    return {
+      decorationSet: options.baseDecorationSet,
+      signature: createScopedSelectionSignature(createBlockDecorationContext(options)),
+      didUpdateDecorations: false
+    };
+  }
+
+  const context = createBlockDecorationContext({
+    ...options,
+    collectReferenceDefinitionsWhenMissing: false
+  });
+  const shouldRefreshWhitespaceOnlyActiveLine = shouldRefreshWhitespaceOnlyLineDecorations(
+    context.source,
+    options.previousActiveBlockState.selection.head,
+    options.activeBlockState.selection.head,
+    context.hasEditorFocus
+  );
+
+  if (shouldRefreshWhitespaceOnlyActiveLine) {
+    const refreshed = createBlockDecorations({
+      activeBlockState: options.activeBlockState,
+      hasEditorFocus: options.hasEditorFocus,
+      source: options.source,
+      referenceDefinitions: options.referenceDefinitions,
+      collectReferenceDefinitionsWhenMissing: false,
+      resolveImagePreviewUrl: options.resolveImagePreviewUrl,
+      tableWidgetCallbacks: options.tableWidgetCallbacks
+    });
+
+    return {
+      ...refreshed,
+      didUpdateDecorations: true
+    };
+  }
+
+  const affectedBlocks = collectSelectionAffectedBlocks(
+    options.previousActiveBlockState,
+    options.activeBlockState
+  );
+
+  if (affectedBlocks.length === 0) {
+    return {
+      decorationSet: options.baseDecorationSet,
+      signature: createScopedSelectionSignature(context),
+      didUpdateDecorations: false
+    };
+  }
+
+  let decorationSet = options.baseDecorationSet;
+
+  for (const block of affectedBlocks) {
+    const blockRanges: Range<Decoration>[] = [];
+    const span = createBlockDecorationSpan(block, context.source);
+
+    appendDecorationsForBlock(block, context, blockRanges);
+    decorationSet = decorationSet.update({
+      filterFrom: span.from,
+      filterTo: span.to,
+      filter: (from, to) => !rangeTouchesSpan(from, to, span),
+      add: blockRanges,
+      sort: true
+    });
+  }
+
+  return {
+    decorationSet,
+    signature: createScopedSelectionSignature(context),
+    didUpdateDecorations: true
+  };
+}
+
+function createBlockDecorationContext(
+  options: CreateBlockDecorationsOptions
+): BlockDecorationContext {
+  const {
+    activeBlockState,
+    hasEditorFocus,
+    source,
+    referenceDefinitions: providedReferenceDefinitions,
+    resolveImagePreviewUrl,
+    tableWidgetCallbacks
+  } = options;
   const activeBlockId = hasEditorFocus ? activeBlockState.activeBlock?.id ?? null : null;
-  const activeTableCursor = activeBlockState.tableCursor;
   const activeBlockquoteInContentEdit =
     hasEditorFocus &&
     activeBlockState.activeBlock?.type === "blockquote" &&
@@ -66,167 +201,266 @@ export function createBlockDecorations(
   const activeSelectionLineStart = hasEditorFocus
     ? resolveLineStartOffset(source, activeBlockState.selection.head)
     : null;
-  const referenceDefinitions = collectReferenceDefinitions(source);
-  const ranges: Range<Decoration>[] = [];
-  const signatures: string[] = [
-    `active:${activeBlockId ?? "none"}:blank-line:${activeSelectionLineStart ?? "none"}`
-  ];
+  const shouldCollectReferenceDefinitions = options.collectReferenceDefinitionsWhenMissing !== false;
+  const referenceDefinitions = providedReferenceDefinitions ??
+    (shouldCollectReferenceDefinitions ? collectReferenceDefinitions(source) : undefined);
 
-  appendInactiveBlankLineDecorations(
+  return {
+    activeBlockState,
+    activeBlockId,
+    activeTableCursor: activeBlockState.tableCursor,
+    activeBlockquoteInContentEdit,
+    activeCodeFenceInContentEdit,
+    activeListLineStart,
+    activeSelectionLineStart,
+    hasEditorFocus,
     source,
-    activeBlockState.blockMap.blocks,
-    ranges
-  );
+    referenceDefinitions,
+    resolveImagePreviewUrl,
+    tableWidgetCallbacks
+  };
+}
 
-  for (const block of activeBlockState.blockMap.blocks) {
-    if (block.type === "table") {
-      const cursorForBlock =
-        activeTableCursor?.mode === "inside" &&
-        activeTableCursor.tableStartOffset === block.startOffset
-          ? activeTableCursor
-          : null;
+function appendDecorationsForBlock(
+  block: DecoratableBlock,
+  context: BlockDecorationContext,
+  ranges: Range<Decoration>[],
+  signatures?: string[]
+): void {
+  if (block.type === "table") {
+    const cursorForBlock =
+      context.activeTableCursor?.mode === "inside" &&
+      context.activeTableCursor.tableStartOffset === block.startOffset
+        ? context.activeTableCursor
+        : null;
 
-      signatures.push(
+    signatures?.push(
+      cursorForBlock
+        ? `${createBlockDecorationSignature(block)}:table-cursor:${cursorForBlock.mode}:${cursorForBlock.row}:${cursorForBlock.column}`
+        : createBlockDecorationSignature(block)
+    );
+    ranges.push(
+      createTableWidgetDecoration(
+        block,
         cursorForBlock
-          ? `${createBlockDecorationSignature(block)}:table-cursor:${cursorForBlock.mode}:${cursorForBlock.row}:${cursorForBlock.column}`
-          : createBlockDecorationSignature(block)
+          ? {
+              row: cursorForBlock.row,
+              column: cursorForBlock.column,
+              tableStartOffset: cursorForBlock.tableStartOffset,
+              offsetInCell: cursorForBlock.offsetInCell
+            }
+          : null,
+        context.tableWidgetCallbacks ?? null
+      )
+    );
+    return;
+  }
+
+  if (block.id === context.activeBlockId) {
+    if (context.activeBlockquoteInContentEdit && block.type === "blockquote") {
+      signatures?.push(`${createBlockDecorationSignature(block)}:content-edit`);
+      appendBlockquoteDecorations(
+        block,
+        context.source,
+        ranges,
+        context.resolveImagePreviewUrl,
+        context.activeSelectionLineStart
       );
-      ranges.push(
-        createTableWidgetDecoration(
-          block,
-          cursorForBlock
-            ? {
-                row: cursorForBlock.row,
-                column: cursorForBlock.column,
-                tableStartOffset: cursorForBlock.tableStartOffset,
-                offsetInCell: cursorForBlock.offsetInCell
-              }
-            : null,
-          tableWidgetCallbacks ?? null
-        )
-      );
-      continue;
+      return;
     }
 
-    if (block.id === activeBlockId) {
-      if (activeBlockquoteInContentEdit && block.type === "blockquote") {
-        signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
-        appendBlockquoteDecorations(
-          block,
-          source,
-          ranges,
-          resolveImagePreviewUrl,
-          activeSelectionLineStart
-        );
-        continue;
-      }
-
-      if (activeCodeFenceInContentEdit && block.type === "codeFence") {
-        signatures.push(`${createBlockDecorationSignature(block)}:content-edit`);
-        appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info, block.kind);
-        continue;
-      }
-
-      if (block.type === "list") {
-        signatures.push(`${createBlockDecorationSignature(block)}:line-edit:${activeListLineStart ?? "none"}`);
-        appendActiveListDecorations(
-          block,
-          source,
-          activeListLineStart,
-          ranges,
-          resolveImagePreviewUrl,
-          referenceDefinitions
-        );
-        continue;
-      }
-
-      appendActiveDecorationsForBlock(block, source, ranges, resolveImagePreviewUrl);
-      continue;
-    }
-
-    signatures.push(createBlockDecorationSignature(block));
-
-    if (block.type === "htmlImage") {
-      ranges.push(createInactiveHtmlImagePreviewDecoration(block, resolveImagePreviewUrl));
-      continue;
-    }
-
-    if (block.type === "heading") {
-      const markerEnd = getInactiveHeadingMarkerEnd(block.startOffset, block.depth, source);
-      ranges.push(
-        Decoration.line({
-          attributes: {
-            class: `cm-inactive-heading cm-inactive-heading-depth-${block.depth}`
-          }
-        }).range(block.startOffset)
-      );
-      ranges.push(
-        Decoration.mark({
-          attributes: {
-            class: "cm-inactive-heading-marker"
-          }
-        }).range(block.startOffset, markerEnd)
-      );
-      ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl }));
-      continue;
-    }
-
-    if (block.type === "paragraph") {
-      ranges.push(
-        Decoration.line({
-          attributes: {
-            class: "cm-inactive-paragraph cm-inactive-paragraph-leading"
-          }
-        }).range(block.startOffset)
-      );
-      ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl }));
-      continue;
+    if (context.activeCodeFenceInContentEdit && block.type === "codeFence") {
+      signatures?.push(`${createBlockDecorationSignature(block)}:content-edit`);
+      appendCodeFenceDecorations(block.startOffset, block.endOffset, context.source, ranges, block.info, block.kind);
+      return;
     }
 
     if (block.type === "list") {
-      appendInactiveListDecorations(block, source, ranges, resolveImagePreviewUrl, referenceDefinitions);
-      continue;
+      signatures?.push(`${createBlockDecorationSignature(block)}:line-edit:${context.activeListLineStart ?? "none"}`);
+      appendActiveListDecorations(
+        block,
+        context.source,
+        context.activeListLineStart,
+        ranges,
+        context.resolveImagePreviewUrl,
+        context.referenceDefinitions
+      );
+      return;
     }
 
-    if (block.type === "blockquote") {
-      appendBlockquoteDecorations(block, source, ranges, resolveImagePreviewUrl);
+    appendActiveDecorationsForBlock(block, context.source, ranges, context.resolveImagePreviewUrl);
+    return;
+  }
 
-      continue;
-    }
+  signatures?.push(createBlockDecorationSignature(block));
 
-    if (block.type === "codeFence") {
-      appendCodeFenceDecorations(block.startOffset, block.endOffset, source, ranges, block.info, block.kind);
-      continue;
-    }
+  if (block.type === "htmlImage") {
+    ranges.push(createInactiveHtmlImagePreviewDecoration(block, context.resolveImagePreviewUrl));
+    return;
+  }
 
-    if (block.type === "definition") {
-      ranges.push(Decoration.replace({ block: true }).range(block.startOffset, block.endOffset));
-      continue;
-    }
-
+  if (block.type === "heading") {
+    const markerEnd = getInactiveHeadingMarkerEnd(block.startOffset, block.depth, context.source);
     ranges.push(
       Decoration.line({
         attributes: {
-          class: "cm-inactive-thematic-break"
+          class: `cm-inactive-heading cm-inactive-heading-depth-${block.depth}`
         }
       }).range(block.startOffset)
     );
-
-    if (block.endOffset > block.startOffset) {
-      ranges.push(
-        Decoration.mark({
-          attributes: {
-            class: "cm-inactive-thematic-break-marker"
-          }
-        }).range(block.startOffset, block.endOffset)
-      );
-    }
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-inactive-heading-marker"
+        }
+      }).range(block.startOffset, markerEnd)
+    );
+    ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl: context.resolveImagePreviewUrl }));
+    return;
   }
 
+  if (block.type === "paragraph") {
+    ranges.push(
+      Decoration.line({
+        attributes: {
+          class: "cm-inactive-paragraph cm-inactive-paragraph-leading"
+        }
+      }).range(block.startOffset)
+    );
+    ranges.push(...createInactiveInlineDecorations(block.inline, { resolveImagePreviewUrl: context.resolveImagePreviewUrl }));
+    return;
+  }
+
+  if (block.type === "list") {
+    appendInactiveListDecorations(
+      block,
+      context.source,
+      ranges,
+      context.resolveImagePreviewUrl,
+      context.referenceDefinitions
+    );
+    return;
+  }
+
+  if (block.type === "blockquote") {
+    appendBlockquoteDecorations(block, context.source, ranges, context.resolveImagePreviewUrl);
+    return;
+  }
+
+  if (block.type === "codeFence") {
+    appendCodeFenceDecorations(block.startOffset, block.endOffset, context.source, ranges, block.info, block.kind);
+    return;
+  }
+
+  if (block.type === "definition") {
+    ranges.push(Decoration.replace({ block: true }).range(block.startOffset, block.endOffset));
+    return;
+  }
+
+  ranges.push(
+    Decoration.line({
+      attributes: {
+        class: "cm-inactive-thematic-break"
+      }
+    }).range(block.startOffset)
+  );
+
+  if (block.endOffset > block.startOffset) {
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-inactive-thematic-break-marker"
+        }
+      }).range(block.startOffset, block.endOffset)
+    );
+  }
+}
+
+function collectSelectionAffectedBlocks(
+  previousActiveBlockState: ActiveBlockState,
+  nextActiveBlockState: ActiveBlockState
+): DecoratableBlock[] {
+  const blocks: DecoratableBlock[] = [];
+
+  appendUniqueBlock(blocks, previousActiveBlockState.activeBlock);
+  appendUniqueBlock(blocks, nextActiveBlockState.activeBlock);
+
+  return blocks;
+}
+
+function appendUniqueBlock(blocks: DecoratableBlock[], block: DecoratableBlock | null): void {
+  if (!block || blocks.some((entry) => entry.id === block.id)) {
+    return;
+  }
+
+  blocks.push(block);
+}
+
+function shouldRefreshWhitespaceOnlyLineDecorations(
+  source: string,
+  previousSelectionHead: number,
+  nextSelectionHead: number,
+  hasEditorFocus: boolean
+): boolean {
+  if (!hasEditorFocus) {
+    return false;
+  }
+
+  return (
+    isSelectionOnWhitespaceOnlySourceLine(source, previousSelectionHead) ||
+    isSelectionOnWhitespaceOnlySourceLine(source, nextSelectionHead)
+  );
+}
+
+function isSelectionOnWhitespaceOnlySourceLine(source: string, selectionHead: number): boolean {
+  const lineStart = resolveLineStartOffset(source, selectionHead);
+  let lineEnd = source.indexOf("\n", lineStart);
+
+  if (lineEnd < 0) {
+    lineEnd = source.length;
+  }
+
+  const trimmedLineEnd = trimTrailingCarriageReturn(source, lineStart, lineEnd);
+  const lineText = source.slice(lineStart, trimmedLineEnd);
+
+  return lineText.length > 0 && lineText.trim().length === 0;
+}
+
+function createBlockDecorationSpan(
+  block: DecoratableBlock,
+  source: string
+): { from: number; to: number } {
   return {
-    decorationSet: Decoration.set(ranges, true),
-    signature: signatures.join("|")
+    from: block.startOffset,
+    to: Math.min(source.length, Math.max(block.endOffset, block.startOffset + 1))
   };
+}
+
+function rangeTouchesSpan(
+  from: number,
+  to: number,
+  span: { from: number; to: number }
+): boolean {
+  if (from === to) {
+    return from >= span.from && from <= span.to;
+  }
+
+  return from < span.to && to > span.from;
+}
+
+function createActiveDecorationSignature(context: BlockDecorationContext): string {
+  return `active:${context.activeBlockId ?? "none"}:blank-line:${context.activeSelectionLineStart ?? "none"}`;
+}
+
+function createScopedSelectionSignature(context: BlockDecorationContext): string {
+  return [
+    "scoped-selection",
+    createActiveDecorationSignature(context),
+    context.activeBlockState.tableCursor?.mode ?? "none",
+    context.activeBlockState.tableCursor?.mode === "inside"
+      ? `${context.activeBlockState.tableCursor.tableStartOffset}:${context.activeBlockState.tableCursor.row}:${context.activeBlockState.tableCursor.column}`
+      : ""
+  ].join(":");
 }
 
 function appendCodeFenceDecorations(
@@ -708,6 +942,29 @@ class TaskMarkerWidget extends WidgetType {
   }
 }
 
+class ActiveListMarkerWidget extends WidgetType {
+  constructor(private readonly marker: string) {
+    super();
+  }
+
+  override eq(other: ActiveListMarkerWidget): boolean {
+    return other.marker === this.marker;
+  }
+
+  override toDOM(): HTMLElement {
+    const marker = document.createElement("span");
+    marker.className = "cm-active-list-marker";
+    marker.dataset.fishmarkListMarker = this.marker;
+    marker.textContent = this.marker;
+
+    return marker;
+  }
+
+  override ignoreEvent(): boolean {
+    return true;
+  }
+}
+
 function appendInactiveListItemSourcePrefixDecorations(item: ListItemBlock, ranges: Range<Decoration>[]): void {
   appendInactiveListItemHiddenPrefixDecoration(item.startOffset, item.markerStart, ranges);
 }
@@ -719,6 +976,7 @@ function appendActiveListItemSourcePrefixDecorations(
 ): void {
   const contentStartOffset = resolveListItemContentStartOffset(item, source);
   const activeMarkerEnd = item.task?.markerEnd ?? item.markerEnd;
+  const activeMarkerText = source.slice(item.markerStart, activeMarkerEnd);
 
   if (item.markerStart > item.startOffset) {
     ranges.push(
@@ -732,15 +990,21 @@ function appendActiveListItemSourcePrefixDecorations(
 
   if (activeMarkerEnd > item.markerStart) {
     ranges.push(
-      Decoration.mark({
-        attributes: {
-          class: "cm-active-list-marker"
-        }
+      Decoration.replace({
+        widget: new ActiveListMarkerWidget(activeMarkerText)
       }).range(item.markerStart, activeMarkerEnd)
     );
   }
 
-  appendActiveListItemHiddenPrefixDecoration(activeMarkerEnd, contentStartOffset, ranges);
+  if (contentStartOffset > activeMarkerEnd) {
+    ranges.push(
+      Decoration.mark({
+        attributes: {
+          class: "cm-active-list-padding-anchor"
+        }
+      }).range(activeMarkerEnd, contentStartOffset)
+    );
+  }
 }
 
 function appendInactiveListItemHiddenPrefixDecoration(
@@ -756,24 +1020,6 @@ function appendInactiveListItemHiddenPrefixDecoration(
     Decoration.mark({
       attributes: {
         class: "cm-inactive-list-source-prefix"
-      }
-    }).range(from, to)
-  );
-}
-
-function appendActiveListItemHiddenPrefixDecoration(
-  from: number,
-  to: number,
-  ranges: Range<Decoration>[]
-): void {
-  if (to <= from) {
-    return;
-  }
-
-  ranges.push(
-    Decoration.mark({
-      attributes: {
-        class: "cm-active-list-source-prefix"
       }
     }).range(from, to)
   );
@@ -848,6 +1094,7 @@ function createListItemLineAttributes(
 function appendInactiveBlankLineDecorations(
   source: string,
   blocks: ActiveBlockState["blockMap"]["blocks"],
+  activeSelectionLineStart: number | null,
   ranges: Range<Decoration>[]
 ): void {
   let cursor = 0;
@@ -858,6 +1105,7 @@ function appendInactiveBlankLineDecorations(
       cursor,
       block.startOffset,
       cursor > 0,
+      activeSelectionLineStart,
       ranges
     );
     cursor = Math.max(cursor, block.endOffset);
@@ -868,6 +1116,7 @@ function appendInactiveBlankLineDecorations(
     cursor,
     source.length,
     cursor > 0,
+    activeSelectionLineStart,
     ranges
   );
 }
@@ -877,6 +1126,7 @@ function appendInactiveBlankLineDecorationsInRange(
   startOffset: number,
   endOffset: number,
   skipLeadingLineBreak: boolean,
+  activeSelectionLineStart: number | null,
   ranges: Range<Decoration>[]
 ): void {
   const contentStartOffset = skipLeadingLineBreak
@@ -889,6 +1139,10 @@ function appendInactiveBlankLineDecorationsInRange(
     const lineText = source.slice(line.startOffset, lineEndOffset);
 
     if (lineText.trim().length > 0) {
+      continue;
+    }
+
+    if (lineText.length > 0 && line.startOffset === activeSelectionLineStart) {
       continue;
     }
 

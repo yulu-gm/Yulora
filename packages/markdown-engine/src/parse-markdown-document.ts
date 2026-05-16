@@ -17,7 +17,8 @@ import { normalizeReferenceIdentifier, parseInlineAst } from "./parse-inline-ast
 export function parseMarkdownDocument(source: string): MarkdownDocument {
   const referenceDefinitions = collectReferenceDefinitions(source);
   return {
-    blocks: parseBlockMap(source).blocks.map((block) => attachInlineData(block, source, referenceDefinitions))
+    blocks: parseBlockMap(source).blocks.map((block) => attachInlineData(block, source, referenceDefinitions)),
+    referenceDefinitions
   };
 }
 

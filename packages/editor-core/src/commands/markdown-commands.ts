@@ -76,6 +76,7 @@ export function runMarkdownBackspaceCommand(
     target.runBlockquoteBackspace(activeState) ||
     target.runListBackspace(activeState) ||
     runBackspaceFromTrailingListExitBlankLineCommand(target) ||
+    runBackspaceFromWhitespaceOnlyLineCommand(target) ||
     runBackspaceAcrossStructuralBlankBoundaryCommand(target, activeState) ||
     target.deleteCharBackward()
   );
@@ -358,6 +359,35 @@ function runBackspaceFromTrailingListExitBlankLineCommand(target: MarkdownComman
     selection: {
       anchor: previousLine.to,
       head: previousLine.to
+    }
+  });
+
+  return true;
+}
+
+function runBackspaceFromWhitespaceOnlyLineCommand(target: MarkdownCommandTarget): boolean {
+  const selection = target.getSelection();
+
+  if (!selection.empty) {
+    return false;
+  }
+
+  const line = target.lineAt(selection.head);
+
+  if (
+    selection.head !== line.to ||
+    !/^[ \t]+$/u.test(line.text)
+  ) {
+    return false;
+  }
+
+  target.dispatchChange({
+    from: line.from,
+    to: line.to,
+    insert: "",
+    selection: {
+      anchor: line.from,
+      head: line.from
     }
   });
 

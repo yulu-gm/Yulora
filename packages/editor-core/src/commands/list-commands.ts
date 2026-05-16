@@ -3,7 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import type { ActiveBlockState } from "../active-block";
 import { buildContinuationPrefix, parseListLine } from "./line-parsers";
 import {
-  computeBackspaceOrderedListMarker,
+  computeBackspaceListMarker,
   computeExitEmptyNestedListItem,
   computeIndentListItem,
   computeMoveListItemDown,
@@ -103,7 +103,7 @@ export function runListMoveLineUp(view: EditorView, activeState: ActiveBlockStat
 }
 
 export function runListBackspace(view: EditorView, activeState: ActiveBlockState): boolean {
-  return runOrderedListEdit(view, activeState, computeBackspaceOrderedListMarker);
+  return runListEdit(view, activeState, computeBackspaceListMarker);
 }
 
 export function runListMoveLineDown(view: EditorView, activeState: ActiveBlockState): boolean {
@@ -165,6 +165,8 @@ function runListEdit(
 function applyListEdit(view: EditorView, edit: ListEdit): void {
   view.dispatch({
     changes: edit.changes,
-    selection: edit.selection
+    selection: edit.selection,
+    filter: edit.filter,
+    userEvent: edit.userEvent
   });
 }

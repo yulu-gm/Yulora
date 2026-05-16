@@ -41,6 +41,7 @@ import type {
 } from "../shared/workspace";
 import App from "./App";
 import * as codeEditorViewModule from "./code-editor-view";
+import { DOCUMENT_DERIVED_DATA_UPDATE_DELAY_MS } from "./editor/useDocumentDerivedDataController";
 
 type MenuCommandListener = (
   command:
@@ -1813,6 +1814,8 @@ describe("App autosave", () => {
       await Promise.resolve();
     });
 
+    updateWorkspaceTabDraft.mockClear();
+
     await act(async () => {
       codeEditorMock.changeContent("# Second dirty\n");
       await Promise.resolve();
@@ -1823,10 +1826,7 @@ describe("App autosave", () => {
       '[data-fishmark-region="workspace-tab"][data-active="true"]'
     );
 
-    expect(updateWorkspaceTabDraft).toHaveBeenLastCalledWith({
-      tabId: "tab-2",
-      content: "# Second dirty\n"
-    });
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalled();
     expect(activeTab?.textContent).toContain("second.md");
     expect(activeTab?.dataset.dirty).toBe("true");
   });
@@ -1914,6 +1914,70 @@ describe("App autosave", () => {
     expect(workspaceTabs).toHaveLength(1);
     expect(workspaceTabs[0]?.textContent).toContain("second.md");
     expect(container.querySelectorAll('[data-testid="mock-code-editor"]')).toHaveLength(1);
+  });
+
+  it("flushes the active workspace draft before closing a dirty tab from the tab strip", async () => {
+    queueWorkspaceOpenDocuments(
+      {
+        path: "C:/notes/first.md",
+        name: "first.md",
+        content: "# First\n"
+      },
+      {
+        path: "C:/notes/second.md",
+        name: "second.md",
+        content: "# Second\n"
+      }
+    );
+
+    await renderApp();
+
+    await act(async () => {
+      menuCommandListener?.("open-markdown-file");
+      await Promise.resolve();
+    });
+    await act(async () => {
+      menuCommandListener?.("open-markdown-file");
+      await Promise.resolve();
+    });
+
+    updateWorkspaceTabDraft.mockClear();
+    closeWorkspaceTab.mockClear();
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Second dirty\n");
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalled();
+
+    const closeButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-fishmark-region="workspace-tab-close"]')
+    ).find((element) =>
+      element.closest('[data-fishmark-region="workspace-tab-shell"]')?.textContent?.includes("second.md")
+    );
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const workspaceTabs = container.querySelectorAll<HTMLElement>(
+      '[data-fishmark-region="workspace-tab"]'
+    );
+
+    expect(updateWorkspaceTabDraft).toHaveBeenCalledWith({
+      tabId: "tab-2",
+      content: "# Second dirty\n"
+    });
+    expect(closeWorkspaceTab).toHaveBeenCalledWith({ tabId: "tab-2" });
+    expect(updateWorkspaceTabDraft.mock.invocationCallOrder[0]).toBeLessThan(
+      closeWorkspaceTab.mock.invocationCallOrder[0]!
+    );
+    expect(workspaceTabs).toHaveLength(1);
+    expect(workspaceTabs[0]?.textContent).toContain("first.md");
   });
 
   it("reorders workspace tabs when the user drops a dragged tab on another tab", async () => {
@@ -3418,7 +3482,7 @@ describe("App autosave", () => {
     expect(activeTab?.textContent).toContain("today.md");
     expect(activeTab?.getAttribute("title")).toBe("C:/notes/today.md");
     expect(statusStrip?.textContent).toContain("All changes saved");
-    expect(statusStrip?.textContent).toContain("字数 6");
+    expect(statusStrip?.textContent).toContain("字数 5");
     expect(activeTab?.textContent).not.toContain("All changes saved");
   });
 
@@ -3579,7 +3643,7 @@ describe("App autosave", () => {
     expect(documentHeader).toBeNull();
     expect(workspaceCanvas?.contains(appStatusBar)).toBe(false);
     expect(appStatusBar?.textContent).toContain("All changes saved");
-    expect(appStatusBar?.textContent).toContain("字数 6");
+    expect(appStatusBar?.textContent).toContain("字数 5");
   });
 
   it("does not render an update download message by default", async () => {
@@ -5209,7 +5273,7 @@ describe("App autosave", () => {
 
     expect(document.documentElement.getAttribute(THEME_RUNTIME_THEME_MODE_ATTRIBUTE)).toBe("dark");
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
-      "6"
+      "5"
     );
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.readingMode)).toBe(
       "1"
@@ -5220,6 +5284,40 @@ describe("App autosave", () => {
     expect(
       document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.viewportHeight)
     ).toBe(String(window.innerHeight));
+  });
+
+  it("defers derived metrics refresh after editor content changes", async () => {
+    await renderAndOpenDocument({
+      getPreferencesResult: {
+        ...DEFAULT_PREFERENCES,
+        theme: {
+          ...DEFAULT_PREFERENCES.theme,
+          mode: "dark"
+        }
+      }
+    });
+
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
+      "5"
+    );
+
+    await act(async () => {
+      codeEditorMock.changeContent("# Updated\n");
+      await Promise.resolve();
+    });
+
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
+      "5"
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(DOCUMENT_DERIVED_DATA_UPDATE_DELAY_MS);
+      await Promise.resolve();
+    });
+
+    expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
+      "7"
+    );
   });
 
   it("updates runtime env viewport vars on resize without rerendering the editor tree", async () => {
@@ -5280,7 +5378,7 @@ describe("App autosave", () => {
 
     expect(document.documentElement.getAttribute(THEME_RUNTIME_THEME_MODE_ATTRIBUTE)).toBe("dark");
     expect(document.documentElement.style.getPropertyValue(THEME_RUNTIME_ENV_CSS_VARS.wordCount)).toBe(
-      "6"
+      "5"
     );
     expect(baseStylesheet).toContain("--fishmark-app-bg");
     expect(baseStylesheet).toContain("--fishmark-markdown-table-border");
@@ -5452,6 +5550,27 @@ describe("App autosave", () => {
     expect(readingCanvasRule).not.toContain("margin: 0 auto;");
     expect(readingShellRule).not.toContain("max-width: min(100%, 960px);");
     expect(readingShellRule).not.toContain("margin: 0 auto;");
+  });
+
+  it("keeps editing and reading document columns on the same full-width layout contract", () => {
+    const appUiStylesheet = readFileSync(appUiStylesheetPath, "utf-8");
+    const editingCanvasRule = getCssRule(appUiStylesheet, ".workspace-canvas.is-editor-open");
+    const readingCanvasRule = getCssRule(
+      appUiStylesheet,
+      '.workspace-canvas[data-fishmark-shell-mode="reading"][data-fishmark-has-document="true"].is-editor-open'
+    );
+    const shortcutHintShellRule = getCssRule(
+      appUiStylesheet,
+      ".workspace-canvas.is-editor-open > .shortcut-hint-overlay-shell"
+    );
+
+    expect(editingCanvasRule).toContain("grid-template-columns: minmax(0, 1fr);");
+    expect(editingCanvasRule).toContain("padding-inline-end: 0;");
+    expect(readingCanvasRule).toContain("grid-template-columns: minmax(0, 1fr);");
+    expect(readingCanvasRule).toContain("padding-inline-end: 0;");
+    expect(shortcutHintShellRule).toContain("grid-area: 1 / 1;");
+    expect(shortcutHintShellRule).toContain("position: absolute;");
+    expect(shortcutHintShellRule).toContain("inset: 0 auto 0 0;");
   });
 
   it("styles theme surfaces as non-interactive workspace backgrounds", () => {
@@ -5848,6 +5967,10 @@ describe("App autosave", () => {
       markdownRenderStylesheet,
       ".document-editor .cm-active-list-marker"
     );
+    const activeListPaddingAnchorRule = getCssRule(
+      markdownRenderStylesheet,
+      ".document-editor .cm-active-list-padding-anchor"
+    );
     const activeOrderedListMarkerRule = getCssRule(
       markdownRenderStylesheet,
       ".document-editor .cm-active-list-ordered .cm-active-list-marker"
@@ -5955,8 +6078,14 @@ describe("App autosave", () => {
     expect(activeListSourcePrefixRule).toContain("overflow: hidden;");
     expect(activeListSourcePrefixRule).toContain("font-size: inherit;");
     expect(activeListSourcePrefixRule).toContain("line-height: inherit;");
+    expect(activeListMarkerRule).toContain("position: absolute;");
+    expect(activeListMarkerRule).toContain("top: 0;");
     expect(activeListMarkerRule).toContain("color: currentColor;");
-    expect(activeOrderedListMarkerRule).toContain("position: absolute;");
+    expect(activeListPaddingAnchorRule).toContain("width: 0.25em;");
+    expect(activeListPaddingAnchorRule).toContain("margin-right: -0.25em;");
+    expect(activeListPaddingAnchorRule).toContain("color: inherit;");
+    expect(activeListPaddingAnchorRule).toContain("caret-color: var(--fishmark-caret-color);");
+    expect(activeListPaddingAnchorRule).toContain("overflow: visible;");
     expect(activeOrderedListMarkerRule).toContain("left: var(--fishmark-list-depth-offset);");
     expect(activeOrderedListMarkerRule).toContain("min-width: var(--fishmark-list-ordered-marker-width);");
     expect(activeOrderedListMarkerRule).toContain("text-align: left;");

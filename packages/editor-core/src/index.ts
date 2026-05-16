@@ -1,4 +1,10 @@
 export type { ActiveBlockState } from "./active-block";
+export {
+  createEditorDerivedState,
+  type CreateEditorDerivedStateOptions,
+  type EditorDerivedState,
+  type EditorOutlineHeading
+} from "./derived-state/editor-derived-state";
 export type { TableCursorMode, TableCursorState } from "./table-cursor-state";
 export {
   runMarkdownArrowDown,

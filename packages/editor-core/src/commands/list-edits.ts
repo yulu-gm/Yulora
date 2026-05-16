@@ -1,4 +1,9 @@
-import { parseBlockMap, type ListBlock, type ListItemBlock } from "@fishmark/markdown-engine";
+import {
+  parseBlockMap,
+  type BlockMap,
+  type ListBlock,
+  type ListItemBlock
+} from "@fishmark/markdown-engine";
 
 import type { SemanticContext } from "./semantic-context";
 import { parseListLine } from "./line-parsers";
@@ -12,11 +17,25 @@ export type TextChange = {
 export type ListEdit = {
   changes: TextChange;
   selection: { anchor: number; head: number };
+  filter?: boolean;
+  userEvent?: string;
 };
 
 export type OrderedListNormalization = {
   source: string;
   changes: readonly TextChange[];
+};
+
+export type ParseOrderedListNormalizationBlockMap = (source: string) => BlockMap;
+
+export type OrderedListNormalizationChangedRange = {
+  from: number;
+  to: number;
+};
+
+export type OrderedListNormalizationOptions = {
+  parseBlockMap?: ParseOrderedListNormalizationBlockMap;
+  changedRanges?: readonly OrderedListNormalizationChangedRange[];
 };
 
 type OrderedListScope = Extract<ListBlock, { ordered: true }>;
@@ -246,7 +265,16 @@ export function computeDeleteOrderedListRange(ctx: SemanticContext): ListEdit | 
 }
 
 export function computeBackspaceOrderedListMarker(ctx: SemanticContext): ListEdit | null {
-  const current = findOrderedListItemContext(ctx);
+  return computeBackspaceListMarker(ctx);
+}
+
+export function computeBackspaceEmptyListMarker(ctx: SemanticContext): ListEdit | null {
+  return computeBackspaceListMarker(ctx);
+}
+
+export function computeBackspaceListMarker(ctx: SemanticContext): ListEdit | null {
+  const rootList = readActiveListRoot(ctx);
+  const current = rootList ? findListItemContext(rootList, ctx.selection.from, rootList, null, null) : null;
 
   if (
     !current ||
@@ -257,69 +285,30 @@ export function computeBackspaceOrderedListMarker(ctx: SemanticContext): ListEdi
     return null;
   }
 
+  const contentStartOffset = current.item.contentStartOffset ?? current.item.markerEnd;
   const line = ctx.state.doc.lineAt(ctx.selection.from);
   const parsed = parseListLine(line.text);
+  const lineContentStartOffset = parsed ? line.to - parsed.content.length : contentStartOffset;
 
-  if (
-    parsed &&
-    /^\d+[.)]$/u.test(parsed.marker) &&
-    parsed.content.length > 0
-  ) {
-    const separatorStart = line.from + parsed.indent.length + parsed.marker.length;
-    const contentStart = line.to - parsed.content.length;
-
-    if (
-      ctx.selection.from === contentStart &&
-      separatorStart < contentStart &&
-      current.parentItem === null &&
-      current.itemIndex > 0
-    ) {
-      const blockSource = readBlockSource(ctx, current.rootList);
-      const replaceFrom = toBlockOffset(current.rootList, current.item.startOffset);
-      const replaceTo = toBlockOffset(current.rootList, contentStart);
-      const insert = `\n${parsed.indent}${parsed.marker}`;
-      const tentativeSource = replaceRange(blockSource, replaceFrom, replaceTo, insert);
-      const tentativeCursor = replaceFrom + insert.length;
-
-      return {
-        changes: createMinimalTextChange(blockSource, tentativeSource, current.rootList.startOffset),
-        selection: {
-          anchor: current.rootList.startOffset + tentativeCursor,
-          head: current.rootList.startOffset + tentativeCursor
-        }
-      };
-    }
-  }
-
-  if (ctx.selection.from !== line.to) {
+  if (!parsed || ctx.selection.from !== lineContentStartOffset) {
     return null;
   }
 
-  if (
-    !parsed ||
-    !/^\d+[.)]$/u.test(parsed.marker) ||
-    parsed.content.length > 0 ||
-    line.text !== `${parsed.indent}${parsed.marker}`
-  ) {
-    return null;
-  }
-
-  const markerDeleteFrom = current.item.markerEnd - 1;
-  const markerDeleteTo = current.item.markerEnd;
   const blockSource = readBlockSource(ctx, current.rootList);
-  const tentativeSource = replaceRange(
-    blockSource,
-    toBlockOffset(current.rootList, markerDeleteFrom),
-    toBlockOffset(current.rootList, markerDeleteTo),
-    ""
-  );
+  const deleteFrom = toBlockOffset(current.rootList, current.item.markerStart);
+  const deleteTo = toBlockOffset(current.rootList, lineContentStartOffset);
+  const tentativeSource = replaceRange(blockSource, deleteFrom, deleteTo, "");
+  const tentativeCursor = deleteFrom;
 
-  return finalizeListEdit(
-    current.rootList,
-    blockSource,
-    tentativeSource,
-    toBlockOffset(current.rootList, markerDeleteFrom)
-  );
+  return {
+    changes: createMinimalTextChange(blockSource, tentativeSource, current.rootList.startOffset),
+    selection: {
+      anchor: current.rootList.startOffset + tentativeCursor,
+      head: current.rootList.startOffset + tentativeCursor
+    },
+    filter: false,
+    userEvent: "delete.list-marker"
+  };
 }
 
 export function computeIndentListItem(ctx: SemanticContext): ListEdit | null {
@@ -431,8 +420,26 @@ export function normalizeOrderedListScopes(ctx: SemanticContext): ListEdit | nul
   };
 }
 
-export function computeNormalizedOrderedListDocument(source: string): OrderedListNormalization | null {
-  const document = parseBlockMap(source);
+export function computeNormalizedOrderedListDocument(
+  source: string,
+  options: OrderedListNormalizationOptions = {}
+): OrderedListNormalization | null {
+  if (!options.changedRanges || options.changedRanges.length === 0) {
+    return computeFullDocumentOrderedListNormalization(source, options);
+  }
+
+  if (options.changedRanges.length > 1) {
+    return computeFullDocumentOrderedListNormalization(source, options);
+  }
+
+  return computeChangedRangeOrderedListNormalization(source, options.changedRanges[0]!, options);
+}
+
+function computeFullDocumentOrderedListNormalization(
+  source: string,
+  options: OrderedListNormalizationOptions
+): OrderedListNormalization | null {
+  const document = (options.parseBlockMap ?? parseBlockMap)(source);
   const changes: TextChange[] = [];
 
   for (const block of document.blocks) {
@@ -468,6 +475,170 @@ export function computeNormalizedOrderedListDocument(source: string): OrderedLis
     source: applyChangeSpecs(source, changes),
     changes
   };
+}
+
+function computeChangedRangeOrderedListNormalization(
+  source: string,
+  changedRange: OrderedListNormalizationChangedRange,
+  options: OrderedListNormalizationOptions
+): OrderedListNormalization | null {
+  const candidateRange = findPotentialChangedListRange(source, changedRange);
+
+  if (!candidateRange) {
+    return null;
+  }
+
+  const candidateSource = source.slice(candidateRange.from, candidateRange.to);
+  const document = (options.parseBlockMap ?? parseBlockMap)(candidateSource);
+  const changedFrom = Math.max(0, changedRange.from - candidateRange.from);
+  const changedTo = Math.max(changedFrom, changedRange.to - candidateRange.from);
+  const targetBlock = document.blocks.find((block) =>
+    block.type === "list" &&
+    containsOrderedScope(block) &&
+    rangesIntersect(block.startOffset, block.endOffset, changedFrom, changedTo)
+  );
+
+  if (!targetBlock || targetBlock.type !== "list") {
+    return null;
+  }
+
+  const blockSource = candidateSource.slice(targetBlock.startOffset, targetBlock.endOffset);
+  const normalization = normalizeOrderedListBlock(
+    blockSource,
+    targetBlock,
+    getDocumentOrderedListStartOrdinal(targetBlock)
+  );
+
+  if (normalization.changes.length === 0) {
+    return null;
+  }
+
+  const baseOffset = candidateRange.from + targetBlock.startOffset;
+  const changes = normalization.changes.map((change) => ({
+    from: baseOffset + change.from,
+    to: baseOffset + change.to,
+    insert: change.insert
+  }));
+
+  return {
+    source: applyChangeSpecs(source, changes),
+    changes
+  };
+}
+
+function findPotentialChangedListRange(
+  source: string,
+  changedRange: OrderedListNormalizationChangedRange
+): { from: number; to: number } | null {
+  if (source.length === 0) {
+    return null;
+  }
+
+  const anchorOffset = changedRange.to > changedRange.from
+    ? changedRange.to - 1
+    : changedRange.from;
+  const anchor = Math.max(0, Math.min(anchorOffset, source.length - 1));
+  const anchorLine = readLineInfoAt(source, anchor);
+
+  let hasListMarker = lineHasPotentialListMarker(source.slice(anchorLine.from, anchorLine.to));
+  let from = anchorLine.from;
+
+  while (from > 0) {
+    const previousLine = readLineInfoBefore(source, from);
+
+    if (!previousLine) {
+      break;
+    }
+
+    const text = source.slice(previousLine.from, previousLine.to);
+
+    if (text.trim().length === 0) {
+      break;
+    }
+
+    hasListMarker = hasListMarker || lineHasPotentialListMarker(text);
+    from = previousLine.from;
+  }
+
+  if (!hasListMarker) {
+    return null;
+  }
+
+  let to = anchorLine.to;
+
+  while (to < source.length) {
+    const nextLine = readLineInfoAfter(source, to);
+
+    if (!nextLine) {
+      break;
+    }
+
+    const text = source.slice(nextLine.from, nextLine.to);
+
+    if (text.trim().length === 0) {
+      break;
+    }
+
+    to = nextLine.to;
+  }
+
+  return { from, to };
+}
+
+function readLineInfoAt(source: string, offset: number): { from: number; to: number } {
+  let from = offset;
+
+  while (from > 0 && source[from - 1] !== "\n") {
+    from -= 1;
+  }
+
+  let to = offset;
+
+  while (to < source.length && source[to] !== "\n") {
+    to += 1;
+  }
+
+  return { from, to };
+}
+
+function readLineInfoBefore(source: string, lineStart: number): { from: number; to: number } | null {
+  if (lineStart <= 0) {
+    return null;
+  }
+
+  const to = lineStart - 1;
+
+  if (to < 0) {
+    return null;
+  }
+
+  return readLineInfoAt(source, to);
+}
+
+function readLineInfoAfter(source: string, lineEnd: number): { from: number; to: number } | null {
+  if (lineEnd >= source.length) {
+    return null;
+  }
+
+  const from = source[lineEnd] === "\n" ? lineEnd + 1 : lineEnd;
+
+  if (from >= source.length) {
+    return null;
+  }
+
+  return readLineInfoAt(source, from);
+}
+
+function lineHasPotentialListMarker(line: string): boolean {
+  return /^[ \t]*(?:[-+*]|\d+[.)])(?:[ \t]+)/u.test(line);
+}
+
+function rangesIntersect(leftFrom: number, leftTo: number, rightFrom: number, rightTo: number): boolean {
+  if (rightFrom === rightTo) {
+    return rightFrom >= leftFrom && rightFrom <= leftTo;
+  }
+
+  return leftFrom < rightTo && leftTo > rightFrom;
 }
 
 export function mapTextOffsetThroughChanges(offset: number, changes: readonly TextChange[]): number {

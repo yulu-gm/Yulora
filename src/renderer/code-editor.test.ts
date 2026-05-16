@@ -1222,7 +1222,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("applies active list line classes without hiding source markers while editing a list item", async () => {
+  it("applies active list line classes with generated markers while editing a list item", async () => {
     const host = document.createElement("div");
     const source = [
       "- 222222222222222222222222222222222222",
@@ -1256,8 +1256,9 @@ describe("createCodeEditorController", () => {
       "0em"
     );
     expect(activeListLine?.querySelector(".cm-inactive-list-marker")).toBeNull();
-    expect(activeListLine?.querySelector(".cm-active-list-source-prefix")?.textContent).toBe(" ");
+    expect(activeListLine?.querySelector(".cm-active-list-source-prefix")).toBeNull();
     expect(activeListLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
+    expect(activeListLine?.querySelector(".cm-active-list-padding-anchor")?.textContent).toBe(" ");
 
     view?.dispatch({ selection: { anchor: source.indexOf("child") } });
     await flushMicrotasks();
@@ -1273,6 +1274,7 @@ describe("createCodeEditorController", () => {
     );
     expect(activeChildListLine?.querySelector(".cm-active-list-source-prefix")?.textContent).toBe("  ");
     expect(activeChildListLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
+    expect(activeChildListLine?.querySelector(".cm-active-list-padding-anchor")?.textContent).toBe(" ");
 
     view?.dispatch({ selection: { anchor: source.indexOf("continued") } });
     await flushMicrotasks();
@@ -1301,7 +1303,7 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("keeps a paragraph line stable when starting a trailing dash list item", async () => {
+  it("keeps a paragraph line stable when a trailing bare dash is active", async () => {
     const host = document.createElement("div");
     const source = ["- 2", "  - child", "", "wwww", "-"].join("\n");
 
@@ -1331,11 +1333,105 @@ describe("createCodeEditorController", () => {
     expect(paragraphLine?.classList.contains("cm-inactive-list-continuation")).toBe(false);
     expect(paragraphLine?.classList.contains("cm-inactive-heading")).toBe(false);
     expect(dashLine).not.toBeNull();
-    expect(dashLine?.classList.contains("cm-active-list")).toBe(true);
-    expect(dashLine?.style.getPropertyValue("--fishmark-list-source-prefix-offset")).toBe(
-      "0em"
+    expect(dashLine?.classList.contains("cm-active-paragraph")).toBe(true);
+    expect(dashLine?.classList.contains("cm-active-list")).toBe(false);
+    expect(dashLine?.querySelector(".cm-active-list-marker")).toBeNull();
+
+    controller.destroy();
+  });
+
+  it("commits a trailing dash as a list marker only after marker padding is typed", async () => {
+    const host = document.createElement("div");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "",
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      insertText: (text: string) => void;
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+
+    advancedController.setSelection(0);
+    advancedController.insertText("-");
+    await flushMicrotasks();
+
+    const dashLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === "-"
     );
-    expect(dashLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
+
+    expect(controller.getContent()).toBe("-");
+    expect(dashLine?.classList.contains("cm-active-list")).toBe(false);
+    expect(dashLine?.querySelector(".cm-active-list-marker")).toBeNull();
+
+    advancedController.insertText(" ");
+    await flushMicrotasks();
+
+    const listLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === "- "
+    );
+
+    expect(controller.getContent()).toBe("- ");
+    expect(listLine?.classList.contains("cm-active-list")).toBe(true);
+    expect(listLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("-");
+
+    advancedController.insertText("中文");
+
+    expect(controller.getContent()).toBe("- 中文");
+    expect(controller.getSelection()).toEqual({ anchor: "- 中文".length, head: "- 中文".length });
+
+    controller.destroy();
+  });
+
+  it("commits a trailing ordered marker only after marker padding is typed", async () => {
+    const host = document.createElement("div");
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: "",
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      insertText: (text: string) => void;
+      setSelection: (anchor: number, head?: number) => void;
+    };
+    const editorRoot = host.querySelector(".cm-editor");
+
+    expect(editorRoot).toBeInstanceOf(HTMLElement);
+    editorRoot?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+
+    advancedController.setSelection(0);
+    advancedController.insertText("1.");
+    await flushMicrotasks();
+
+    const bareOrderedLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === "1."
+    );
+
+    expect(controller.getContent()).toBe("1.");
+    expect(bareOrderedLine?.classList.contains("cm-active-list")).toBe(false);
+    expect(bareOrderedLine?.querySelector(".cm-active-list-marker")).toBeNull();
+
+    advancedController.insertText(" ");
+    await flushMicrotasks();
+
+    const orderedListLine = Array.from(host.querySelectorAll<HTMLElement>(".cm-line")).find(
+      (line) => line.textContent === "1. "
+    );
+
+    expect(controller.getContent()).toBe("1. ");
+    expect(orderedListLine?.classList.contains("cm-active-list")).toBe(true);
+    expect(orderedListLine?.querySelector(".cm-active-list-marker")?.textContent).toBe("1.");
+
+    advancedController.insertText("中文");
+
+    expect(controller.getContent()).toBe("1. 中文");
+    expect(controller.getSelection()).toEqual({ anchor: "1. 中文".length, head: "1. 中文".length });
 
     controller.destroy();
   });
@@ -3526,6 +3622,136 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
+  it("removes an empty top-level unordered marker on Backspace and keeps an empty line", () => {
+    const host = document.createElement("div");
+    const source = "- ";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(source.length);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe("");
+    expect(view?.state.selection.main.anchor).toBe(0);
+    expect(view?.state.selection.main.head).toBe(0);
+
+    const line = host.querySelector<HTMLElement>(".cm-line");
+    expect(line?.classList.contains("cm-active-list")).toBe(false);
+
+    controller.destroy();
+  });
+
+  it("removes an empty top-level ordered marker on Backspace and keeps an empty line", () => {
+    const host = document.createElement("div");
+    const source = "1. ";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(source.length);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe("");
+    expect(view?.state.selection.main.anchor).toBe(0);
+    expect(view?.state.selection.main.head).toBe(0);
+
+    const line = host.querySelector<HTMLElement>(".cm-line");
+    expect(line?.classList.contains("cm-active-list")).toBe(false);
+
+    controller.destroy();
+  });
+
+  it("removes an empty nested unordered marker before clearing its indentation on Backspace", () => {
+    const host = document.createElement("div");
+    const source = ["- parent", "  - "].join("\n");
+    const afterMarkerRemoval = ["- parent", "  "].join("\n");
+    const afterIndentRemoval = "- parent\n";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(source.length);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(afterMarkerRemoval);
+    expect(view?.state.selection.main.anchor).toBe(afterMarkerRemoval.length);
+    expect(view?.state.selection.main.head).toBe(afterMarkerRemoval.length);
+
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(afterIndentRemoval);
+    expect(view?.state.selection.main.anchor).toBe(afterIndentRemoval.length);
+    expect(view?.state.selection.main.head).toBe(afterIndentRemoval.length);
+
+    controller.destroy();
+  });
+
+  it("removes an empty nested ordered marker before clearing its indentation on Backspace", () => {
+    const host = document.createElement("div");
+    const source = ["1. parent", "  1. "].join("\n");
+    const afterMarkerRemoval = ["1. parent", "  "].join("\n");
+    const afterIndentRemoval = "1. parent\n";
+
+    const controller = createCodeEditorController({
+      parent: host,
+      initialContent: source,
+      onChange: vi.fn()
+    });
+    const advancedController = controller as typeof controller & {
+      setSelection: (anchor: number, head?: number) => void;
+      pressBackspace: () => void;
+    };
+    const view = getEditorView(host);
+
+    expect(view).not.toBeNull();
+
+    advancedController.setSelection(source.length);
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(afterMarkerRemoval);
+    expect(view?.state.selection.main.anchor).toBe(afterMarkerRemoval.length);
+    expect(view?.state.selection.main.head).toBe(afterMarkerRemoval.length);
+
+    advancedController.pressBackspace();
+
+    expect(controller.getContent()).toBe(afterIndentRemoval);
+    expect(view?.state.selection.main.anchor).toBe(afterIndentRemoval.length);
+    expect(view?.state.selection.main.head).toBe(afterIndentRemoval.length);
+
+    controller.destroy();
+  });
+
   it("upgrades a trailing ordered list item to body text when Enter is pressed before its content", () => {
     const host = document.createElement("div");
     const source = ["1. Todo", "2. Todo2", "3. Todo3", "4. Tail"].join("\n");
@@ -3846,10 +4072,10 @@ describe("createCodeEditorController", () => {
     controller.destroy();
   });
 
-  it("keeps the caret on the current empty ordered item when Backspace deletes within its marker line", () => {
+  it("removes an empty ordered marker in the middle of a run without moving the caret to another item", () => {
     const host = document.createElement("div");
     const source = ["1. 1", "2. 2", "3. 4", "4. ", "5. 6", "6. 7"].join("\n");
-    const expected = ["1. 1", "2. 2", "3. 4", "4.", "5. 6", "6. 7"].join("\n");
+    const expected = ["1. 1", "2. 2", "3. 4", "", "5. 6", "6. 7"].join("\n");
 
     const controller = createCodeEditorController({
       parent: host,
@@ -3863,7 +4089,7 @@ describe("createCodeEditorController", () => {
     const view = getEditorView(host);
     const lineFourStart = getLineStartOffset(source, 4);
     const cursorOffset = lineFourStart + "4. ".length;
-    const expectedCursor = getLineStartOffset(expected, 4) + "4.".length;
+    const expectedCursor = getLineStartOffset(expected, 4);
 
     expect(view).not.toBeNull();
 

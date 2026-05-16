@@ -106,21 +106,22 @@ afterEach(() => {
 });
 
 describe("useWorkspaceController", () => {
-  it("updates the active editor by syncing the draft through the canonical workspace bridge", async () => {
-    const updateWorkspaceTabDraft = vi.fn(async () =>
+  it("keeps active draft changes renderer-local until an explicit flush syncs the latest content", async () => {
+    const updateWorkspaceTabDraft = vi.fn(async (input: { tabId: string; content: string }) =>
       createWorkspaceSnapshot({
         tabs: [
           {
-            tabId: "tab-1",
+            tabId: input.tabId,
             path: "C:/notes/note.md",
             name: "note.md",
-            content: "# Updated\n",
+            content: input.content,
             isDirty: true
           }
         ]
       })
     );
 
+    let editorContent = "# Note\n";
     const { latestRef, root } = renderController({
       fishmark: {
         updateWorkspaceTabDraft
@@ -135,19 +136,35 @@ describe("useWorkspaceController", () => {
           }
         ]
       }),
-      getEditorContent: () => "# Updated\n",
+      getEditorContent: () => editorContent,
       showNotification: vi.fn()
     });
 
     await act(async () => {
-      await latestRef.current?.updateDraft("# Updated\n");
+      for (let index = 1; index <= 100; index += 1) {
+        editorContent = `# Updated ${index}\n`;
+        await latestRef.current?.updateDraft(editorContent);
+      }
+    });
+
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalled();
+    expect(latestRef.current?.workspaceSnapshot?.activeDocument).toMatchObject({
+      content: "# Updated 100\n",
+      isDirty: true
+    });
+    expect(latestRef.current?.workspaceSnapshot?.tabs[0]).toMatchObject({
+      isDirty: true
+    });
+
+    await act(async () => {
+      await latestRef.current?.flushActiveWorkspaceDraft();
     });
 
     expect(updateWorkspaceTabDraft).toHaveBeenCalledWith({
       tabId: "tab-1",
-      content: "# Updated\n"
+      content: "# Updated 100\n"
     });
-    expect(latestRef.current?.workspaceSnapshot?.activeDocument?.content).toBe("# Updated\n");
+    expect(latestRef.current?.workspaceSnapshot?.activeDocument?.content).toBe("# Updated 100\n");
 
     act(() => {
       root.unmount();
@@ -616,10 +633,7 @@ describe("useWorkspaceController", () => {
       await latestRef.current?.refreshWorkspaceSnapshot();
     });
 
-    expect(updateWorkspaceTabDraft).toHaveBeenCalledWith({
-      tabId: "tab-1",
-      content: "# Newer draft\n"
-    });
+    expect(updateWorkspaceTabDraft).not.toHaveBeenCalled();
     expect(getWorkspaceSnapshot).toHaveBeenCalledTimes(1);
     expect(latestRef.current?.editorLoadRevision).toBe(draftRevision);
     expect(latestRef.current?.workspaceSnapshot?.activeDocument).toMatchObject({
@@ -643,13 +657,13 @@ describe("useWorkspaceController", () => {
 describe("useEditorWorkflowController", () => {
   it("keeps editor change autosave and draft sync orchestration inside the controller boundary", async () => {
     const setEditorContentSnapshot = vi.fn();
-    const updateOutline = vi.fn();
+    const scheduleDocumentDerivedDataUpdate = vi.fn();
     const scheduleAutosave = vi.fn();
     const updateDraft = vi.fn(async () => {});
 
     const { latestRef, root } = renderEditorWorkflowController({
       setEditorContentSnapshot,
-      updateOutline,
+      scheduleDocumentDerivedDataUpdate,
       scheduleAutosave,
       runAutosave: vi.fn(async () => {}),
       resetAutosaveRuntime: vi.fn(),
@@ -666,7 +680,7 @@ describe("useEditorWorkflowController", () => {
     });
 
     expect(setEditorContentSnapshot).toHaveBeenCalledWith("# Draft\n");
-    expect(updateOutline).toHaveBeenCalledWith("# Draft\n");
+    expect(scheduleDocumentDerivedDataUpdate).toHaveBeenCalledWith("# Draft\n");
     expect(scheduleAutosave).toHaveBeenCalledTimes(1);
     expect(updateDraft).toHaveBeenCalledWith("# Draft\n");
     expect(scheduleAutosave.mock.invocationCallOrder[0]).toBeLessThan(
@@ -685,7 +699,7 @@ describe("useEditorWorkflowController", () => {
 
     const { latestRef, root } = renderEditorWorkflowController({
       setEditorContentSnapshot: vi.fn(),
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       scheduleAutosave,
       runAutosave: vi.fn(async () => {}),
       resetAutosaveRuntime,

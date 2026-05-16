@@ -23,18 +23,46 @@ function findBlockAtOffset(blocks: readonly MarkdownBlock[], offset: number): Ma
   return null;
 }
 
+function findElementAtPoint(document: Document, clientX: number, clientY: number): Element | null {
+  if (typeof document.elementFromPoint !== "function") {
+    return null;
+  }
+
+  const target = document.elementFromPoint(clientX, clientY);
+
+  return target instanceof Element ? target : null;
+}
+
 export function createPointerInteractionContext(
   view: EditorView,
   activeState: ActiveBlockState,
   event: MouseEvent
 ): PointerInteractionContext | null {
-  const target = event.target instanceof Element ? event.target : null;
+  let target = event.target instanceof Element ? event.target : null;
 
   if (!target || !view.dom.contains(target)) {
-    return null;
+    const coordinateTarget = findElementAtPoint(view.dom.ownerDocument, event.clientX, event.clientY);
+    target = coordinateTarget;
+
+    if (!target || !view.dom.contains(target)) {
+      return null;
+    }
   }
 
-  const lineElement = target.closest(".cm-line");
+  let lineElement = target.closest(".cm-line");
+
+  if (!(lineElement instanceof HTMLElement)) {
+    const coordinateTarget = findElementAtPoint(view.dom.ownerDocument, event.clientX, event.clientY);
+
+    if (coordinateTarget && view.dom.contains(coordinateTarget)) {
+      const coordinateLine = coordinateTarget.closest(".cm-line");
+
+      if (coordinateLine instanceof HTMLElement) {
+        target = coordinateTarget;
+        lineElement = coordinateLine;
+      }
+    }
+  }
 
   if (!(lineElement instanceof HTMLElement)) {
     return null;

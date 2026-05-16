@@ -36,6 +36,7 @@ export function useWorkspaceController(input: {
   const workspaceDraftSyncFailureRef = useRef<unknown>(null);
   const workspaceDraftSyncRetryPendingRef = useRef(false);
   const lastDraftSyncRequestRef = useRef<{ tabId: string; content: string } | null>(null);
+  const pendingWorkspaceDraftRef = useRef<{ tabId: string; content: string } | null>(null);
 
   const applyState = useCallback((updater: (current: EditorShellState) => EditorShellState): void => {
     const next = updater(stateRef.current);
@@ -83,9 +84,17 @@ export function useWorkspaceController(input: {
           content
         });
 
+        if (
+          pendingWorkspaceDraftRef.current?.tabId === tabId &&
+          pendingWorkspaceDraftRef.current.content === content
+        ) {
+          pendingWorkspaceDraftRef.current = null;
+        }
         workspaceDraftSyncFailureRef.current = null;
         workspaceDraftSyncRetryPendingRef.current = false;
-        applyWorkspaceWindowSnapshot(snapshot);
+        applyWorkspaceWindowSnapshot(snapshot, {
+          preserveActiveDocumentDraft: true
+        });
       } catch (error) {
         workspaceDraftSyncFailureRef.current = error;
         throw error;
@@ -126,6 +135,22 @@ export function useWorkspaceController(input: {
 
       const currentContent = getEditorContent();
       const lastDraftSyncRequest = lastDraftSyncRequestRef.current;
+      const pendingWorkspaceDraft = pendingWorkspaceDraftRef.current;
+
+      if (pendingWorkspaceDraft?.tabId === activeDocument.tabId) {
+        if (pendingWorkspaceDraft.content !== currentContent) {
+          pendingWorkspaceDraftRef.current = {
+            tabId: activeDocument.tabId,
+            content: currentContent
+          };
+          applyState((current) =>
+            applyRendererLocalWorkspaceDraft(current, activeDocument.tabId, currentContent)
+          );
+        }
+
+        await queueWorkspaceDraftSync(activeDocument.tabId, currentContent);
+        continue;
+      }
 
       if (
         workspaceDraftSyncFailureRef.current !== null &&
@@ -159,7 +184,7 @@ export function useWorkspaceController(input: {
 
       await queueWorkspaceDraftSync(activeDocument.tabId, currentContent);
     }
-  }, [getEditorContent, queueWorkspaceDraftSync]);
+  }, [applyState, getEditorContent, queueWorkspaceDraftSync]);
 
   const updateDraft = useCallback(
     async (content: string): Promise<void> => {
@@ -169,9 +194,10 @@ export function useWorkspaceController(input: {
         return;
       }
 
-      await queueWorkspaceDraftSync(activeTabId, content);
+      pendingWorkspaceDraftRef.current = { tabId: activeTabId, content };
+      applyState((current) => applyRendererLocalWorkspaceDraft(current, activeTabId, content));
     },
-    [queueWorkspaceDraftSync]
+    [applyState]
   );
 
   const refreshWorkspaceSnapshot = useCallback(
@@ -437,5 +463,40 @@ export function useWorkspaceController(input: {
     reorderWorkspaceTab,
     detachWorkspaceTab,
     reloadWorkspaceTabFromPath
+  };
+}
+
+function applyRendererLocalWorkspaceDraft(
+  current: EditorShellState,
+  tabId: string,
+  content: string
+): EditorShellState {
+  const snapshot = current.workspaceSnapshot;
+  const activeDocument = snapshot?.activeDocument;
+
+  if (!snapshot || !activeDocument || activeDocument.tabId !== tabId) {
+    return current;
+  }
+
+  const nextTabs = snapshot.tabs.map((tab) =>
+    tab.tabId === tabId
+      ? {
+          ...tab,
+          isDirty: true
+        }
+      : tab
+  );
+
+  return {
+    ...current,
+    workspaceSnapshot: {
+      ...snapshot,
+      tabs: nextTabs,
+      activeDocument: {
+        ...activeDocument,
+        content,
+        isDirty: true
+      }
+    }
   };
 }

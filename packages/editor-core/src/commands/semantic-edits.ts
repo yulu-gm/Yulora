@@ -28,7 +28,7 @@ export function computeEmphasisToggle(ctx: SemanticContext): SemanticEdit | null
 }
 
 const HEADING_LINE_PATTERN = /^(\s{0,3})(#{1,6})(?:\s+|$)(.*)$/;
-const BULLET_LINE_PATTERN = /^(\s*)([*+-])(?:[ \t]+|$)(.*)$/;
+const BULLET_LINE_PATTERN = /^(\s*)([*+-])([ \t]+)(.*)$/;
 const INDENT_LINE_PATTERN = /^(\s*)(.*)$/;
 
 export function computeBulletListToggle(ctx: SemanticContext): SemanticEdit | null {
@@ -44,7 +44,7 @@ export function computeBulletListToggle(ctx: SemanticContext): SemanticEdit | nu
   const rewritten = lines.map((text) => {
     if (allBullet) {
       const match = BULLET_LINE_PATTERN.exec(text)!;
-      return `${match[1] ?? ""}${match[3] ?? ""}`;
+      return `${match[1] ?? ""}${match[4] ?? ""}`;
     }
     const indentMatch = INDENT_LINE_PATTERN.exec(text)!;
     const indent = indentMatch[1] ?? "";

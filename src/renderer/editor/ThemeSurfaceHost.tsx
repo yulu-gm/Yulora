@@ -7,10 +7,11 @@ import type {
 } from "../../shared/theme-package";
 import type { ThemeRuntimeEnv } from "../theme-runtime-env";
 import { createThemeSceneState, type ThemeAppearanceMode } from "../shader/theme-scene-state";
-import {
-  createThemeSurfaceRuntime,
-  type ThemeSurfaceRuntimeChannels,
-  type ThemeSurfaceRuntimeMode
+import type {
+  MountThemeSurfaceInput,
+  MountedThemeSurface,
+  ThemeSurfaceRuntimeChannels,
+  ThemeSurfaceRuntimeMode
 } from "../shader/theme-surface-runtime";
 
 export type ThemeSurfaceHostDescriptor = {
@@ -32,6 +33,10 @@ type ThemeSurfaceHostProps = {
   runtimeEnv: ThemeRuntimeEnv;
   effectsMode: ThemeEffectsMode;
   onRuntimeModeChange?: (mode: ThemeSurfaceRuntimeMode) => void;
+};
+
+type ThemeSurfaceRuntime = {
+  mount: (input: MountThemeSurfaceInput) => Promise<MountedThemeSurface>;
 };
 
 function serializeSharedUniforms(sharedUniforms: Record<string, number>): string {
@@ -84,7 +89,7 @@ export function ThemeSurfaceHost({
   onRuntimeModeChange
 }: ThemeSurfaceHostProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const runtimeRef = useRef(createThemeSurfaceRuntime());
+  const runtimeRef = useRef<ThemeSurfaceRuntime | null>(null);
   const sceneStateRef = useRef<ReturnType<typeof createThemeSceneState> | null>(null);
   const mountedSurfaceRef = useRef<{ invalidate: () => void; unmount: () => void } | null>(null);
   const runtimeEnvRef = useRef(runtimeEnv);
@@ -118,6 +123,12 @@ export function ThemeSurfaceHost({
 
     async function loadAndMount(): Promise<void> {
       try {
+        if (effectsMode === "off") {
+          setMode("fallback");
+          onRuntimeModeChange?.("fallback");
+          return;
+        }
+
         const response = await fetch(descriptor.shaderUrl, {
           signal: abortController.signal
         });
@@ -140,7 +151,14 @@ export function ThemeSurfaceHost({
           runtimeEnv: runtimeEnvRef.current
         });
         sceneStateRef.current = sceneState;
-        const result = await runtimeRef.current.mount({
+        const runtime = runtimeRef.current ?? await createLazyThemeSurfaceRuntime();
+
+        if (isDisposed) {
+          return;
+        }
+
+        runtimeRef.current = runtime;
+        const result = await runtime.mount({
           canvas: canvasRef.current,
           surface,
           shaderSource,
@@ -211,4 +229,9 @@ export function ThemeSurfaceHost({
       />
     </div>
   );
+}
+
+async function createLazyThemeSurfaceRuntime(): Promise<ThemeSurfaceRuntime> {
+  const module = await import("../shader/theme-surface-runtime");
+  return module.createThemeSurfaceRuntime();
 }

@@ -23,6 +23,7 @@ import type {
   InlineASTNode,
   InlineLink,
   InlineRoot,
+  BlockMap,
   ListBlock,
   ListItemBlock,
   MarkdownBlock,
@@ -56,6 +57,10 @@ import {
   runTableUpdateCell
 } from "../commands";
 import { createMarkdownDocumentCache } from "../derived-state/markdown-document-cache";
+import {
+  createEditorDerivedState,
+  type EditorDerivedState
+} from "../derived-state/editor-derived-state";
 import { deriveInactiveBlockDecorationsState } from "../derived-state/inactive-block-decorations";
 import { readTableContext, type TablePosition } from "../commands/table-context";
 import {
@@ -66,10 +71,12 @@ import { createGroupedShortcutKeymaps } from "./markdown-shortcuts";
 import {
   type TableWidgetCallbacks
 } from "../decorations";
+import { createSelectionScopedBlockDecorations } from "../decorations/block-decorations";
 import {
   INACTIVE_INLINE_LINK_HREF_ATTRIBUTE,
   INACTIVE_INLINE_LINK_SELECTOR
 } from "../decorations/inline-decorations";
+import { subscribeCodeHighlightParserLoaded } from "../decorations/code-highlight-language-loader";
 import {
   normalizeHiddenSelectionAnchor,
   normalizeStructuralBlankSelectionAnchor
@@ -77,12 +84,15 @@ import {
 import { resolvePointerSelectionAnchor as resolveBlockPointerSelectionAnchor } from "../interactions";
 
 export type ParseMarkdownDocument = (source: string) => MarkdownDocument;
+export type ParseOrderedListNormalizationBlockMap = (source: string) => BlockMap;
 
 export type CreateFishMarkMarkdownExtensionsOptions = {
   parseBlockMap?: ParseMarkdownDocument;
   parseMarkdownDocument?: ParseMarkdownDocument;
+  parseOrderedListNormalizationBlockMap?: ParseOrderedListNormalizationBlockMap;
   onContentChange: (doc: string) => void;
   onActiveBlockChange?: (state: ActiveBlockState) => void;
+  onBlockDecorationsBuilt?: () => void;
   onBlur?: () => void;
   onOpenLink?: (href: string) => void;
   resolveImagePreviewUrl?: (href: string | null) => string | null;
@@ -90,6 +100,7 @@ export type CreateFishMarkMarkdownExtensionsOptions = {
 
 type MarkdownExtensionRuntime = {
   activeBlockState: ActiveBlockState;
+  editorDerivedState: EditorDerivedState;
   blockDecorationSignature: string;
   hasEditorFocus: boolean;
   isCompositionGuardActive: boolean;
@@ -104,6 +115,7 @@ const createSelectionSnapshot = (state: EditorState): ActiveBlockSelection => ({
 const forceRefreshMarkdownDecorationsEffect = StateEffect.define<null>();
 const orderedListNormalizationAnnotation = Annotation.define<boolean>();
 const hiddenSelectionNormalizationAnnotation = Annotation.define<boolean>();
+const blockPointerDragThresholdPx = 3;
 
 export function createFishMarkMarkdownExtensions(
   options: CreateFishMarkMarkdownExtensionsOptions
@@ -117,12 +129,19 @@ export function createFishMarkMarkdownExtensions(
   }
 
   const markdownDocumentCache = createMarkdownDocumentCache(parseMarkdownDocument);
+  const initialSelection = {
+    anchor: 0,
+    head: 0
+  };
+  const initialEditorDerivedState = createEditorDerivedState({
+    source: "",
+    selection: initialSelection,
+    parseMarkdownDocument: markdownDocumentCache.read
+  });
   let tableInteractionView: EditorView | null = null;
   const runtime: MarkdownExtensionRuntime = {
-    activeBlockState: createActiveBlockStateFromMarkdownDocument(markdownDocumentCache.read(""), {
-      anchor: 0,
-      head: 0
-    }),
+    activeBlockState: initialEditorDerivedState.activeBlockState,
+    editorDerivedState: initialEditorDerivedState,
     blockDecorationSignature: "",
     hasEditorFocus: false,
     isCompositionGuardActive: false,
@@ -133,16 +152,16 @@ export function createFishMarkMarkdownExtensions(
   const groupedShortcutKeymaps = createGroupedShortcutKeymaps(() => runtime.activeBlockState);
   const canOpenExternalLink = typeof options.onOpenLink === "function";
 
-  const createLiveActiveBlockState = (state: EditorState): ActiveBlockState =>
-    deriveInactiveBlockDecorationsState({
+  const createLiveEditorDerivedState = (state: EditorState): EditorDerivedState =>
+    createEditorDerivedState({
       source: state.doc.toString(),
       selection: createSelectionSnapshot(state),
-      hasEditorFocus: runtime.hasEditorFocus,
-      markdownDocumentCache,
-      resolveImagePreviewUrl: options.resolveImagePreviewUrl,
-      tableWidgetCallbacks,
+      parseMarkdownDocument: markdownDocumentCache.read,
       previousTableCursor: runtime.activeBlockState.tableCursor
-    }).activeBlockState;
+    });
+
+  const createLiveActiveBlockState = (state: EditorState): ActiveBlockState =>
+    createLiveEditorDerivedState(state).activeBlockState;
 
   const isTableCellEditor = (element: Element | null): element is HTMLElement =>
     element instanceof HTMLElement && element.classList.contains("cm-table-widget-input");
@@ -516,22 +535,33 @@ export function createFishMarkMarkdownExtensions(
     }
   };
 
-  const createDerivedState = (state: EditorState) =>
-    deriveInactiveBlockDecorationsState({
-      source: state.doc.toString(),
-      selection: createSelectionSnapshot(state),
+  const createDecoratedDerivedState = (editorDerivedState: EditorDerivedState) => {
+    const inactiveBlockDecorationsState = deriveInactiveBlockDecorationsState({
+      source: editorDerivedState.source,
+      selection: editorDerivedState.selection,
       hasEditorFocus: runtime.hasEditorFocus,
-      markdownDocumentCache,
+      editorDerivedState,
       resolveImagePreviewUrl: options.resolveImagePreviewUrl,
-      tableWidgetCallbacks,
-      previousTableCursor: runtime.activeBlockState.tableCursor
+      tableWidgetCallbacks
     });
+
+    options.onBlockDecorationsBuilt?.();
+
+    return {
+      ...inactiveBlockDecorationsState,
+      editorDerivedState
+    };
+  };
+
+  const createDerivedState = (state: EditorState) =>
+    createDecoratedDerivedState(createLiveEditorDerivedState(state));
 
   const blockDecorationsField = StateField.define<DecorationSet>({
     create(state) {
-      const { activeBlockState, decorationSet, signature } = createDerivedState(state);
+      const { activeBlockState, decorationSet, editorDerivedState, signature } = createDerivedState(state);
 
       runtime.activeBlockState = activeBlockState;
+      runtime.editorDerivedState = editorDerivedState;
       runtime.blockDecorationSignature = signature;
 
       return decorationSet;
@@ -566,9 +596,47 @@ export function createFishMarkMarkdownExtensions(
     });
   };
 
-  const recomputeDerivedState = (view: EditorView, state: EditorState, force = false) => {
-    const { activeBlockState, decorationSet, signature } = createDerivedState(state);
+  const recomputeDerivedState = (
+    view: EditorView,
+    state: EditorState,
+    recomputeOptions: boolean | { force?: boolean; reuseMappedDecorations?: boolean } = false
+  ) => {
+    const force = typeof recomputeOptions === "boolean" ? recomputeOptions : recomputeOptions.force === true;
+    const reuseMappedDecorations =
+      typeof recomputeOptions === "object" && recomputeOptions.reuseMappedDecorations === true;
+    const editorDerivedState = createLiveEditorDerivedState(state);
 
+    if (!force && reuseMappedDecorations && runtime.editorDerivedState.source === editorDerivedState.source) {
+      const scopedDecorations = createSelectionScopedBlockDecorations({
+        baseDecorationSet: state.field(blockDecorationsField),
+        previousActiveBlockState: runtime.editorDerivedState.activeBlockState,
+        activeBlockState: editorDerivedState.activeBlockState,
+        hasEditorFocus: runtime.hasEditorFocus,
+        source: editorDerivedState.source,
+        referenceDefinitions: editorDerivedState.referenceDefinitions,
+        resolveImagePreviewUrl: options.resolveImagePreviewUrl,
+        tableWidgetCallbacks
+      });
+
+      runtime.editorDerivedState = editorDerivedState;
+      notifyActiveBlockChange(editorDerivedState.activeBlockState);
+      if (scopedDecorations.didUpdateDecorations) {
+        applyBlockDecorations(
+          view,
+          scopedDecorations.decorationSet,
+          scopedDecorations.signature,
+          true
+        );
+      } else {
+        runtime.blockDecorationSignature = scopedDecorations.signature;
+      }
+      syncTableInteractionFocus(view, editorDerivedState.activeBlockState);
+      return;
+    }
+
+    const { activeBlockState, decorationSet, signature } = createDecoratedDerivedState(editorDerivedState);
+
+    runtime.editorDerivedState = editorDerivedState;
     notifyActiveBlockChange(activeBlockState, force);
     applyBlockDecorations(view, decorationSet, signature, force);
     syncTableInteractionFocus(view, activeBlockState);
@@ -619,10 +687,17 @@ export function createFishMarkMarkdownExtensions(
 
   const lifecyclePlugin = ViewPlugin.fromClass(class {
     view: EditorView;
+    stopBlockPointerDragSelection: (() => void) | null = null;
+    unsubscribeCodeHighlightParserLoaded: () => void;
 
     constructor(view: EditorView) {
       this.view = view;
       tableInteractionView = view;
+      this.unsubscribeCodeHighlightParserLoaded = subscribeCodeHighlightParserLoaded(() => {
+        this.view.dispatch({
+          effects: forceRefreshMarkdownDecorationsEffect.of(null)
+        });
+      });
       view.dom.addEventListener("compositionstart", this.handleCompositionStart);
       view.dom.addEventListener("compositionupdate", this.handleCompositionStart);
       view.dom.addEventListener("compositionend", this.handleCompositionEnd);
@@ -675,6 +750,77 @@ export function createFishMarkMarkdownExtensions(
       options.onBlur?.();
     };
 
+    resolvePointerSelectionHead = (event: MouseEvent): number | null => {
+      const interactionAnchor = resolveBlockPointerSelectionAnchor(this.view, runtime.activeBlockState, event);
+
+      if (interactionAnchor !== null) {
+        return interactionAnchor;
+      }
+
+      const positionAtCoords = this.view.posAtCoords({
+        x: event.clientX,
+        y: event.clientY
+      });
+
+      return typeof positionAtCoords === "number" ? positionAtCoords : null;
+    };
+
+    startBlockPointerDragSelection = (event: MouseEvent, anchor: number) => {
+      this.stopBlockPointerDragSelection?.();
+
+      const ownerDocument = this.view.dom.ownerDocument;
+      const originX = event.clientX;
+      const originY = event.clientY;
+      let hasDragged = false;
+
+      const dispatchSelection = (head: number) => {
+        this.view.dispatch({
+          selection: {
+            anchor,
+            head
+          }
+        });
+      };
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const movedDistance = Math.hypot(moveEvent.clientX - originX, moveEvent.clientY - originY);
+
+        if (!hasDragged && movedDistance < blockPointerDragThresholdPx) {
+          return;
+        }
+
+        hasDragged = true;
+        const head = this.resolvePointerSelectionHead(moveEvent);
+
+        if (head !== null) {
+          moveEvent.preventDefault();
+          dispatchSelection(head);
+        }
+      };
+
+      const handleMouseUp = (upEvent: MouseEvent) => {
+        if (hasDragged) {
+          const head = this.resolvePointerSelectionHead(upEvent);
+
+          if (head !== null) {
+            upEvent.preventDefault();
+            dispatchSelection(head);
+          }
+        }
+
+        this.stopBlockPointerDragSelection?.();
+      };
+
+      this.stopBlockPointerDragSelection = () => {
+        ownerDocument.removeEventListener("mousemove", handleMouseMove, true);
+        ownerDocument.removeEventListener("mouseup", handleMouseUp, true);
+        this.stopBlockPointerDragSelection = null;
+      };
+
+      ownerDocument.addEventListener("mousemove", handleMouseMove, true);
+      ownerDocument.addEventListener("mouseup", handleMouseUp, true);
+    };
+
     handleMouseDown = (event: MouseEvent) => {
       const inactiveLinkTarget = resolveInactiveLinkTarget(event);
 
@@ -699,6 +845,7 @@ export function createFishMarkMarkdownExtensions(
           }
         });
         this.view.focus();
+        this.startBlockPointerDragSelection(event, interactionAnchor);
         return;
       }
 
@@ -740,6 +887,8 @@ export function createFishMarkMarkdownExtensions(
       this.view.dom.removeEventListener("focusin", this.handleFocusIn);
       this.view.dom.removeEventListener("focusout", this.handleFocusOut);
       this.view.dom.removeEventListener("mousedown", this.handleMouseDown, true);
+      this.stopBlockPointerDragSelection?.();
+      this.unsubscribeCodeHighlightParserLoaded();
     }
   });
 
@@ -758,7 +907,9 @@ export function createFishMarkMarkdownExtensions(
 
       const shouldNormalizeOrderedLists =
         transaction.docChanged && !transaction.annotation(orderedListNormalizationAnnotation);
-      const shouldNormalizeHiddenSelection = !transaction.annotation(hiddenSelectionNormalizationAnnotation);
+      const shouldNormalizeHiddenSelection =
+        (transaction.docChanged || transaction.selection !== undefined) &&
+        !transaction.annotation(hiddenSelectionNormalizationAnnotation);
 
       if (!shouldNormalizeOrderedLists && !shouldNormalizeHiddenSelection) {
         return transaction;
@@ -770,7 +921,10 @@ export function createFishMarkMarkdownExtensions(
       const followUpTransactions: TransactionSpec[] = [];
 
       if (shouldNormalizeOrderedLists) {
-        const normalization = computeNormalizedOrderedListDocument(effectiveSource);
+        const normalization = computeNormalizedOrderedListDocument(effectiveSource, {
+          parseBlockMap: options.parseOrderedListNormalizationBlockMap,
+          changedRanges: readTransactionChangedRanges(transaction)
+        });
 
         if (normalization) {
           effectiveSource = normalization.source;
@@ -790,7 +944,8 @@ export function createFishMarkMarkdownExtensions(
 
       if (
         shouldNormalizeHiddenSelection &&
-        effectiveAnchor === effectiveHead
+        effectiveAnchor === effectiveHead &&
+        transaction.annotation(Transaction.userEvent) !== "delete.list-marker"
       ) {
         const markdownDocument = markdownDocumentCache.read(effectiveSource);
         const previousAnchor = transaction.startState.selection.main.anchor;
@@ -946,9 +1101,23 @@ export function createFishMarkMarkdownExtensions(
         return;
       }
 
-      recomputeDerivedState(update.view, update.state);
+      recomputeDerivedState(update.view, update.state, {
+        reuseMappedDecorations: !update.docChanged && update.selectionSet
+      });
     })
   ];
+}
+
+function readTransactionChangedRanges(
+  transaction: Transaction
+): Array<{ from: number; to: number }> {
+  const ranges: Array<{ from: number; to: number }> = [];
+
+  transaction.changes.iterChanges((_fromA, _toA, fromB, toB) => {
+    ranges.push({ from: fromB, to: toB });
+  });
+
+  return ranges;
 }
 
 function createDetachedListBlankLineInsertTransaction(

@@ -118,7 +118,7 @@ describe("useEditorApplicationController", () => {
       getEditorContent: () => "# Saved\n",
       setEditorContentSnapshot: vi.fn(),
       showNotification: vi.fn(),
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       initialSnapshot: {
         ...savedSnapshot,
         activeDocument: {
@@ -178,7 +178,7 @@ describe("useEditorApplicationController", () => {
       getEditorContent: () => "# Exported\n",
       setEditorContentSnapshot: vi.fn(),
       showNotification,
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       initialSnapshot: {
         ...savedSnapshot,
         activeDocument: {
@@ -230,7 +230,7 @@ describe("useEditorApplicationController", () => {
       getEditorContent: () => "",
       setEditorContentSnapshot: vi.fn(),
       showNotification: vi.fn(),
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       initialSnapshot: emptySnapshot
     });
 
@@ -295,7 +295,7 @@ describe("useEditorApplicationController", () => {
       getEditorContent: () => "# First dirty\n",
       setEditorContentSnapshot: vi.fn(),
       showNotification: vi.fn(),
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       initialSnapshot: firstDirtySnapshot
     });
 
@@ -360,7 +360,7 @@ describe("useEditorApplicationController", () => {
       getEditorContent: () => "",
       setEditorContentSnapshot: vi.fn(),
       showNotification: vi.fn(),
-      updateOutline: vi.fn(),
+      scheduleDocumentDerivedDataUpdate: vi.fn(),
       initialSnapshot: emptySnapshot
     });
 

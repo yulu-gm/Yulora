@@ -1,53 +1,23 @@
 import { Decoration } from "@codemirror/view";
 import { type Range } from "@codemirror/state";
 import { classHighlighter, highlightTree } from "@lezer/highlight";
-import type { Parser } from "@lezer/common";
+
 import {
-  javascriptLanguage,
-  jsxLanguage,
-  tsxLanguage,
-  typescriptLanguage
-} from "@codemirror/lang-javascript";
-import { pythonLanguage } from "@codemirror/lang-python";
-import { jsonLanguage } from "@codemirror/lang-json";
-import { cssLanguage } from "@codemirror/lang-css";
-import { htmlLanguage } from "@codemirror/lang-html";
-import { markdownLanguage } from "@codemirror/lang-markdown";
+  CODE_HIGHLIGHT_SYNC_CONTENT_LIMIT,
+  createCodeHighlightCacheKey,
+  readCodeHighlightCache,
+  recordCodeHighlightParserRun,
+  recordCodeHighlightSkippedLongBlock,
+  writeCodeHighlightCache,
+  type CachedCodeHighlightRange
+} from "./code-highlight-cache";
+import {
+  requestCodeHighlightParser,
+  resolveCodeHighlightLanguageKey
+} from "./code-highlight-language-loader";
 
-const LANGUAGE_PARSERS: Record<string, Parser> = {
-  js: javascriptLanguage.parser,
-  javascript: javascriptLanguage.parser,
-  mjs: javascriptLanguage.parser,
-  cjs: javascriptLanguage.parser,
-  jsx: jsxLanguage.parser,
-  ts: typescriptLanguage.parser,
-  typescript: typescriptLanguage.parser,
-  tsx: tsxLanguage.parser,
-  py: pythonLanguage.parser,
-  python: pythonLanguage.parser,
-  json: jsonLanguage.parser,
-  json5: jsonLanguage.parser,
-  css: cssLanguage.parser,
-  scss: cssLanguage.parser,
-  html: htmlLanguage.parser,
-  htm: htmlLanguage.parser,
-  xml: htmlLanguage.parser,
-  svg: htmlLanguage.parser,
-  vue: htmlLanguage.parser,
-  md: markdownLanguage.parser,
-  markdown: markdownLanguage.parser
-};
-
-// Code fence highlighting is intentionally synchronous. Keep the default
-// registry small so low-frequency language packages do not inflate the app
-// bundle or introduce async parser races in decoration building.
-
-function resolveParser(info: string | null): Parser | null {
-  if (!info) return null;
-  const key = info.trim().toLowerCase().split(/\s+/)[0];
-  if (!key) return null;
-  return LANGUAGE_PARSERS[key] ?? null;
-}
+// Code fence highlighting stays synchronous. Parser packages are requested on
+// first use, then the editor refreshes decorations once the chunk is ready.
 
 export function appendCodeHighlightRanges(
   source: string,
@@ -59,23 +29,61 @@ export function appendCodeHighlightRanges(
   if (codeEndOffset <= codeStartOffset) {
     return;
   }
-  const parser = resolveParser(info);
-  if (!parser) {
+  const languageKey = resolveCodeHighlightLanguageKey(info);
+  if (!languageKey) {
     return;
   }
   const code = source.slice(codeStartOffset, codeEndOffset);
+
+  if (code.length > CODE_HIGHLIGHT_SYNC_CONTENT_LIMIT) {
+    recordCodeHighlightSkippedLongBlock();
+    return;
+  }
+
+  const parser = requestCodeHighlightParser(languageKey);
+  if (!parser) {
+    return;
+  }
+
+  const cacheKey = createCodeHighlightCacheKey(languageKey, code);
+  const cachedRanges = readCodeHighlightCache(cacheKey);
+
+  if (cachedRanges) {
+    appendCachedRanges(codeStartOffset, cachedRanges, ranges);
+    return;
+  }
+
   let tree;
   try {
+    recordCodeHighlightParserRun();
     tree = parser.parse(code);
   } catch {
     return;
   }
+  const relativeRanges: CachedCodeHighlightRange[] = [];
+
   highlightTree(tree, classHighlighter, (from, to, classes) => {
     if (to <= from || !classes) {
       return;
     }
-    ranges.push(
-      Decoration.mark({ class: classes }).range(codeStartOffset + from, codeStartOffset + to)
-    );
+    relativeRanges.push({ from, to, className: classes });
   });
+
+  writeCodeHighlightCache(cacheKey, relativeRanges);
+  appendCachedRanges(codeStartOffset, relativeRanges, ranges);
+}
+
+function appendCachedRanges(
+  codeStartOffset: number,
+  cachedRanges: readonly CachedCodeHighlightRange[],
+  ranges: Range<Decoration>[]
+): void {
+  for (const range of cachedRanges) {
+    ranges.push(
+      Decoration.mark({ class: range.className }).range(
+        codeStartOffset + range.from,
+        codeStartOffset + range.to
+      )
+    );
+  }
 }

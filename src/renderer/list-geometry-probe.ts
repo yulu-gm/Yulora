@@ -419,6 +419,18 @@ export async function runListGeometryProbe(): Promise<ProbeResult> {
       )}`
     );
   }
+  if (/\bcm-inactive-blank-line\b/u.test(trailingBlankAfterList.lineClasses)) {
+    failures.push(
+      `focused whitespace-only trailing line must not be collapsed as inactive blank, got ${JSON.stringify(
+        trailingBlankAfterList.lineClasses
+      )}`
+    );
+  }
+  if (trailingBlankAfterList.line.height <= 0) {
+    failures.push(
+      `focused whitespace-only trailing line must keep visible height, got ${trailingBlankAfterList.line.height}`
+    );
+  }
 
   root.innerHTML = "";
   const doubleEnterController = createCodeEditorController({

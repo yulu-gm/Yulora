@@ -8,7 +8,7 @@ import { parseMarkdownDocument } from "@fishmark/markdown-engine";
 
 import { createActiveBlockStateFromMarkdownDocument, type ActiveBlockState } from "../active-block";
 import { deriveTableCursorState } from "../table-cursor-state";
-import { resolveArrowDown } from "./registry";
+import { resolveArrowDown, resolvePointerSelectionAnchor } from "./registry";
 
 const views: EditorView[] = [];
 
@@ -101,5 +101,45 @@ describe("block interaction registry", () => {
       anchor: source.indexOf("Right", followingTableStart),
       goalColumn: undefined
     });
+  });
+
+  it("uses elementFromPoint to resolve pointer selection when drag events target the document", () => {
+    const source = ["Paragraph", "- item"].join("\n");
+    const { activeState, view } = createVerticalNavigationHarness(source, 0);
+    const listLine = Array.from(view.dom.querySelectorAll<HTMLElement>(".cm-line")).find((line) =>
+      line.textContent?.includes("- item")
+    );
+
+    expect(listLine).toBeInstanceOf(HTMLElement);
+    listLine!.classList.add("cm-inactive-list", "cm-inactive-list-unordered", "cm-inactive-list-depth-0");
+    listLine!.style.paddingLeft = "24px";
+
+    const documentWithElementFromPoint = document as Document & {
+      elementFromPoint?: (x: number, y: number) => Element | null;
+    };
+    const originalElementFromPoint = documentWithElementFromPoint.elementFromPoint;
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      value: () => listLine
+    });
+
+    try {
+      const event = new MouseEvent("mousemove", {
+        bubbles: true,
+        clientX: 1,
+        clientY: 1
+      });
+
+      expect(resolvePointerSelectionAnchor(view, activeState, event)).toBe(source.indexOf("- item"));
+    } finally {
+      if (originalElementFromPoint) {
+        Object.defineProperty(document, "elementFromPoint", {
+          configurable: true,
+          value: originalElementFromPoint
+        });
+      } else {
+        Reflect.deleteProperty(documentWithElementFromPoint, "elementFromPoint");
+      }
+    }
   });
 });

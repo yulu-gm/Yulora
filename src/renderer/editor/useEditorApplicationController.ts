@@ -3,11 +3,6 @@ import { useCallback, useMemo } from "react";
 import type { AppNotification } from "../../shared/app-update";
 import type { AppMenuCommand } from "../../shared/menu-command";
 import type { WorkspaceWindowSnapshot } from "../../shared/workspace";
-import {
-  collectReadableStyleSheetText,
-  collectRootExportAttributes,
-  createFishmarkExportHtml
-} from "../export-html";
 import { useEditorWorkflowController } from "./useEditorWorkflowController";
 import { useExternalConflictController } from "./useExternalConflictController";
 import { useSaveController } from "./useSaveController";
@@ -18,18 +13,18 @@ export function useEditorApplicationController(input: {
   fishmark: Window["fishmark"];
   getEditorContent: () => string;
   initialSnapshot?: WorkspaceWindowSnapshot | null;
+  scheduleDocumentDerivedDataUpdate: (content: string) => void;
   setEditorContentSnapshot: (content: string) => void;
   showNotification: (notification: AppNotification) => void;
-  updateOutline: (content: string) => void;
 }) {
   const {
     autosaveDelayMs,
     fishmark,
     getEditorContent,
     initialSnapshot,
+    scheduleDocumentDerivedDataUpdate,
     setEditorContentSnapshot,
-    showNotification,
-    updateOutline
+    showNotification
   } = input;
   const workspaceController = useWorkspaceController({
     fishmark,
@@ -67,7 +62,7 @@ export function useEditorApplicationController(input: {
   });
   const editorWorkflowController = useEditorWorkflowController({
     setEditorContentSnapshot,
-    updateOutline,
+    scheduleDocumentDerivedDataUpdate,
     scheduleAutosave: saveController.scheduleAutosave,
     runAutosave: saveController.runAutosave,
     resetAutosaveRuntime: saveController.resetAutosaveRuntime,
@@ -165,6 +160,11 @@ export function useEditorApplicationController(input: {
 
     try {
       await flushActiveWorkspaceDraft();
+      const {
+        collectReadableStyleSheetText,
+        collectRootExportAttributes,
+        createFishmarkExportHtml
+      } = await import("../export-html");
 
       const html = createFishmarkExportHtml({
         markdown: getEditorContent(),

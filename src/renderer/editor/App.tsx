@@ -27,9 +27,7 @@ import {
   type RecentFilesSnapshot
 } from "../../shared/recent-files";
 import type { CodeEditorHandle } from "../code-editor-view";
-import { deriveOutlineItems, type OutlineItem } from "../outline";
 import { createThemePackageRuntime } from "../theme-package-runtime";
-import { getDocumentMetrics } from "../document-metrics";
 import {
   applyThemeParameterCssVariables,
   clearThemeParameterCssVariables,
@@ -64,6 +62,7 @@ import {
   useThemeController,
   type ResolvedThemeMode
 } from "./useThemeController";
+import { useDocumentDerivedDataController } from "./useDocumentDerivedDataController";
 
 const EXTERNAL_FILE_MODIFIED_PENDING_MESSAGE =
   "当前文件已被外部修改。请先决定是重载磁盘版本，还是保留当前编辑并另存为。";
@@ -224,7 +223,6 @@ function EditorShell({
   fishmark: Window["fishmark"];
   fishmarkTest?: Window["fishmarkTest"];
 }) {
-  const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isOutlineClosing, setIsOutlineClosing] = useState(false);
@@ -312,14 +310,19 @@ function EditorShell({
     return editorRef.current?.getContent() ?? editorContentRef.current;
   }, []);
 
+  const {
+    outlineItems,
+    currentDocumentMetrics,
+    applyDocumentDerivedDataNow,
+    scheduleDocumentDerivedDataUpdate
+  } = useDocumentDerivedDataController();
+
   const editorApplicationController = useEditorApplicationController({
     fishmark,
     getEditorContent,
+    scheduleDocumentDerivedDataUpdate,
     setEditorContentSnapshot: (content) => {
       editorContentRef.current = content;
-    },
-    updateOutline: (content) => {
-      setOutlineItems(deriveOutlineItems(content));
     },
     autosaveDelayMs: preferences.autosave.idleDelayMs,
     showNotification
@@ -352,10 +355,6 @@ function EditorShell({
     getEffectiveSaveState
   } = saveController;
   const effectiveSaveState = getEffectiveSaveState(activeDocument);
-  const currentDocumentContent = activeDocument
-    ? (editorContentRef.current || activeDocument.content)
-    : "";
-  const currentDocumentMetrics = activeDocument ? getDocumentMetrics(currentDocumentContent) : null;
   const currentDocumentWordCount = currentDocumentMetrics?.meaningfulCharacterCount ?? 0;
   const settingsController = useSettingsController({
     activeDocument,
@@ -438,15 +437,19 @@ function EditorShell({
   const syncThemeRuntimeEnv = useEffectEvent((themeMode: ResolvedThemeMode = resolvedThemeMode): void => {
     applyThemeRuntimeEnv(document.documentElement, createThemeRuntimeEnv(themeMode));
   });
+  const readActiveDocumentLoadContent = useEffectEvent(() => activeDocument?.content ?? null);
+  const activeDocumentTabId = activeDocument?.tabId ?? null;
 
   useEffect(() => {
-    editorContentRef.current = activeDocument?.content ?? "";
+    const activeDocumentContent = readActiveDocumentLoadContent();
+
+    editorContentRef.current = activeDocumentContent ?? "";
     activeBlockStateRef.current = null;
-    setOutlineItems(activeDocument ? deriveOutlineItems(activeDocument.content) : []);
+    applyDocumentDerivedDataNow(activeDocumentContent);
     setActiveHeadingId(null);
     setActiveShortcutGroupId("default-text");
     setActiveTableToolId(null);
-  }, [activeDocument, editorLoadRevision]);
+  }, [activeDocumentTabId, applyDocumentDerivedDataNow, editorLoadRevision]);
 
   const insertTableRowAbove = useCallback(() => {
     editorRef.current?.insertTableRowAbove();

@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 export function useEditorWorkflowController(input: {
   setEditorContentSnapshot: (content: string) => void;
-  updateOutline: (content: string) => void;
+  scheduleDocumentDerivedDataUpdate: (content: string) => void;
   scheduleAutosave: () => void;
   runAutosave: () => Promise<void>;
   resetAutosaveRuntime: () => void;
@@ -14,7 +14,7 @@ export function useEditorWorkflowController(input: {
 }) {
   const {
     setEditorContentSnapshot,
-    updateOutline,
+    scheduleDocumentDerivedDataUpdate,
     scheduleAutosave,
     runAutosave,
     resetAutosaveRuntime,
@@ -28,14 +28,14 @@ export function useEditorWorkflowController(input: {
   const handleEditorContentChange = useCallback(
     (nextContent: string): void => {
       setEditorContentSnapshot(nextContent);
-      updateOutline(nextContent);
+      scheduleDocumentDerivedDataUpdate(nextContent);
       scheduleAutosave();
 
       void updateDraft(nextContent).catch(() => {
         // Draft sync failures are surfaced by explicit save/autosave flushes.
       });
     },
-    [scheduleAutosave, setEditorContentSnapshot, updateDraft, updateOutline]
+    [scheduleAutosave, scheduleDocumentDerivedDataUpdate, setEditorContentSnapshot, updateDraft]
   );
 
   const handleEditorBlur = useCallback((): void => {

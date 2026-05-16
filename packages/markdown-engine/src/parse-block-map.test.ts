@@ -147,7 +147,7 @@ describe("parseBlockMap", () => {
     expect(source.slice(result.blocks[1]!.startOffset, result.blocks[1]!.endOffset)).toBe("1. one\n2. two");
   });
 
-  it("treats a trailing single dash as a new list marker instead of restyling the previous paragraph", () => {
+  it("keeps a trailing single dash as paragraph text until a space commits the list marker", () => {
     const source = ["- 2", "  - child", "", "wwww", "-"].join("\n");
 
     const result = parseMarkdownDocument(source);
@@ -170,27 +170,104 @@ describe("parseBlockMap", () => {
         endLine: 4
       },
       {
-        id: "list:20-21",
-        type: "list",
+        id: "paragraph:20-21",
+        type: "paragraph",
         startOffset: 20,
         endOffset: 21,
         startLine: 5,
-        endLine: 5,
+        endLine: 5
+      }
+    ]);
+  });
+
+  it("parses a trailing dash plus space as an empty list marker", () => {
+    const source = ["wwww", "- "].join("\n");
+
+    const result = parseMarkdownDocument(source);
+
+    expect(result.blocks).toMatchObject([
+      {
+        id: "paragraph:0-4",
+        type: "paragraph",
+        startOffset: 0,
+        endOffset: 4,
+        startLine: 1,
+        endLine: 1
+      },
+      {
+        id: "list:5-7",
+        type: "list",
+        startOffset: 5,
+        endOffset: 7,
+        startLine: 2,
+        endLine: 2,
         ordered: false,
         items: [
           {
-            id: "list-item:20-21",
-            startOffset: 20,
-            endOffset: 21,
-            startLine: 5,
-            endLine: 5,
+            id: "list-item:5-7",
+            startOffset: 5,
+            endOffset: 7,
+            startLine: 2,
+            endLine: 2,
             indent: 0,
             marker: "-",
-            markerStart: 20,
-            markerEnd: 21,
-            contentStartOffset: 21,
-            contentEndOffset: 21,
+            markerStart: 5,
+            markerEnd: 6,
+            contentStartOffset: 7,
+            contentEndOffset: 7,
             task: null
+          }
+        ]
+      }
+    ]);
+  });
+
+  it("keeps a bare ordered marker as paragraph text until a space commits the list marker", () => {
+    const bareSource = "1.";
+    const parenthesizedBareSource = "1)";
+    const committedSource = "1. ";
+
+    expect(parseMarkdownDocument(bareSource).blocks).toMatchObject([
+      {
+        id: "paragraph:0-2",
+        type: "paragraph",
+        startOffset: 0,
+        endOffset: 2,
+        startLine: 1,
+        endLine: 1
+      }
+    ]);
+    expect(parseMarkdownDocument(parenthesizedBareSource).blocks).toMatchObject([
+      {
+        id: "paragraph:0-2",
+        type: "paragraph",
+        startOffset: 0,
+        endOffset: 2,
+        startLine: 1,
+        endLine: 1
+      }
+    ]);
+    expect(parseMarkdownDocument(committedSource).blocks).toMatchObject([
+      {
+        id: "list:0-3",
+        type: "list",
+        startOffset: 0,
+        endOffset: 3,
+        startLine: 1,
+        endLine: 1,
+        ordered: true,
+        items: [
+          {
+            id: "list-item:0-3",
+            startOffset: 0,
+            endOffset: 3,
+            startLine: 1,
+            endLine: 1,
+            marker: "1.",
+            markerStart: 0,
+            markerEnd: 2,
+            contentStartOffset: 3,
+            contentEndOffset: 3
           }
         ]
       }
@@ -241,7 +318,7 @@ describe("parseBlockMap", () => {
     ]);
   });
 
-  it("keeps a headed pipe table before a following dash list marker", () => {
+  it("keeps a headed pipe table before a following bare dash paragraph", () => {
     const source = ["| 1 | 2 |", "| :--- | :--- |", "| 1 | 2 |", "| 2 | 1", "-"].join("\n");
 
     const result = parseMarkdownDocument(source);
@@ -258,7 +335,7 @@ describe("parseBlockMap", () => {
         ]
       },
       {
-        type: "list",
+        type: "paragraph",
         startLine: 5,
         endLine: 5
       }

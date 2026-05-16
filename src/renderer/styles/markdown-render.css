@@ -271,17 +271,18 @@
 }
 
 .document-editor .cm-active-list-marker {
+  position: absolute;
+  top: 0;
   color: currentColor;
   font-weight: 500;
   opacity: 0.9;
   white-space: pre;
+  pointer-events: none;
   overflow-wrap: normal;
   word-break: normal;
 }
 
 .document-editor .cm-active-list-unordered .cm-active-list-marker {
-  position: absolute;
-  top: 0;
   left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-unordered-marker-left));
   display: inline-flex;
   align-items: center;
@@ -291,8 +292,6 @@
 }
 
 .document-editor .cm-active-list-ordered .cm-active-list-marker {
-  position: absolute;
-  top: 0;
   left: var(--fishmark-list-depth-offset);
   display: inline-block;
   min-width: var(--fishmark-list-ordered-marker-width);
@@ -302,12 +301,23 @@
 }
 
 .document-editor .cm-active-list-task .cm-active-list-marker {
-  position: absolute;
-  top: 0;
   left: calc(var(--fishmark-list-depth-offset) + var(--fishmark-list-task-marker-left));
   display: inline-block;
   min-width: var(--fishmark-list-task-content-offset);
   text-align: left;
+}
+
+.document-editor .cm-active-list-padding-anchor {
+  display: inline-block;
+  width: 0.25em;
+  height: 1em;
+  margin-right: -0.25em;
+  color: inherit;
+  caret-color: var(--fishmark-caret-color);
+  line-height: 1;
+  overflow: visible;
+  vertical-align: baseline;
+  white-space: pre;
 }
 
 .document-editor .cm-inactive-list-marker {

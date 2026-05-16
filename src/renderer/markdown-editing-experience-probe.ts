@@ -30,6 +30,25 @@ type Harness = {
   view: EditorView;
 };
 
+type ClickSample = {
+  reason?: string;
+  target: Element | null;
+  x: number | null;
+  y: number | null;
+};
+
+type HumanListAction =
+  | { kind: "backspace"; count?: number }
+  | { kind: "enter" }
+  | { kind: "tab" }
+  | { kind: "type"; text: string };
+
+type HumanListCheckpoint = {
+  afterAction: number;
+  expectedContent: string;
+  name: string;
+};
+
 function nextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
@@ -113,11 +132,47 @@ function nativeInsertTextIntoFocusedElement(text: string): boolean {
   return document.execCommand("insertText", false, text);
 }
 
-function dispatchBackspace(view: EditorView): void {
-  view.contentDOM.dispatchEvent(
+function dispatchCompositionEvent(
+  target: HTMLElement,
+  type: "compositionstart" | "compositionupdate" | "compositionend",
+  data: string
+): boolean {
+  return target.dispatchEvent(
+    new CompositionEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      data
+    })
+  );
+}
+
+function dispatchBackspace(view: EditorView): boolean {
+  return view.contentDOM.dispatchEvent(
     new KeyboardEvent("keydown", {
       key: "Backspace",
       code: "Backspace",
+      bubbles: true,
+      cancelable: true
+    })
+  );
+}
+
+function dispatchEnter(view: EditorView): boolean {
+  return view.contentDOM.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Enter",
+      code: "Enter",
+      bubbles: true,
+      cancelable: true
+    })
+  );
+}
+
+function dispatchTab(view: EditorView): boolean {
+  return view.contentDOM.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Tab",
+      code: "Tab",
       bubbles: true,
       cancelable: true
     })
@@ -185,6 +240,94 @@ function findLineByText(root: ParentNode, text: string): HTMLElement | null {
   ) ?? null;
 }
 
+function findLineByExactText(root: ParentNode, text: string): HTMLElement | null {
+  return Array.from(root.querySelectorAll<HTMLElement>(".cm-line")).find((line) =>
+    (line.textContent ?? "") === text
+  ) ?? null;
+}
+
+function describeDomSelectionGeometry(): Record<string, number | string | boolean | null> {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) {
+    return {
+      anchorOffset: null,
+      anchorParentClass: null,
+      anchorText: null,
+      collapsed: null,
+      rectBottom: null,
+      rectHeight: null,
+      rectLeft: null,
+      rectTop: null,
+      rectWidth: null
+    };
+  }
+
+  const range = selection.getRangeAt(0).cloneRange();
+  const rect = range.getBoundingClientRect();
+  range.detach();
+
+  const anchorNode = selection.anchorNode;
+  const anchorParent = anchorNode instanceof Element
+    ? anchorNode
+    : anchorNode?.parentElement ?? null;
+  const anchorText = anchorNode?.nodeType === Node.TEXT_NODE
+    ? anchorNode.nodeValue
+    : anchorParent?.textContent ?? null;
+
+  return {
+    anchorOffset: selection.anchorOffset,
+    anchorParentClass: anchorParent instanceof HTMLElement ? anchorParent.className : null,
+    anchorText,
+    collapsed: selection.isCollapsed,
+    rectBottom: Number.isFinite(rect.bottom) ? rect.bottom : null,
+    rectHeight: Number.isFinite(rect.height) ? rect.height : null,
+    rectLeft: Number.isFinite(rect.left) ? rect.left : null,
+    rectTop: Number.isFinite(rect.top) ? rect.top : null,
+    rectWidth: Number.isFinite(rect.width) ? rect.width : null
+  };
+}
+
+function isVisibleTextPresent(root: ParentNode, text: string): boolean {
+  return findTextRect(root, text) !== null || findLineByText(root, text) !== null;
+}
+
+function isTransparentColor(color: string): boolean {
+  const normalized = color.trim().toLowerCase();
+
+  return (
+    normalized === "" ||
+    normalized === "transparent" ||
+    normalized === "rgba(0, 0, 0, 0)" ||
+    /\brgba\([^)]*,\s*0(?:\.0+)?\s*\)$/u.test(normalized) ||
+    /\bcolor\(srgb [^)]* \/ 0(?:\.0+)?\)$/u.test(normalized)
+  );
+}
+
+function measureTemporaryInlineText(parent: HTMLElement | null, text: string): {
+  color: string | null;
+  height: number | null;
+  width: number | null;
+} {
+  if (!parent) {
+    return { color: null, height: null, width: null };
+  }
+
+  const span = document.createElement("span");
+  span.dataset.fishmarkImePreeditProbe = "true";
+  span.textContent = text;
+  parent.append(span);
+
+  const rect = span.getBoundingClientRect();
+  const color = window.getComputedStyle(span).color;
+  span.remove();
+
+  return {
+    color,
+    height: rect.height,
+    width: rect.width
+  };
+}
+
 function dispatchMouse(target: EventTarget, type: string, init: MouseEventInit): void {
   target.dispatchEvent(
     new MouseEvent(type, {
@@ -220,11 +363,7 @@ async function clickTableCell(harness: Harness, row: number, column: number): Pr
   return cell;
 }
 
-async function clickEditorPosition(harness: Harness, anchor: number): Promise<{
-  target: Element | null;
-  x: number;
-  y: number;
-}> {
+async function clickEditorPosition(harness: Harness, anchor: number): Promise<ClickSample> {
   const caretRect = harness.view.coordsAtPos(anchor);
   const contentRect = harness.view.contentDOM.getBoundingClientRect();
   const lineRects = Array.from(harness.root.querySelectorAll<HTMLElement>(".cm-line"))
@@ -247,6 +386,25 @@ async function clickEditorPosition(harness: Harness, anchor: number): Promise<{
   const target = document.elementFromPoint(x, y);
 
   dispatchMouseSequence(target ?? harness.view.contentDOM, { clientX: x, clientY: y });
+  await settle();
+
+  return { target, x, y };
+}
+
+async function clickVisibleTextEnd(
+  harness: Harness,
+  text: string
+): Promise<ClickSample> {
+  const rect = findTextRect(harness.root, text);
+
+  if (!rect) {
+    return { reason: "missing text rect", target: null, x: null, y: null };
+  }
+
+  const x = rect.right + 1;
+  const y = rect.top + Math.max(1, rect.height / 2);
+  const target = document.elementFromPoint(x, y) ?? harness.view.contentDOM;
+  dispatchMouseSequence(target, { clientX: x, clientY: y });
   await settle();
 
   return { target, x, y };
@@ -283,6 +441,1272 @@ async function runNativeInsertCase(input: {
     grammar: input.grammar,
     harness,
     name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runClickedNativeInsertCase(input: {
+  anchor: number;
+  expectedContent: string;
+  grammar: string;
+  initialContent: string;
+  name: string;
+  text: string;
+  textClickAnchor?: string;
+  visibleText: string;
+}): Promise<CaseResult> {
+  const harness = setupHarness(input.initialContent);
+  await settle();
+
+  const clickSample = input.textClickAnchor
+    ? await clickVisibleTextEnd(harness, input.textClickAnchor)
+    : await clickEditorPosition(harness, input.anchor);
+  const selectionAfterClick = harness.controller.getSelection();
+  const insertAccepted = nativeInsertTextIntoFocusedElement(input.text);
+  await settle();
+
+  const visibleRect = findTextRect(harness.root, input.visibleText);
+  const pass =
+    insertAccepted &&
+    harness.controller.getContent() === input.expectedContent &&
+    visibleRect !== null;
+
+  const result = resultFor({
+    details: {
+      activeElementAfterClick: describeElement(document.activeElement),
+      clickTarget: describeElement(clickSample.target),
+      clickX: clickSample.x,
+      clickY: clickSample.y,
+      clickReason: clickSample.reason ?? null,
+      insertAccepted,
+      selectionAfterClick,
+      visibleTextMeasured: visibleRect !== null
+    },
+    expectedContent: input.expectedContent,
+    grammar: input.grammar,
+    harness,
+    name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runListStyleClickedInsertCase(input: {
+  initialContent: string;
+  insertAfter: string;
+  name: string;
+}): Promise<CaseResult> {
+  const anchor = input.initialContent.indexOf(input.insertAfter) + input.insertAfter.length;
+
+  return runClickedNativeInsertCase({
+    anchor,
+    expectedContent: `${input.initialContent.slice(0, anchor)}中文${input.initialContent.slice(anchor)}`,
+    grammar: "list",
+    initialContent: input.initialContent,
+    name: input.name,
+    text: "中文",
+    textClickAnchor: input.initialContent === input.insertAfter ? undefined : input.insertAfter,
+    visibleText: "中文"
+  });
+}
+
+async function runListStyleNativeInputCases(): Promise<CaseResult[]> {
+  const inputs = [
+    {
+      initialContent: "- dash item",
+      insertAfter: "dash item",
+      name: "clicked native insert edits a dash unordered list item"
+    },
+    {
+      initialContent: "* star item",
+      insertAfter: "star item",
+      name: "clicked native insert edits a star unordered list item"
+    },
+    {
+      initialContent: "+ plus item",
+      insertAfter: "plus item",
+      name: "clicked native insert edits a plus unordered list item"
+    },
+    {
+      initialContent: "1. ordered dot",
+      insertAfter: "ordered dot",
+      name: "clicked native insert edits a dot ordered list item"
+    },
+    {
+      initialContent: "1) ordered paren",
+      insertAfter: "ordered paren",
+      name: "clicked native insert edits a paren ordered list item"
+    },
+    {
+      initialContent: "- [ ] unchecked task",
+      insertAfter: "unchecked task",
+      name: "clicked native insert edits an unchecked task list item"
+    },
+    {
+      initialContent: "- [x] checked task",
+      insertAfter: "checked task",
+      name: "clicked native insert edits a checked task list item"
+    },
+    {
+      initialContent: ["- parent", "  - child item"].join("\n"),
+      insertAfter: "child item",
+      name: "clicked native insert edits a nested unordered list item"
+    },
+    {
+      initialContent: ["1. parent", "   1. child item"].join("\n"),
+      insertAfter: "child item",
+      name: "clicked native insert edits a nested ordered list item"
+    },
+    {
+      initialContent: ["- [ ] parent", "  - [ ] child task"].join("\n"),
+      insertAfter: "child task",
+      name: "clicked native insert edits a nested task list item"
+    },
+    {
+      initialContent: ["- parent", "  continuation line"].join("\n"),
+      insertAfter: "continuation line",
+      name: "clicked native insert edits a list continuation line"
+    },
+    {
+      initialContent: "- ",
+      insertAfter: "- ",
+      name: "clicked native insert edits an empty unordered list item"
+    },
+    {
+      initialContent: "1. ",
+      insertAfter: "1. ",
+      name: "clicked native insert edits an empty ordered list item"
+    },
+    {
+      initialContent: "- [ ] ",
+      insertAfter: "- [ ] ",
+      name: "clicked native insert edits an empty task list item"
+    }
+  ];
+  const results: CaseResult[] = [];
+
+  for (const input of inputs) {
+    results.push(await runListStyleClickedInsertCase(input));
+  }
+
+  return results;
+}
+
+async function runSequentialNativeTypingCase(input: {
+  expectedContent: string;
+  grammar: string;
+  initialContent: string;
+  name: string;
+  sequences: readonly string[];
+  visibleTexts: readonly string[];
+}): Promise<CaseResult> {
+  const harness = setupHarness(input.initialContent);
+  harness.controller.setSelection(input.initialContent.length);
+  await settle();
+
+  const insertResults: boolean[] = [];
+  const enterResults: boolean[] = [];
+
+  for (const sequence of input.sequences) {
+    for (const character of Array.from(sequence)) {
+      if (character === "\n") {
+        enterResults.push(dispatchEnter(harness.view));
+      } else {
+        insertResults.push(nativeInsertText(harness.view, character));
+      }
+      await settle();
+    }
+  }
+
+  const measuredTexts = input.visibleTexts.map((text) => ({
+    measured: isVisibleTextPresent(harness.root, text),
+    text
+  }));
+  const pass =
+    insertResults.every(Boolean) &&
+    harness.controller.getContent() === input.expectedContent &&
+    measuredTexts.every((entry) => entry.measured);
+
+  const result = resultFor({
+    details: {
+      enterResults,
+      insertResults,
+      measuredTexts
+    },
+    expectedContent: input.expectedContent,
+    expectedSelection: {
+      anchor: input.expectedContent.length,
+      head: input.expectedContent.length
+    },
+    grammar: input.grammar,
+    harness,
+    name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runSequentialListTypingCases(): Promise<CaseResult[]> {
+  return [
+    await runSequentialNativeTypingCase({
+      expectedContent: ["- content 01", "- 中文内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits dash list items from an empty document",
+      sequences: ["- content 01\n", "中文内容 02\n", "\n"],
+      visibleTexts: ["content 01", "中文内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["- content 01", "", "- 中文内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing hand-enters explicit dash markers on separate empty lines",
+      sequences: ["- content 01\n", "\n", "- 中文内容 02\n", "\n"],
+      visibleTexts: ["content 01", "中文内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["* star content 01", "* 星号内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits star list items from an empty document",
+      sequences: ["* star content 01\n", "星号内容 02\n", "\n"],
+      visibleTexts: ["star content 01", "星号内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["+ plus content 01", "+ 加号内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits plus list items from an empty document",
+      sequences: ["+ plus content 01\n", "加号内容 02\n", "\n"],
+      visibleTexts: ["plus content 01", "加号内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["1. ordered content 01", "2. 有序内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits dot ordered list items from an empty document",
+      sequences: ["1. ordered content 01\n", "有序内容 02\n", "\n"],
+      visibleTexts: ["ordered content 01", "有序内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["1) paren content 01", "2) 括号内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits paren ordered list items from an empty document",
+      sequences: ["1) paren content 01\n", "括号内容 02\n", "\n"],
+      visibleTexts: ["paren content 01", "括号内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["- [ ] task content 01", "- [ ] 任务内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits unchecked task list items from an empty document",
+      sequences: ["- [ ] task content 01\n", "任务内容 02\n", "\n"],
+      visibleTexts: ["task content 01", "任务内容 02"]
+    }),
+    await runSequentialNativeTypingCase({
+      expectedContent: ["- [x] done content 01", "- [ ] 完成内容 02", "", ""].join("\n"),
+      grammar: "list",
+      initialContent: "",
+      name: "sequential typing creates and exits checked task list items from an empty document",
+      sequences: ["- [x] done content 01\n", "完成内容 02\n", "\n"],
+      visibleTexts: ["done content 01", "完成内容 02"]
+    })
+  ];
+}
+
+async function runStrictHumanListInputCase(input: {
+  actions: readonly HumanListAction[];
+  checkpoints?: readonly HumanListCheckpoint[];
+  expectedContent: string;
+  expectedSelectionAnchor?: number;
+  name: string;
+  visibleTexts?: readonly string[];
+}): Promise<CaseResult> {
+  const harness = setupHarness("");
+  harness.controller.setSelection(0);
+  await settle();
+
+  const insertResults: boolean[] = [];
+  const keyResults: Array<{ accepted: boolean; key: string }> = [];
+  const checkpointByAction = new Map((input.checkpoints ?? []).map((checkpoint) => [
+    checkpoint.afterAction,
+    checkpoint
+  ]));
+  const checkpointResults: Array<{
+    actualContent: string;
+    expectedContent: string;
+    name: string;
+    pass: boolean;
+  }> = [];
+  let typedCharacterCount = 0;
+  let backspaceCount = 0;
+  let enterCount = 0;
+  let tabCount = 0;
+
+  for (const [actionIndex, action] of input.actions.entries()) {
+    switch (action.kind) {
+      case "type": {
+        if (/[\r\n]/u.test(action.text)) {
+          throw new Error(`Strict human input action cannot include newline characters: ${action.text}`);
+        }
+
+        for (const character of Array.from(action.text)) {
+          insertResults.push(nativeInsertText(harness.view, character));
+          typedCharacterCount += 1;
+          await settle();
+        }
+        break;
+      }
+      case "enter":
+        keyResults.push({ accepted: dispatchEnter(harness.view), key: "Enter" });
+        enterCount += 1;
+        await settle();
+        break;
+      case "tab":
+        keyResults.push({ accepted: dispatchTab(harness.view), key: "Tab" });
+        tabCount += 1;
+        await settle();
+        break;
+      case "backspace": {
+        const count = action.count ?? 1;
+
+        for (let index = 0; index < count; index += 1) {
+          keyResults.push({ accepted: dispatchBackspace(harness.view), key: "Backspace" });
+          backspaceCount += 1;
+          await settle();
+        }
+        break;
+      }
+    }
+
+    const checkpoint = checkpointByAction.get(actionIndex + 1);
+
+    if (checkpoint) {
+      const actualContent = harness.controller.getContent();
+      checkpointResults.push({
+        actualContent,
+        expectedContent: checkpoint.expectedContent,
+        name: checkpoint.name,
+        pass: actualContent === checkpoint.expectedContent
+      });
+    }
+  }
+
+  const measuredTexts = (input.visibleTexts ?? []).map((text) => ({
+    measured: isVisibleTextPresent(harness.root, text),
+    text
+  }));
+  const expectedSelectionAnchor = input.expectedSelectionAnchor ?? input.expectedContent.length;
+  const selection = harness.controller.getSelection();
+  const pass =
+    insertResults.every(Boolean) &&
+    harness.controller.getContent() === input.expectedContent &&
+    selection.anchor === expectedSelectionAnchor &&
+    selection.head === expectedSelectionAnchor &&
+    checkpointResults.every((checkpoint) => checkpoint.pass) &&
+    measuredTexts.every((entry) => entry.measured);
+
+  const result = resultFor({
+    details: {
+      backspaceCount,
+      checkpointResults,
+      enterCount,
+      insertResults,
+      keyResults,
+      measuredTexts,
+      tabCount,
+      typedCharacterCount
+    },
+    expectedContent: input.expectedContent,
+    expectedSelection: {
+      anchor: expectedSelectionAnchor,
+      head: expectedSelectionAnchor
+    },
+    grammar: "list",
+    harness,
+    name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runStrictHumanListInputCases(): Promise<CaseResult[]> {
+  const mainExpectedContent = [
+    "- content 01",
+    "- 中文内容 02",
+    "",
+    "1. ordered 01",
+    "2. 有序内容 02",
+    "",
+    "- parent",
+    "  - child 01",
+    "  - 中文 child 02",
+    "",
+    "- final"
+  ].join("\n");
+
+  return [
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "content 01" },
+        { kind: "enter" },
+        { kind: "type", text: "中文内容 02" },
+        { kind: "enter" },
+        { kind: "enter" },
+        { kind: "type", text: "1" },
+        { kind: "type", text: "." },
+        { kind: "type", text: " " },
+        { kind: "type", text: "ordered 01" },
+        { kind: "enter" },
+        { kind: "type", text: "有序内容 02" },
+        { kind: "enter" },
+        { kind: "enter" },
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "parent" },
+        { kind: "enter" },
+        { kind: "tab" },
+        { kind: "type", text: "child 01" },
+        { kind: "enter" },
+        { kind: "type", text: "中文 child 02" },
+        { kind: "enter" },
+        { kind: "enter" },
+        { kind: "enter" },
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "final" }
+      ],
+      checkpoints: [
+        {
+          afterAction: 1,
+          expectedContent: "-",
+          name: "bare dash is still paragraph source"
+        },
+        {
+          afterAction: 2,
+          expectedContent: "- ",
+          name: "dash-space commits an unordered marker"
+        },
+        {
+          afterAction: 10,
+          expectedContent: ["- content 01", "- 中文内容 02", "", "1. "].join("\n"),
+          name: "ordered marker commits only after dot-space"
+        },
+        {
+          afterAction: 20,
+          expectedContent: [
+            "- content 01",
+            "- 中文内容 02",
+            "",
+            "1. ordered 01",
+            "2. 有序内容 02",
+            "",
+            "- parent",
+            "  - "
+          ].join("\n"),
+          name: "Tab demotes the auto-created child marker"
+        }
+      ],
+      expectedContent: mainExpectedContent,
+      name: "strict human typing builds mixed unordered ordered and nested lists",
+      visibleTexts: ["content 01", "中文内容 02", "ordered 01", "有序内容 02", "child 01", "中文 child 02", "final"]
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes a just-created unordered marker without source fallback"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "1" },
+        { kind: "type", text: "." },
+        { kind: "type", text: " " },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes a just-created ordered marker without source fallback"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "[ ] " },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes a just-created unchecked task marker without source fallback"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "[x] " },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes a just-created checked task marker without source fallback"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "content 01" },
+        { kind: "backspace", count: Array.from("content 01").length },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes an empty unordered marker after content is deleted"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "中文内容 02" },
+        { kind: "backspace", count: Array.from("中文内容 02").length },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes an empty Chinese unordered marker"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "1" },
+        { kind: "type", text: "." },
+        { kind: "type", text: " " },
+        { kind: "type", text: "ordered 01" },
+        { kind: "backspace", count: Array.from("ordered 01").length },
+        { kind: "backspace" }
+      ],
+      expectedContent: "",
+      name: "strict Backspace removes an empty ordered marker after content is deleted"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "parent" },
+        { kind: "enter" },
+        { kind: "tab" },
+        { kind: "type", text: "child" },
+        { kind: "backspace", count: Array.from("child").length },
+        { kind: "backspace" },
+        { kind: "backspace" }
+      ],
+      checkpoints: [
+        {
+          afterAction: 8,
+          expectedContent: "- parent\n  ",
+          name: "child marker deletion preserves child indentation"
+        }
+      ],
+      expectedContent: "- parent\n",
+      name: "strict Backspace removes a child marker in two stages"
+    }),
+    await runStrictHumanListInputCase({
+      actions: [
+        { kind: "type", text: "-" },
+        { kind: "type", text: " " },
+        { kind: "type", text: "item" },
+        { kind: "enter" },
+        { kind: "backspace" }
+      ],
+      expectedContent: "- item\n",
+      name: "strict Backspace removes an auto-created empty list item"
+    })
+  ];
+}
+
+async function runBareMarkerDraftInputCase(input: {
+  contentText: string;
+  markerInput: string;
+  name: string;
+}): Promise<CaseResult> {
+  const initialContent = "";
+  const committedMarker = `${input.markerInput} `;
+  const expectedContent = `${committedMarker}${input.contentText}`;
+  const harness = setupHarness(initialContent);
+  harness.controller.setSelection(0);
+  await settle();
+
+  const markerInsertResults: boolean[] = [];
+
+  for (const character of Array.from(input.markerInput)) {
+    markerInsertResults.push(nativeInsertText(harness.view, character));
+    await settle();
+  }
+
+  const markerInsertAccepted = markerInsertResults.every(Boolean);
+
+  const contentAfterMarker = harness.controller.getContent();
+  const selectionAfterMarker = harness.controller.getSelection();
+  const lineAfterMarker = findLineByText(harness.root, input.markerInput);
+  const lineAfterMarkerClasses = lineAfterMarker?.className ?? "";
+  const markerBeforePadding = lineAfterMarker?.querySelector(".cm-active-list-marker") ?? null;
+  const paddingInsertAccepted = nativeInsertText(harness.view, " ");
+  await settle();
+
+  const contentAfterPadding = harness.controller.getContent();
+  const selectionAfterPadding = harness.controller.getSelection();
+  const lineAfterPadding = findLineByText(harness.root, committedMarker);
+  const lineAfterPaddingClasses = lineAfterPadding?.className ?? "";
+  const activeMarker = lineAfterPadding?.querySelector(".cm-active-list-marker") ?? null;
+  const caretAfterPaddingRect = harness.view.coordsAtPos(selectionAfterPadding.anchor);
+  const caretAfterPaddingHeight =
+    caretAfterPaddingRect !== null &&
+    Number.isFinite(caretAfterPaddingRect.bottom) &&
+    Number.isFinite(caretAfterPaddingRect.top)
+      ? Math.max(0, caretAfterPaddingRect.bottom - caretAfterPaddingRect.top)
+      : null;
+  const markerRect = activeMarker?.getBoundingClientRect() ?? null;
+  const caretAfterPaddingHasGeometry =
+    caretAfterPaddingHeight !== null &&
+    caretAfterPaddingHeight > 0;
+  const caretAfterPaddingIsAfterMarker =
+    caretAfterPaddingRect !== null &&
+    markerRect !== null &&
+    caretAfterPaddingRect.left > markerRect.right + 1;
+  const markerStyle = activeMarker instanceof Element
+    ? window.getComputedStyle(activeMarker)
+    : null;
+  const markerColor = markerStyle?.color ?? "";
+  const markerVisible = !isTransparentColor(markerColor);
+  const contentInsertAccepted = nativeInsertText(harness.view, input.contentText);
+  await settle();
+
+  const finalSelection = harness.controller.getSelection();
+  const finalLine = findLineByText(harness.root, input.contentText);
+  const finalLineClasses = finalLine?.className ?? "";
+  const visibleLines = Array.from(harness.root.querySelectorAll<HTMLElement>(".cm-line"))
+    .map((line) => line.textContent ?? "")
+    .filter((text) => text.length > 0);
+  const pass =
+    markerInsertAccepted &&
+    paddingInsertAccepted &&
+    contentInsertAccepted &&
+    contentAfterMarker === input.markerInput &&
+    selectionAfterMarker.anchor === input.markerInput.length &&
+    selectionAfterMarker.head === input.markerInput.length &&
+    lineAfterMarker !== null &&
+    /\bcm-active-paragraph\b/u.test(lineAfterMarkerClasses) &&
+    !/\bcm-active-list\b/u.test(lineAfterMarkerClasses) &&
+    markerBeforePadding === null &&
+    contentAfterPadding === committedMarker &&
+    selectionAfterPadding.anchor === committedMarker.length &&
+    selectionAfterPadding.head === committedMarker.length &&
+    harness.controller.getContent() === expectedContent &&
+    harness.view.state.doc.lines === 1 &&
+    finalSelection.anchor === expectedContent.length &&
+    finalSelection.head === expectedContent.length &&
+    lineAfterPadding !== null &&
+    /\bcm-active-list\b/u.test(lineAfterPaddingClasses) &&
+    activeMarker?.textContent === input.markerInput &&
+    markerVisible &&
+    caretAfterPaddingHasGeometry &&
+    caretAfterPaddingIsAfterMarker &&
+    finalLine !== null &&
+    /\bcm-active-list\b/u.test(finalLineClasses) &&
+    isVisibleTextPresent(harness.root, input.contentText) &&
+    visibleLines.length === 1;
+
+  const result = resultFor({
+    details: {
+      activeMarkerText: activeMarker?.textContent ?? null,
+      caretAfterPaddingHasGeometry,
+      caretAfterPaddingHeight,
+      caretAfterPaddingIsAfterMarker,
+      caretAfterPaddingLeft: caretAfterPaddingRect?.left ?? null,
+      contentAfterMarker,
+      contentAfterPadding,
+      contentInsertAccepted,
+      documentLines: harness.view.state.doc.lines,
+      finalLineClasses,
+      lineAfterMarkerClasses,
+      lineAfterPaddingClasses,
+      markerLeft: markerRect?.left ?? null,
+      markerBeforePaddingText: markerBeforePadding?.textContent ?? null,
+      markerColor,
+      markerVisible,
+      markerRight: markerRect?.right ?? null,
+      markerInsertAccepted,
+      markerInsertResults,
+      paddingInsertAccepted,
+      selectionAfterPadding,
+      selectionAfterMarker,
+      visibleLines
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedContent.length, head: expectedContent.length },
+    grammar: "list",
+    harness,
+    name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runSingleDashDraftInputCase(): Promise<CaseResult> {
+  return runBareMarkerDraftInputCase({
+    contentText: "content",
+    markerInput: "-",
+    name: "a bare dash stays paragraph text until a following space commits the list marker"
+  });
+}
+
+async function runSingleOrderedMarkerDraftInputCase(): Promise<CaseResult> {
+  return runBareMarkerDraftInputCase({
+    contentText: "中文",
+    markerInput: "1.",
+    name: "a bare ordered marker stays paragraph text until a following space commits the list marker"
+  });
+}
+
+async function runSingleDashDirectChineseInputCase(): Promise<CaseResult> {
+  const initialContent = "";
+  const expectedContent = "-中文";
+  const harness = setupHarness(initialContent);
+  harness.controller.setSelection(0);
+  await settle();
+
+  const markerInsertAccepted = nativeInsertText(harness.view, "-");
+  await settle();
+
+  const markerSelection = harness.controller.getSelection();
+  const firstChineseInsertAccepted = nativeInsertText(harness.view, "中");
+  await settle();
+
+  const contentAfterFirstChinese = harness.controller.getContent();
+  const selectionAfterFirstChinese = harness.controller.getSelection();
+  const secondChineseInsertAccepted = nativeInsertText(harness.view, "文");
+  await settle();
+
+  const finalSelection = harness.controller.getSelection();
+  const finalLine = findLineByText(harness.root, "中文");
+  const finalLineClasses = finalLine?.className ?? "";
+  const marker = finalLine?.querySelector(".cm-active-list-marker") ?? null;
+  const chineseRect = findTextRect(harness.root, "中文");
+  const firstChineseRect = findTextRect(harness.root, "中");
+  const lineRect = finalLine?.getBoundingClientRect() ?? null;
+  const caretRect = harness.view.coordsAtPos(finalSelection.anchor);
+  const visibleLines = Array.from(harness.root.querySelectorAll<HTMLElement>(".cm-line"))
+    .map((line) => line.textContent ?? "")
+    .filter((text) => text.length > 0);
+  const firstChineseStaysOnLine =
+    firstChineseRect !== null &&
+    lineRect !== null &&
+    firstChineseRect.top >= lineRect.top - 2 &&
+    firstChineseRect.bottom <= lineRect.bottom + 2;
+  const caretHasGeometry =
+    caretRect !== null &&
+    Number.isFinite(caretRect.top) &&
+    Number.isFinite(caretRect.bottom) &&
+    caretRect.bottom > caretRect.top;
+  const caretStaysAfterChinese =
+    caretRect !== null &&
+    chineseRect !== null &&
+    caretRect.left >= chineseRect.right - 2 &&
+    Math.abs(caretRect.top - chineseRect.top) <= 2;
+  const pass =
+    markerInsertAccepted &&
+    firstChineseInsertAccepted &&
+    secondChineseInsertAccepted &&
+    markerSelection.anchor === 1 &&
+    markerSelection.head === 1 &&
+    contentAfterFirstChinese === "-中" &&
+    selectionAfterFirstChinese.anchor === "-中".length &&
+    selectionAfterFirstChinese.head === "-中".length &&
+    harness.controller.getContent() === expectedContent &&
+    harness.view.state.doc.lines === 1 &&
+    finalSelection.anchor === expectedContent.length &&
+    finalSelection.head === expectedContent.length &&
+    finalLine !== null &&
+    /\bcm-active-paragraph\b/u.test(finalLineClasses) &&
+    !/\bcm-active-list\b/u.test(finalLineClasses) &&
+    marker === null &&
+    chineseRect !== null &&
+    firstChineseStaysOnLine &&
+    caretHasGeometry &&
+    caretStaysAfterChinese &&
+    visibleLines.length === 1;
+
+  const result = resultFor({
+    details: {
+      caretHasGeometry,
+      caretLeft: caretRect?.left ?? null,
+      caretStaysAfterChinese,
+      caretTop: caretRect?.top ?? null,
+      chineseLeft: chineseRect?.left ?? null,
+      chineseRight: chineseRect?.right ?? null,
+      chineseTop: chineseRect?.top ?? null,
+      contentAfterFirstChinese,
+      documentLines: harness.view.state.doc.lines,
+      finalLineClasses,
+      firstChineseInsertAccepted,
+      firstChineseStaysOnLine,
+      lineBottom: lineRect?.bottom ?? null,
+      lineTop: lineRect?.top ?? null,
+      markerInsertAccepted,
+      markerText: marker?.textContent ?? null,
+      markerSelection,
+      secondChineseInsertAccepted,
+      selectionAfterFirstChinese,
+      visibleLines
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedContent.length, head: expectedContent.length },
+    grammar: "paragraph",
+    harness,
+    name: "typing Chinese directly after a bare dash keeps paragraph text on one line",
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runSingleOrderedMarkerDirectChineseInputCase(): Promise<CaseResult> {
+  const initialContent = "";
+  const markerInput = "1.";
+  const expectedContent = "1.中文";
+  const harness = setupHarness(initialContent);
+  harness.controller.setSelection(0);
+  await settle();
+
+  const markerInsertResults: boolean[] = [];
+
+  for (const character of Array.from(markerInput)) {
+    markerInsertResults.push(nativeInsertText(harness.view, character));
+    await settle();
+  }
+
+  const markerInsertAccepted = markerInsertResults.every(Boolean);
+  const markerSelection = harness.controller.getSelection();
+  const firstChineseInsertAccepted = nativeInsertText(harness.view, "中");
+  await settle();
+
+  const contentAfterFirstChinese = harness.controller.getContent();
+  const selectionAfterFirstChinese = harness.controller.getSelection();
+  const secondChineseInsertAccepted = nativeInsertText(harness.view, "文");
+  await settle();
+
+  const finalSelection = harness.controller.getSelection();
+  const finalLine = findLineByText(harness.root, "中文");
+  const finalLineClasses = finalLine?.className ?? "";
+  const marker = finalLine?.querySelector(".cm-active-list-marker") ?? null;
+  const chineseRect = findTextRect(harness.root, "中文");
+  const firstChineseRect = findTextRect(harness.root, "中");
+  const lineRect = finalLine?.getBoundingClientRect() ?? null;
+  const caretRect = harness.view.coordsAtPos(finalSelection.anchor);
+  const visibleLines = Array.from(harness.root.querySelectorAll<HTMLElement>(".cm-line"))
+    .map((line) => line.textContent ?? "")
+    .filter((text) => text.length > 0);
+  const firstChineseStaysOnLine =
+    firstChineseRect !== null &&
+    lineRect !== null &&
+    firstChineseRect.top >= lineRect.top - 2 &&
+    firstChineseRect.bottom <= lineRect.bottom + 2;
+  const caretHasGeometry =
+    caretRect !== null &&
+    Number.isFinite(caretRect.top) &&
+    Number.isFinite(caretRect.bottom) &&
+    caretRect.bottom > caretRect.top;
+  const caretStaysAfterChinese =
+    caretRect !== null &&
+    chineseRect !== null &&
+    caretRect.left >= chineseRect.right - 2 &&
+    Math.abs(caretRect.top - chineseRect.top) <= 2;
+  const pass =
+    markerInsertAccepted &&
+    firstChineseInsertAccepted &&
+    secondChineseInsertAccepted &&
+    markerSelection.anchor === markerInput.length &&
+    markerSelection.head === markerInput.length &&
+    contentAfterFirstChinese === "1.中" &&
+    selectionAfterFirstChinese.anchor === "1.中".length &&
+    selectionAfterFirstChinese.head === "1.中".length &&
+    harness.controller.getContent() === expectedContent &&
+    harness.view.state.doc.lines === 1 &&
+    finalSelection.anchor === expectedContent.length &&
+    finalSelection.head === expectedContent.length &&
+    finalLine !== null &&
+    /\bcm-active-paragraph\b/u.test(finalLineClasses) &&
+    !/\bcm-active-list\b/u.test(finalLineClasses) &&
+    marker === null &&
+    chineseRect !== null &&
+    firstChineseStaysOnLine &&
+    caretHasGeometry &&
+    caretStaysAfterChinese &&
+    visibleLines.length === 1;
+
+  const result = resultFor({
+    details: {
+      caretHasGeometry,
+      caretLeft: caretRect?.left ?? null,
+      caretStaysAfterChinese,
+      caretTop: caretRect?.top ?? null,
+      chineseLeft: chineseRect?.left ?? null,
+      chineseRight: chineseRect?.right ?? null,
+      chineseTop: chineseRect?.top ?? null,
+      contentAfterFirstChinese,
+      documentLines: harness.view.state.doc.lines,
+      finalLineClasses,
+      firstChineseInsertAccepted,
+      firstChineseStaysOnLine,
+      lineBottom: lineRect?.bottom ?? null,
+      lineTop: lineRect?.top ?? null,
+      markerInsertAccepted,
+      markerInsertResults,
+      markerText: marker?.textContent ?? null,
+      markerSelection,
+      secondChineseInsertAccepted,
+      selectionAfterFirstChinese,
+      visibleLines
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedContent.length, head: expectedContent.length },
+    grammar: "paragraph",
+    harness,
+    name: "typing Chinese directly after a bare ordered marker keeps paragraph text on one line",
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runBareDashCompositionPreviewCase(): Promise<CaseResult> {
+  const initialContent = "";
+  const expectedContent = "-list";
+  const harness = setupHarness(initialContent);
+  const editorRoot = harness.root.querySelector<HTMLElement>(".cm-editor");
+  if (!editorRoot) {
+    throw new Error("Missing editor root.");
+  }
+
+  harness.controller.setSelection(0);
+  await settle();
+
+  const markerInsertAccepted = nativeInsertText(harness.view, "-");
+  await settle();
+
+  const selectionAfterMarker = harness.controller.getSelection();
+  const compositionStartAccepted = dispatchCompositionEvent(editorRoot, "compositionstart", "l");
+  const compositionUpdateAccepted = dispatchCompositionEvent(editorRoot, "compositionupdate", "list");
+  const previewInsertAccepted = nativeInsertText(harness.view, "list");
+  await settle();
+
+  const finalSelection = harness.controller.getSelection();
+  const line = findLineByText(harness.root, "list");
+  const lineClasses = line?.className ?? "";
+  const dashRect = findTextRect(harness.root, "-");
+  const previewRect = findTextRect(harness.root, "list");
+  const lineRect = line?.getBoundingClientRect() ?? null;
+  const caretRect = harness.view.coordsAtPos(finalSelection.anchor);
+  const previewStaysOnMarkerLine =
+    dashRect !== null &&
+    previewRect !== null &&
+    Math.abs(previewRect.top - dashRect.top) <= 2 &&
+    lineRect !== null &&
+    previewRect.top >= lineRect.top - 2 &&
+    previewRect.bottom <= lineRect.bottom + 2;
+  const previewStartsAfterMarker =
+    dashRect !== null &&
+    previewRect !== null &&
+    previewRect.left >= dashRect.right - 2;
+  const caretStaysAfterPreview =
+    caretRect !== null &&
+    previewRect !== null &&
+    caretRect.left >= previewRect.right - 2 &&
+    Math.abs(caretRect.top - previewRect.top) <= 2;
+  const pass =
+    markerInsertAccepted &&
+    compositionStartAccepted &&
+    compositionUpdateAccepted &&
+    previewInsertAccepted &&
+    selectionAfterMarker.anchor === 1 &&
+    selectionAfterMarker.head === 1 &&
+    harness.controller.getContent() === expectedContent &&
+    finalSelection.anchor === expectedContent.length &&
+    finalSelection.head === expectedContent.length &&
+    line !== null &&
+    /\bcm-active-paragraph\b/u.test(lineClasses) &&
+    !/\bcm-active-list\b/u.test(lineClasses) &&
+    line.querySelector(".cm-active-list-marker") === null &&
+    previewStaysOnMarkerLine &&
+    previewStartsAfterMarker &&
+    caretStaysAfterPreview;
+
+  dispatchCompositionEvent(editorRoot, "compositionend", "list");
+  await settle();
+
+  const result = resultFor({
+    details: {
+      caretLeft: caretRect?.left ?? null,
+      caretStaysAfterPreview,
+      caretTop: caretRect?.top ?? null,
+      compositionStartAccepted,
+      compositionUpdateAccepted,
+      dashBottom: dashRect?.bottom ?? null,
+      dashLeft: dashRect?.left ?? null,
+      dashRight: dashRect?.right ?? null,
+      dashTop: dashRect?.top ?? null,
+      lineBottom: lineRect?.bottom ?? null,
+      lineClasses,
+      lineTop: lineRect?.top ?? null,
+      markerInsertAccepted,
+      previewBottom: previewRect?.bottom ?? null,
+      previewInsertAccepted,
+      previewLeft: previewRect?.left ?? null,
+      previewRight: previewRect?.right ?? null,
+      previewStartsAfterMarker,
+      previewStaysOnMarkerLine,
+      previewTop: previewRect?.top ?? null,
+      selectionAfterMarker
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedContent.length, head: expectedContent.length },
+    grammar: "paragraph",
+    harness,
+    name: "IME composition preview after a bare dash stays on the same paragraph line",
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runCommittedDashListCompositionPreviewCase(): Promise<CaseResult> {
+  const initialContent = "";
+  const committedMarker = "- ";
+  const compositionText = "list";
+  const expectedContent = `${committedMarker}${compositionText}`;
+  const harness = setupHarness(initialContent);
+  const editorRoot = harness.root.querySelector<HTMLElement>(".cm-editor");
+  if (!editorRoot) {
+    throw new Error("Missing editor root.");
+  }
+
+  harness.controller.setSelection(0);
+  await settle();
+
+  const markerInsertAccepted = nativeInsertText(harness.view, "-");
+  await settle();
+
+  const contentAfterMarker = harness.controller.getContent();
+  const selectionAfterMarker = harness.controller.getSelection();
+  const lineAfterMarker = findLineByText(harness.root, "-");
+  const lineAfterMarkerClasses = lineAfterMarker?.className ?? "";
+  const markerBeforePadding = lineAfterMarker?.querySelector(".cm-active-list-marker") ?? null;
+
+  const paddingInsertAccepted = nativeInsertText(harness.view, " ");
+  await settle();
+
+  const contentAfterPadding = harness.controller.getContent();
+  const selectionAfterPadding = harness.controller.getSelection();
+  const lineAfterPadding = findLineByText(harness.root, committedMarker);
+  const lineAfterPaddingClasses = lineAfterPadding?.className ?? "";
+  const activeMarker = lineAfterPadding?.querySelector<HTMLElement>(".cm-active-list-marker") ?? null;
+  const sourcePrefix = lineAfterPadding?.querySelector<HTMLElement>(".cm-active-list-source-prefix") ?? null;
+  const paddingAnchor = lineAfterPadding?.querySelector<HTMLElement>(".cm-active-list-padding-anchor") ?? null;
+  const markerRect = activeMarker?.getBoundingClientRect() ?? null;
+  const sourcePrefixRect = sourcePrefix?.getBoundingClientRect() ?? null;
+  const paddingAnchorRect = paddingAnchor?.getBoundingClientRect() ?? null;
+  const paddingAnchorStyle = paddingAnchor instanceof Element
+    ? window.getComputedStyle(paddingAnchor)
+    : null;
+  const paddingAnchorCaretColor = paddingAnchorStyle?.caretColor ?? "";
+  const paddingAnchorOverflow = paddingAnchorStyle?.overflow ?? "";
+  const paddingAnchorTextColor = paddingAnchorStyle?.color ?? "";
+  const paddingAnchorWidth = paddingAnchorRect?.width ?? null;
+  const imePreeditVisibilityProbe = measureTemporaryInlineText(paddingAnchor, "pin");
+  const lineAfterPaddingRect = lineAfterPadding?.getBoundingClientRect() ?? null;
+  const caretAfterPaddingRect = harness.view.coordsAtPos(selectionAfterPadding.anchor);
+  const domSelectionAfterPadding = describeDomSelectionGeometry();
+
+  const compositionStartAccepted = dispatchCompositionEvent(editorRoot, "compositionstart", "l");
+  const compositionUpdateAccepted = dispatchCompositionEvent(editorRoot, "compositionupdate", compositionText);
+  const previewInsertAccepted = nativeInsertText(harness.view, compositionText);
+  await settle();
+
+  const finalSelection = harness.controller.getSelection();
+  const finalLine = findLineByText(harness.root, compositionText);
+  const finalLineClasses = finalLine?.className ?? "";
+  const previewRect = findTextRect(harness.root, compositionText);
+  const finalLineRect = finalLine?.getBoundingClientRect() ?? null;
+  const caretAfterPreviewRect = harness.view.coordsAtPos(finalSelection.anchor);
+  const domSelectionAfterPreview = describeDomSelectionGeometry();
+  const activeMarkerAfterPreview = finalLine?.querySelector<HTMLElement>(".cm-active-list-marker") ?? null;
+  const markerAfterPreviewRect = activeMarkerAfterPreview?.getBoundingClientRect() ?? null;
+  const sourcePrefixAfterPreview =
+    finalLine?.querySelector<HTMLElement>(".cm-active-list-source-prefix") ?? null;
+  const sourcePrefixAfterPreviewRect = sourcePrefixAfterPreview?.getBoundingClientRect() ?? null;
+  const visibleLines = Array.from(harness.root.querySelectorAll<HTMLElement>(".cm-line"))
+    .map((line) => line.textContent ?? "")
+    .filter((text) => text.length > 0);
+  const markerStyle = activeMarkerAfterPreview instanceof Element
+    ? window.getComputedStyle(activeMarkerAfterPreview)
+    : null;
+  const markerColor = markerStyle?.color ?? "";
+  const markerVisible = !isTransparentColor(markerColor);
+  const caretAfterPaddingHasGeometry =
+    caretAfterPaddingRect !== null &&
+    Number.isFinite(caretAfterPaddingRect.left) &&
+    Number.isFinite(caretAfterPaddingRect.top);
+  const caretAfterPaddingStaysOnMarkerLine =
+    caretAfterPaddingRect !== null &&
+    lineAfterPaddingRect !== null &&
+    caretAfterPaddingRect.top >= lineAfterPaddingRect.top - 2 &&
+    caretAfterPaddingRect.bottom <= lineAfterPaddingRect.bottom + 2;
+  const domSelectionAfterPaddingHasGeometry =
+    typeof domSelectionAfterPadding.rectHeight === "number" &&
+    domSelectionAfterPadding.rectHeight > 0;
+  const domSelectionAfterPaddingStaysOnMarkerLine =
+    typeof domSelectionAfterPadding.rectTop === "number" &&
+    typeof domSelectionAfterPadding.rectBottom === "number" &&
+    lineAfterPaddingRect !== null &&
+    domSelectionAfterPadding.rectTop >= lineAfterPaddingRect.top - 2 &&
+    domSelectionAfterPadding.rectBottom <= lineAfterPaddingRect.bottom + 2;
+  const previewStaysOnMarkerLine =
+    previewRect !== null &&
+    finalLineRect !== null &&
+    previewRect.top >= finalLineRect.top - 2 &&
+    previewRect.bottom <= finalLineRect.bottom + 2;
+  const previewStartsAfterMarker =
+    previewRect !== null &&
+    markerAfterPreviewRect !== null &&
+    previewRect.left >= markerAfterPreviewRect.right - 2;
+  const previewStartsAfterHiddenPrefixAnchor =
+    previewRect !== null &&
+    sourcePrefixAfterPreviewRect !== null &&
+    previewRect.left >= sourcePrefixAfterPreviewRect.right - 2;
+  const markerPaddingUsesEditableImeAnchor =
+    sourcePrefix === null &&
+    sourcePrefixAfterPreview === null &&
+    paddingAnchor?.textContent === " " &&
+    paddingAnchorWidth !== null &&
+    paddingAnchorWidth > 0 &&
+    paddingAnchorOverflow === "visible" &&
+    !isTransparentColor(paddingAnchorCaretColor) &&
+    !isTransparentColor(paddingAnchorTextColor) &&
+    imePreeditVisibilityProbe.width !== null &&
+    imePreeditVisibilityProbe.width > 0 &&
+    imePreeditVisibilityProbe.height !== null &&
+    imePreeditVisibilityProbe.height > 0 &&
+    !isTransparentColor(imePreeditVisibilityProbe.color ?? "") &&
+    domSelectionAfterPadding.anchorParentClass === "cm-active-list-padding-anchor" &&
+    domSelectionAfterPreview.anchorParentClass === finalLineClasses;
+  const caretStaysAfterPreview =
+    caretAfterPreviewRect !== null &&
+    previewRect !== null &&
+    caretAfterPreviewRect.left >= previewRect.right - 2 &&
+    Math.abs(caretAfterPreviewRect.top - previewRect.top) <= 2;
+  const pass =
+    markerInsertAccepted &&
+    paddingInsertAccepted &&
+    compositionStartAccepted &&
+    compositionUpdateAccepted &&
+    previewInsertAccepted &&
+    contentAfterMarker === "-" &&
+    selectionAfterMarker.anchor === 1 &&
+    selectionAfterMarker.head === 1 &&
+    lineAfterMarker !== null &&
+    /\bcm-active-paragraph\b/u.test(lineAfterMarkerClasses) &&
+    !/\bcm-active-list\b/u.test(lineAfterMarkerClasses) &&
+    markerBeforePadding === null &&
+    contentAfterPadding === committedMarker &&
+    selectionAfterPadding.anchor === committedMarker.length &&
+    selectionAfterPadding.head === committedMarker.length &&
+    lineAfterPadding !== null &&
+    /\bcm-active-list\b/u.test(lineAfterPaddingClasses) &&
+    activeMarker?.textContent === "-" &&
+    markerPaddingUsesEditableImeAnchor &&
+    caretAfterPaddingHasGeometry &&
+    caretAfterPaddingStaysOnMarkerLine &&
+    domSelectionAfterPaddingHasGeometry &&
+    domSelectionAfterPaddingStaysOnMarkerLine &&
+    harness.controller.getContent() === expectedContent &&
+    harness.view.state.doc.lines === 1 &&
+    finalSelection.anchor === expectedContent.length &&
+    finalSelection.head === expectedContent.length &&
+    finalLine !== null &&
+    /\bcm-active-list\b/u.test(finalLineClasses) &&
+    activeMarkerAfterPreview?.textContent === "-" &&
+    markerVisible &&
+    previewStaysOnMarkerLine &&
+    previewStartsAfterMarker &&
+    caretStaysAfterPreview &&
+    visibleLines.length === 1;
+
+  dispatchCompositionEvent(editorRoot, "compositionend", compositionText);
+  await settle();
+
+  const result = resultFor({
+    details: {
+      activeMarkerText: activeMarker?.textContent ?? null,
+      caretAfterPaddingHasGeometry,
+      caretAfterPaddingLeft: caretAfterPaddingRect?.left ?? null,
+      caretAfterPaddingStaysOnMarkerLine,
+      caretAfterPaddingTop: caretAfterPaddingRect?.top ?? null,
+      caretAfterPreviewLeft: caretAfterPreviewRect?.left ?? null,
+      caretAfterPreviewTop: caretAfterPreviewRect?.top ?? null,
+      caretStaysAfterPreview,
+      compositionStartAccepted,
+      compositionUpdateAccepted,
+      contentAfterMarker,
+      contentAfterPadding,
+      domSelectionAfterPadding,
+      domSelectionAfterPaddingHasGeometry,
+      domSelectionAfterPaddingStaysOnMarkerLine,
+      domSelectionAfterPreview,
+      finalLineClasses,
+      lineAfterMarkerClasses,
+      lineAfterPaddingBottom: lineAfterPaddingRect?.bottom ?? null,
+      lineAfterPaddingClasses,
+      lineAfterPaddingTop: lineAfterPaddingRect?.top ?? null,
+      markerAfterPreviewLeft: markerAfterPreviewRect?.left ?? null,
+      markerAfterPreviewRight: markerAfterPreviewRect?.right ?? null,
+      markerInsertAccepted,
+      markerColor,
+      markerVisible,
+      markerRight: markerRect?.right ?? null,
+      markerPaddingAnchorCaretColor: paddingAnchorCaretColor,
+      markerPaddingAnchorOverflow: paddingAnchorOverflow,
+      markerPaddingAnchorText: paddingAnchor?.textContent ?? null,
+      markerPaddingAnchorTextColor: paddingAnchorTextColor,
+      markerPaddingAnchorWidth: paddingAnchorWidth,
+      markerPaddingUsesEditableImeAnchor,
+      simulatedImePreeditColor: imePreeditVisibilityProbe.color,
+      simulatedImePreeditHeight: imePreeditVisibilityProbe.height,
+      simulatedImePreeditWidth: imePreeditVisibilityProbe.width,
+      paddingInsertAccepted,
+      previewInsertAccepted,
+      previewLeft: previewRect?.left ?? null,
+      previewRight: previewRect?.right ?? null,
+      previewStartsAfterHiddenPrefixAnchor,
+      previewStartsAfterMarker,
+      previewStaysOnMarkerLine,
+      previewTop: previewRect?.top ?? null,
+      selectionAfterMarker,
+      selectionAfterPadding,
+      sourcePrefixAfterPreviewRight: sourcePrefixAfterPreviewRect?.right ?? null,
+      sourcePrefixText: sourcePrefix?.textContent ?? null,
+      sourcePrefixWidth: sourcePrefixRect?.width ?? null,
+      visibleLines
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedContent.length, head: expectedContent.length },
+    grammar: "list",
+    harness,
+    name: "IME composition preview after dash-space list marker stays after the active marker",
     pass
   });
   harness.controller.destroy();
@@ -383,6 +1807,84 @@ async function runListDoubleEnterBackspaceCase(): Promise<CaseResult> {
     grammar: "list",
     harness,
     name: "Backspace returns from the list-exit blank line in one press",
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
+async function runNestedEmptyListMarkerBackspaceCaretCase(): Promise<CaseResult> {
+  const initialContent = ["- parent", "  - child", "    - grandchild"].join("\n");
+  const expectedMarkerContent = `${initialContent}\n    - `;
+  const expectedContent = `${initialContent}\n    `;
+  const expectedSelection = expectedContent.length;
+  const harness = setupHarness(initialContent);
+
+  harness.controller.setSelection(initialContent.length);
+  await settle();
+  harness.controller.pressEnter();
+  await settle();
+  const contentAfterEnter = harness.controller.getContent();
+  const selectionAfterEnter = harness.controller.getSelection();
+
+  harness.controller.pressBackspace();
+  await settle();
+
+  const selectionAfterBackspace = harness.controller.getSelection();
+  const blankLine = findLineByExactText(harness.root, "    ");
+  const blankLineClasses = blankLine?.className ?? "";
+  const blankLineRect = blankLine?.getBoundingClientRect() ?? null;
+  const caretRect = harness.view.coordsAtPos(selectionAfterBackspace.anchor);
+  const caretHeight = caretRect === null ? null : caretRect.bottom - caretRect.top;
+  const domSelection = describeDomSelectionGeometry();
+  const blankLineHasVisibleHeight =
+    blankLineRect !== null &&
+    blankLineRect.height > 0;
+  const caretHasGeometry =
+    caretRect !== null &&
+    Number.isFinite(caretRect.left) &&
+    Number.isFinite(caretRect.top) &&
+    caretHeight !== null &&
+    caretHeight > 0;
+  const caretStaysOnBlankLine =
+    caretRect !== null &&
+    blankLineRect !== null &&
+    caretRect.top >= blankLineRect.top - 2 &&
+    caretRect.bottom <= blankLineRect.bottom + 2;
+  const pass =
+    contentAfterEnter === expectedMarkerContent &&
+    selectionAfterEnter.anchor === expectedMarkerContent.length &&
+    selectionAfterEnter.head === expectedMarkerContent.length &&
+    harness.controller.getContent() === expectedContent &&
+    selectionAfterBackspace.anchor === expectedSelection &&
+    selectionAfterBackspace.head === expectedSelection &&
+    blankLine !== null &&
+    !/\bcm-inactive-blank-line\b/u.test(blankLineClasses) &&
+    blankLineHasVisibleHeight &&
+    caretHasGeometry &&
+    caretStaysOnBlankLine;
+
+  const result = resultFor({
+    details: {
+      blankLineClasses,
+      blankLineHeight: blankLineRect?.height ?? null,
+      blankLineText: blankLine?.textContent ?? null,
+      caretBottom: caretRect?.bottom ?? null,
+      caretHasGeometry,
+      caretHeight,
+      caretLeft: caretRect?.left ?? null,
+      caretStaysOnBlankLine,
+      caretTop: caretRect?.top ?? null,
+      contentAfterEnter,
+      domSelection,
+      selectionAfterBackspace,
+      selectionAfterEnter
+    },
+    expectedContent,
+    expectedSelection: { anchor: expectedSelection, head: expectedSelection },
+    grammar: "list",
+    harness,
+    name: "Backspace from an auto-created nested empty list item leaves a visible indented blank-line caret",
     pass
   });
   harness.controller.destroy();
@@ -701,6 +2203,72 @@ async function runBlockquoteRawPrefixCase(): Promise<CaseResult> {
   return result;
 }
 
+async function runListDragSelectionCase(input: {
+  initialContent: string;
+  name: string;
+  selectionAnchor: number;
+  visibleText: string;
+}): Promise<CaseResult> {
+  const harness = setupHarness(input.initialContent);
+  harness.controller.setSelection(input.selectionAnchor);
+  await settle();
+
+  const rect = findTextRect(harness.root, input.visibleText);
+  const line = findLineByText(harness.root, input.visibleText);
+  if (!rect || !line) {
+    const result = resultFor({
+      details: {
+        lineFound: line !== null,
+        reason: "content rect or line missing",
+        rectFound: rect !== null
+      },
+      grammar: "list",
+      harness,
+      name: input.name,
+      pass: false
+    });
+    harness.controller.destroy();
+    return result;
+  }
+
+  const y = rect.top + rect.height / 2;
+  const fromX = rect.left + 1;
+  const toX = rect.right - 1;
+
+  dispatchMouse(line, "mousedown", { clientX: fromX, clientY: y });
+  dispatchMouse(document, "mousemove", { clientX: toX, clientY: y });
+  dispatchMouse(document, "mouseup", { clientX: toX, clientY: y });
+  await settle();
+
+  const selection = harness.controller.getSelection();
+  const selectedFrom = Math.min(selection.anchor, selection.head);
+  const selectedTo = Math.max(selection.anchor, selection.head);
+  const expectedFrom = input.initialContent.indexOf(input.visibleText);
+  const expectedTo = expectedFrom + input.visibleText.length;
+  const pass = expectedFrom >= 0 && selectedFrom <= expectedFrom && selectedTo >= expectedTo;
+
+  const result = resultFor({
+    details: {
+      dragFromX: fromX,
+      dragTarget: describeElement(line),
+      dragToX: toX,
+      expectedFrom,
+      expectedTo,
+      lineClasses: line.className,
+      selectedFrom,
+      selectedText: input.initialContent.slice(selectedFrom, selectedTo),
+      selectedTo
+    },
+    expectedSelection: { anchor: expectedFrom, head: expectedTo },
+    grammar: "list",
+    harness,
+    name: input.name,
+    pass
+  });
+  harness.controller.destroy();
+  return result;
+}
+
 async function runBlockquoteDragSelectionCase(): Promise<CaseResult> {
   const initialContent = "> 选择这一整行";
   const harness = setupHarness(initialContent);
@@ -797,6 +2365,16 @@ export async function runMarkdownEditingExperienceProbe(): Promise<ProbeResult> 
     })
   );
 
+  cases.push(...await runListStyleNativeInputCases());
+  cases.push(await runSingleDashDraftInputCase());
+  cases.push(await runSingleOrderedMarkerDraftInputCase());
+  cases.push(await runSingleDashDirectChineseInputCase());
+  cases.push(await runSingleOrderedMarkerDirectChineseInputCase());
+  cases.push(await runBareDashCompositionPreviewCase());
+  cases.push(await runCommittedDashListCompositionPreviewCase());
+  cases.push(...await runSequentialListTypingCases());
+  cases.push(...await runStrictHumanListInputCases());
+
   {
     const initialContent = [
       "- 1",
@@ -838,6 +2416,7 @@ export async function runMarkdownEditingExperienceProbe(): Promise<ProbeResult> 
 
   cases.push(await runListDoubleEnterExitInsertCase());
   cases.push(await runListDoubleEnterBackspaceCase());
+  cases.push(await runNestedEmptyListMarkerBackspaceCaretCase());
 
   cases.push(
     await runNativeInsertCase({
@@ -876,6 +2455,42 @@ export async function runMarkdownEditingExperienceProbe(): Promise<ProbeResult> 
   );
 
   cases.push(await runBlockquoteRawPrefixCase());
+
+  cases.push(
+    await runListDragSelectionCase({
+      initialContent: ["段落", "- 选择这一整行"].join("\n"),
+      name: "mouse drag can select rendered unordered list item content",
+      selectionAnchor: 0,
+      visibleText: "选择这一整行"
+    })
+  );
+
+  cases.push(
+    await runListDragSelectionCase({
+      initialContent: ["段落", "1. 选择有序这一行"].join("\n"),
+      name: "mouse drag can select rendered ordered list item content",
+      selectionAnchor: 0,
+      visibleText: "选择有序这一行"
+    })
+  );
+
+  cases.push(
+    await runListDragSelectionCase({
+      initialContent: ["段落", "- [ ] 选择任务这一行"].join("\n"),
+      name: "mouse drag can select rendered task list item content",
+      selectionAnchor: 0,
+      visibleText: "选择任务这一行"
+    })
+  );
+
+  cases.push(
+    await runListDragSelectionCase({
+      initialContent: ["段落", "- 父项", "  - 选择子列表这一行"].join("\n"),
+      name: "mouse drag can select rendered nested list item content",
+      selectionAnchor: 0,
+      visibleText: "选择子列表这一行"
+    })
+  );
 
   cases.push(
     await runBackspaceCase({
